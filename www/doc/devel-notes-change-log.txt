@@ -1,0 +1,43 @@
+Development notes and change log
+
+
+
+Documentation changes are too numerous to deliniate.
+General strategy is to separate into topics of:
+setup, inbound email configuration, outbound email configuration,
+and inbound email for package developers
+
+Portions of these source have been added to new docs:
+
+http://openacs.org/xowiki/incoming_email
+http://openacs.org/forums/message-view?message_id=543694
+
+Some suggestions have been incorporated into new code.
+
+
+
+API changes
+
+If from is blank, the 'to' is new.
+
+From                            To
+ acs_mail_lite::mail_dir         acs_mail_lite::incoming_mail_dir
+ acs_mail_lite::address_domain   acs_mail_lite::incoming_domain
+ acs_mail_lite::get_package_id   apm_package_id_from_key
+ acs_mail_lite::get_parameter    parameter::get_from_package_key
+                                 acs_mail_lite::scan_incoming 
+
+
+New parameters added to new section: inbound_email
+
+Parameters
+ BounceScanQueue                 IncomingScanQueue
+ BounceDomain                    IncomingDomian
+ send_immediately                SendImmediatelyP
+                                 IMAPHost
+                                 IMAPPassword
+                                 IMAPPort
+                                 IMAPTimeout
+                                 IMAPUser
+                                 IncomingFilterProcName
+                                 
