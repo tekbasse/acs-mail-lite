@@ -27,7 +27,10 @@
   </ul>
   
   <h2>Release Notes</h2>
-  <p>IMAP4 new feature</p>
+  
+  <p>
+    A new IMAP4 feature. See <a href="analysis-notes">planning notes</a> and <a href="devel-notes-change-log.txt">development and change notes</a> for change details and reasoning.
+  </p>
   <p>
     Please file bugs in the <a href="http://openacs.org/bugtracker/openacs/">Bug Tracker</a>.
   </p>
