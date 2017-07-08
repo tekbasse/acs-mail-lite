@@ -259,7 +259,8 @@
     the duplicates as if they are not duplicates.
   </p>
   <p>
-    Check nsv_set acs_mail_lite_scan_replies_active_p when running.
+    Check nsv_set acs_mail_lite_scan_replies_active_p when running new cycle.
+    Also set replies_next_start_est to clock seconds for use with time calcs later in cycle.
     If already running, wait a second, check again.. until 90% of duration has elapsed.
     If still running, log a message and quit in time for next event.
   </p>
@@ -288,7 +289,8 @@
     For acs_mail_lite::scan_replies,
   </p>
   <p>
-    When quitting current scheduled event, don't log out if all processes are not done.
+    When quitting current scheduled event, don't log out if all processes are not done, or imaptimeout is greater than duration to estimate of next event.
+   
     Stay logged in for next cycle.
   </p>
   <p>
