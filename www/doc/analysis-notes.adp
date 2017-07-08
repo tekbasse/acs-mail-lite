@@ -249,20 +249,45 @@
 
   <h3>New procs</h3>
   <p>For imap, each begin of a process should not assume a connection exists or doesn't exist. Check connection using 'imap ping' before login.
-    This should help re-correct any connection drop-outs.
+    This should help re-correct any connection drop-outs due to intermittent or one-time connection issues.
   </p>
   <p>Each scheduled event should quit in time for next process, so that imap info being processed is always nearly up-to-date.
     This is important in case a separate manual imap process is working in tandem and changing circumstances.
+    This is equally important to quit in time, because imap references relative sequences of emails.
+    Two concurrent connections would likely have different and overlapping references.
+    The overlapping references would likely cause issues, since each connection would expect to process
+    the duplicates as if they are not duplicates.
   </p>
-  
-  <p>For acs_mail_lite::scan_replies,</p>
   <p>
-    keep dynamic stats on timing of each process of email of current scheduled proc.
-    Use the info to determine if the proc should quit in time for next cycle.
-    Use nsv_set acs_mail_lite_scan_replies_active_p when running.
-    Use nsv_set acs_mail_lite_scan_replies_est_adj to adjust cyle estimate by integer seconds
-    if next cylce starts and current cycle runs, nsv_set acs_mail_lite_scan_replies_est_adj - a cylce amount.. so need to track average of cycle times - outliers
-</p><p>
+    Check nsv_set acs_mail_lite_scan_replies_active_p when running.
+    If already running, wait a second, check again.. until 90% of duration has elapsed.
+    If still running, log a message and quit in time for next event.
+  </p>
+  <p>
+    Each scheduled event should also use as much time as it needs up to the cut-off at the next scheduled event.
+    Ideally, it needs to forecast if it is going to go overtime with processing of the next email, and quit just before it does.
+  </p>
+  <p>
+    One could track the duration of each process of most recent (up to) 1000 emails with persistence via nsv_lappend duration_list.
+    Use the info to determine a time adjustment for quiting before next cycle:
+    nsv_set acs_mail_lite_scan_replies_est_dur_per_cycle
+  </p>
+  <p>
+    And yet, predicting the duration of the future process is difficult.
+    What if the email is 10MB and needs parsed, whereas all prior emails were less then 10kb?
+  </p>
+  <p>
+    If next cylce starts and current cycle is still running,
+    set acs_mail_lite_scan_replies_est_dur_per_cycle_override to actual wait time the current cycle has to wait.
+  </p>
+  <p>
+    Each subsquent cycle moves toward renormalization by adjusting acs_mail_lite_scan_replies_est_dur_per_cycle_override toward acs_mail_lite_scan_replies_est_dur_per_cycle
+    by one acs_mail_lite_scan_replies_est_dur_per_cycle, with min at acs_mail_lite_scan_replies_est_dur_per_cycle.
+  </p>
+  <p>
+    For acs_mail_lite::scan_replies,
+  </p>
+  <p>
     When quitting current scheduled event, don't log out if all processes are not done.
     Stay logged in for next cycle.
   </p>
