@@ -2,7 +2,7 @@
   <property name="title">@title;noquote@</property>
   <property name="context">@context;noquote@</property>
   <h1>@title@</h1>
-<p>Public API</p>
+<h3>Public API</h3>
 <table cellspacing="0" cellpadding="0">
   
   <tr valign="top">
@@ -172,7 +172,7 @@
   
 </table>
 
-  <p>Private procs</p>
+  <h3>Private procs</h3>
   <table cellspacing="0" cellpadding="0">
   
   
@@ -246,3 +246,25 @@
   </tr>
   
 </table>
+
+  <h3>New procs</h3>
+  <p>For imap, each begin of a process should not assume a connection exists or doesn't exist. Check connection using 'imap ping' before login.
+    This should help re-correct any connection drop-outs.
+  </p>
+  <p>Each scheduled event should quit in time for next process, so that imap info being processed is always nearly up-to-date.
+    This is important in case a separate manual imap process is working in tandem and changing circumstances.
+  </p>
+  
+  <p>For acs_mail_lite::scan_replies,</p>
+  <p>
+    keep dynamic stats on timing of each process of email of current scheduled proc.
+    Use the info to determine if the proc should quit in time for next cycle.
+    Use nsv_set acs_mail_lite_scan_replies_active_p when running.
+    Use nsv_set acs_mail_lite_scan_replies_est_adj to adjust cyle estimate by integer seconds
+    if next cylce starts and current cycle runs, nsv_set acs_mail_lite_scan_replies_est_adj - a cylce amount.. so need to track average of cycle times - outliers
+</p><p>
+    When quitting current scheduled event, don't log out if all processes are not done.
+    Stay logged in for next cycle.
+  </p>
+  <p>
+    
