@@ -294,4 +294,19 @@
     Stay logged in for next cycle.
   </p>
   <p>
-    
+    Delete processed messages when done with a cycle?
+    No. What if message is used by a callback with delay in processing?
+    Put processed emails in a designated folder.
+    Designated folder may be Trash.
+    Set ProcessFolderName by parameter If empty, Default is hostname of ad_url ie:
+    [util::split_location [ad_url] protoVar ProcessFolderName portVar]
+    </p>
+
+  <h4>
+    Email attachments
+    </h4>
+  <p>
+   Since messages are not immediately deleted, create a table of attachment url references. Remove attachmenets older than AttachmentLife parameter seconds.
+   Set default to 3 days old (259200 seconds).
+   Unless ProcessFolderName is Trash, email attachments can be recovered by original email in ProcessFolderName.
+    </p>
