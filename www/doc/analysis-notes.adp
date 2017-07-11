@@ -287,6 +287,11 @@
   </p>
   <p>
     For acs_mail_lite::scan_replies,
+  </p><p>
+    Keep track of flags while processing.<br/>
+    Mark /read when reading.<br/>
+    Mark /replied if replying.
+
   </p>
   <p>
     When quitting current scheduled event, don't log out if all processes are not done, or imaptimeout is greater than duration to estimate of next event.
@@ -296,10 +301,11 @@
   <p>
     Delete processed messages when done with a cycle?
     No. What if message is used by a callback with delay in processing?
-    Put processed emails in a designated folder.
+    Move processed emails in a designated folder ProcessFolderName parameter.
     Designated folder may be Trash.
     Set ProcessFolderName by parameter If empty, Default is hostname of ad_url ie:
     [util::split_location [ad_url] protoVar ProcessFolderName portVar]
+    If folder does not exist, create it. ProcessFolderName only needs checked if name has changed.
     </p>
 
   <h4>
