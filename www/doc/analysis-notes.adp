@@ -258,43 +258,89 @@
     The overlapping references would likely cause issues, since each connection would expect to process
     the duplicates as if they are not duplicates.
   </p>
+  <h4>nsv inter-procedure array acs_mail_lite indexes</h4>
+  <pre>example usage:
+    nsv_set acs_mail_lite scan_replies_active_p 0
+  </pre>
+  <dl>
+    <dt>scan_replies_active_p</dt>
+    <dd>Answers question. Is a proc currently scanning replies?</dd>
+
+    <dt>replies_est_next_start</dt>
+    <dd>Approx value of [clock seconds] next scan is expected to begin</dd>
+
+    <dt>duration_ms_list</dt>
+    <dd>Tracks duration of processing of each email in ms of most recent process, appended as a list.
+      When a new process starts processing email, the list is reset to only include the last 100 emails. That way, there is always rolling statistics for forecasting process times.</dd>
+
+    <dt>scan_replies_est_dur_per_cycle</dt>
+    <dd>Estimate of duration of current cycle</dd>
+
+    <dt>scan_replies_est_quit_time_cs</dt>
+    <dd>When the current cycle should quit based on [clock seconds]</dd>
+
+    <dt>scan_replies_start_time_cs</dt>
+    <dd>When the current cycle started scanning based on [clock seconds]</dd>
+
+    <dt>cycle_start_time_cs</dt>
+    <dd>When the current cycle started (pre IMAP authorization etc) based on [clock seconds]</dd>
+
+    <dt>cycle_est_next_start_time_cs</dt>
+    <dd>When the next cycle is to start (pre IMAP authorization etc) based on [clock seconds]</dd>
+
+    <dt>parameter_val_changed_p</dt>
+    <dd>If related parameters change, performance tuning underway. Reset statistics.</dd>
+
+    <dt>scan_replies_est_dur_per_cycle_override</dt>
+    <dd>If this value is set, use it instead of the <code>scan_replies_est_dur_per_cycle</code></dd>
+
+    <dt>accumulative_delay_cycles</dt>
+    <dd>Number of cycles that have been skipped 100% due to ongoing process (in cycles).</dd>
+      
+    
+  </dl>
   <p>
-    Check nsv_set acs_mail_lite_scan_replies_active_p when running new cycle.
-    Also set replies_next_start_est to clock seconds for use with time calcs later in cycle.
+    Check <code>scan_replies_active_p</code> when running new cycle.
+    Also set <code>replies_est_next_start</code> to clock seconds for use with time calcs later in cycle.
     If already running, wait a second, check again.. until 90% of duration has elapsed.
     If still running, log a message and quit in time for next event.
   </p>
   <p>
-    Each scheduled event should also use as much time as it needs up to the cut-off at the next scheduled event.
+    Each scheduled procedure should also use as much time as it needs up to the cut-off at the next scheduled event.
     Ideally, it needs to forecast if it is going to go overtime with processing of the next email, and quit just before it does.
   </p>
   <p>
-    One could track the duration of each process of most recent (up to) 1000 emails with persistence via nsv_lappend duration_list.
-    Use the info to determine a time adjustment for quiting before next cycle:
-    nsv_set acs_mail_lite_scan_replies_est_dur_per_cycle
+    Use <code>duration_ms_list</code> to determine a time adjustment for quiting before next cycle:
+    <code>scan_replies_est_dur_per_cycle</code> + <code>scan_repies_start_time</code> =
+    <code>scan_replies_est_quit_time_cs</code>
   </p>
   <p>
     And yet, predicting the duration of the future process is difficult.
     What if the email is 10MB and needs parsed, whereas all prior emails were less then 10kb?
+    What if one of the callbacks converts a pdf into a png and annotates it for a web view and takes a few minutes?
+    What if the next 5 emails have callbacks that take 5 to 15 minutes to process each waiting on an external service?
   </p>
   <p>
     If next cylce starts and current cycle is still running,
-    set acs_mail_lite_scan_replies_est_dur_per_cycle_override to actual wait time the current cycle has to wait.
+    set <code>scan_replies_est_dur_per_cycle_override</code> to actual wait time the current cycle has to wait including any prior cycle wait time --if the delays exceed one cycle (<code>accumulative_delay_cycles</code>.
   </p>
   <p>
-    Each subsquent cycle moves toward renormalization by adjusting acs_mail_lite_scan_replies_est_dur_per_cycle_override toward acs_mail_lite_scan_replies_est_dur_per_cycle
-    by one acs_mail_lite_scan_replies_est_dur_per_cycle, with min at acs_mail_lite_scan_replies_est_dur_per_cycle.
+    Each subsquent cycle moves toward renormalization by adjusting
+    <code>scan_replies_est_dur_per_cycle_override</code> toward value of
+    <code>scan_replies_est_dur_per_cycle</code> by one
+    <code>replies_est_dur_per_cycle</code> with minimum of
+    <code>scan_replies_est_dur_per_cycle</code>.
   </p>
   <p>
     For acs_mail_lite::scan_replies,
   </p><p>
-    Keep track of flags while processing.<br/>
+    Keep track of email flags while processing.<br/>
     Mark /read when reading.<br/>
     Mark /replied if replying.
-
   </p>
   <p>
-    When quitting current scheduled event, don't log out if all processes are not done, or imaptimeout is greater than duration to estimate of next event.
+    When quitting current scheduled event, don't log out if all processes are not done.
+    Also, don't logout if <code>imaptimeout</code> is greater than duration to <code>cycle_est_next_start_time_cs</code>.
    
     Stay logged in for next cycle.
   </p>
@@ -312,7 +358,7 @@
     Email attachments
     </h4>
   <p>
-   Since messages are not immediately deleted, create a table of attachment url references. Remove attachmenets older than AttachmentLife parameter seconds.
+   Since messages are not immediately deleted, create a table of attachment url references. Remove attachments older than AttachmentLife parameter seconds.
    Set default to 3 days old (259200 seconds).
    Unless ProcessFolderName is Trash, email attachments can be recovered by original email in ProcessFolderName.
     </p>
