@@ -320,6 +320,18 @@
     What if one of the callbacks converts a pdf into a png and annotates it for a web view and takes a few minutes?
     What if the next 5 emails have callbacks that take 5 to 15 minutes to process each waiting on an external service?
   </p>
+  <p>The process needs to be split into at least two to handle all cases. Using this paradigm, parallel processes could be invoked without significantly changing the paradigm.
+  </p><p>
+    The first process collects incoming email and puts it into a system standard format with a minimal amount of effort sufficient for use by callbacks. The goal of this process is to keep up with incoming email to all mail available to the system at the earliest possible moment.
+  </p><p>
+    The second process should render a prioritized stack of imported email that have not been processed. First prioritizing new entries, perhaps re-prioritizing any callbacks that error or sampling re-introducing prior errant callbacks etc. then continuing to process the stack. 
+  </p>
+  <p>To reduce overhead on low volume systems, these processes should be scheduled to minimize concurrent operation.
+  </p>
+  <h3>Import Cycle</h3>
+  <p>This scheduling should be simple.  Maybe check if a new process wants to take over. If so, quit.</p>
+  
+  <h3>Prioritized stack processing cycle</h3>
   <p>
     If next cylce starts and current cycle is still running,
     set <code>scan_replies_est_dur_per_cycle_override</code> to actual wait time the current cycle has to wait including any prior cycle wait time --if the delays exceed one cycle (<code>accumulative_delay_cycles</code>.
