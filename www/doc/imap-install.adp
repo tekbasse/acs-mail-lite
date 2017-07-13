@@ -8,6 +8,16 @@
   <p>Get imap from https://github.com/jonabbey/panda-imap</p>
   <p>If there are errors building panda-imap mentioning to use -fPIC. See its use in following examples.
   </p>
+  <p>Instead of copy/pasting the nsimap parameters for the config.tcl file from the web instructions,
+    insert this text snip along other module configurations in the config.tcl file:
+    <a href="config-nsimap-part.txt">config-nsimap-part.txt</a>
+  </p>
+ 
+  <p>In the ${server}/modules section of the config.tcl file near the comment "These modules aren't used in standard OpenACS installs",
+    have nsimap loaded by adding this line:
+  </p>
+  <code>ns_param  nsimap    ${bindir}/nsimap.so
+    </code>
   <h2>Notes on installing nsimap on FreeBSD 10.3-STABLE</h2>
   <p>
     Build panda-imap with:

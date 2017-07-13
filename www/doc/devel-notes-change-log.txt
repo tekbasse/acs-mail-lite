@@ -7,7 +7,7 @@ General strategy is to separate into topics of:
 setup, inbound email configuration, outbound email configuration,
 and inbound email for package developers
 
-Portions of these source have been added to new docs:
+Portions of these sources have been added to new docs:
 
 http://openacs.org/xowiki/incoming_email
 http://openacs.org/forums/message-view?message_id=543694
