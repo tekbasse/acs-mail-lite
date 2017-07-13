@@ -336,6 +336,12 @@
     If next cylce starts and current cycle is still running,
     set <code>scan_replies_est_dur_per_cycle_override</code> to actual wait time the current cycle has to wait including any prior cycle wait time --if the delays exceed one cycle (<code>accumulative_delay_cycles</code>.
   </p>
+  <pre>From acs-tcl/tcl/test/ad-proc-test-procs.tcl
+    # This example gets list of implimentations of a callback: (so they could be triggered one by one)
+     ad_proc -callback a_callback { -arg1 arg2 } { this is a test callback } -
+    set callback_procs [info commands ::callback::a_callback::*]
+    
+  </pre>
   <p>
     Each subsquent cycle moves toward renormalization by adjusting
     <code>scan_replies_est_dur_per_cycle_override</code> toward value of
