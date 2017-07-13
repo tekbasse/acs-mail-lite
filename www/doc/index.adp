@@ -16,13 +16,15 @@
   <h2>Contents</h2>
   <ul>
     <li>
+      <a href="setup">ACS Mail Lite setup</a>
+    </li><li>
+      <a href="imap-install">IMAP installation notes</a>
+    </li><li>
       <a href="inbound">Incoming E-mail</a>
     </li><li>
       <a href="incoming-email">Incoming E-mail for package developers</a>
     </li><li>
       <a href="outbound">Outgoing E-mail</a>
-    </li><li>
-      <a href="setup">Setup ACS Mail Lite</a>
     </li>
   </ul>
   
