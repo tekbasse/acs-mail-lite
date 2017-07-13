@@ -65,3 +65,6 @@ create table acs_mail_lite_bounce_notif (
     notification_time		timestamptz default current_timestamp,
     notification_count		integer default 0
 );
+
+-- Once this is stable, copy the code from this file to here.
+/i upgrade/upgrade-5.9.1b3-5.9.1b4.sql
