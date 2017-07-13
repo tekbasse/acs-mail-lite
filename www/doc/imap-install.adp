@@ -6,8 +6,17 @@
     These notes augment nsimap documentation at <a href="https://bitbucket.org/naviserver/nsimap">https://bitbucket.org/naviserver/nsimap</a>.
   </p>
   <p>Get imap from https://github.com/jonabbey/panda-imap</p>
-  <p>If there are errors building panda-imap mentioning to use -fPIC. See its use in following examples.
+  <h3>Build errors</h3>
+  <p>If there are errors building panda-imap mentioning to use -fPIC. See its use in following OS specific examples.
   </p>
+  <h3>nsimap.so installed?</h3>
+  <p>nsimap.so may not be automatically added to the NAVISERVER install directory after a build.
+  </p>
+  <p>Copy it to the NaviServer install directory's bin directory:</p>
+  <code>cp nsimap.so /usr/local/ns/bin/.</code>
+  <p>Replace '/usr/local/ns' with the value given in the build for the flag NAVISERVER=
+  </p>
+  <h3>Add nsimap section to NaviServer's config.tcl file</h3>
   <p>Instead of copy/pasting the nsimap parameters for the config.tcl file from the web instructions,
     insert this text snip along other module configurations in the config.tcl file:
     <a href="config-nsimap-part.txt">config-nsimap-part.txt</a>
@@ -31,7 +40,13 @@
   </code>
   <p>Note that NaviServer library is referenced in two places in that line,
     in case your local system locates NaviServer's installation directory elsewhere.</p>
-  
+  <p>In the startup script for nsd, add the following before invoking nsd:</p>
+  <pre>
+    # aolserver4 recommends descriptors limit (FD_SETSIZE) to be set to 1024, 
+    # which is standard for most OS distributions
+    # For freebsd systems, uncomment following line:
+    ulimit -n 1024
+  </pre>
   <h2>Notes on installing nsimap on Ubuntu 16.04 LTS</h2>
   <p>Install some development libraries:</p>
   <code>apt-get install libssl-dev libpam-unix2 libpam0g-dev libkrb5-dev</code>
