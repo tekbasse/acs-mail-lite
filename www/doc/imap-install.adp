@@ -40,6 +40,7 @@
   </code>
   <p>Note that NaviServer library is referenced in two places in that line,
     in case your local system locates NaviServer's installation directory elsewhere.</p>
+  <p>If there are errors during startup related to FD_SETSIZE and nsd crashing, try this get nsd to not quit:</p>
   <p>In the startup script for nsd, add the following before invoking nsd:</p>
   <pre>
     # aolserver4 recommends descriptors limit (FD_SETSIZE) to be set to 1024, 
@@ -47,6 +48,8 @@
     # For freebsd systems, uncomment following line:
     ulimit -n 1024
   </pre>
+  <p>Note: This does not fix any problem associated with a crash, only makes problem evaporate for low volume traffic sites.</p>
+    
   <h2>Notes on installing nsimap on Ubuntu 16.04 LTS</h2>
   <p>Install some development libraries:</p>
   <code>apt-get install libssl-dev libpam-unix2 libpam0g-dev libkrb5-dev</code>
