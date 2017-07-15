@@ -262,6 +262,7 @@
   <pre>example usage:
     nsv_set acs_mail_lite scan_replies_active_p 0
   </pre>
+<h3>variables useful while exploring new processes like forecasting and scheduling</h3>
   <dl>
     <dt>scan_replies_active_p</dt>
     <dd>Answers question. Is a proc currently scanning replies?</dd>
@@ -348,6 +349,7 @@
     <code>scan_replies_est_dur_per_cycle</code> by one
     <code>replies_est_dur_per_cycle</code> with minimum of
     <code>scan_replies_est_dur_per_cycle</code>.
+    Changes are exponential to quickly adjust to changing dynamics.
   </p>
   <p>
     For acs_mail_lite::scan_replies,

@@ -40,7 +40,7 @@
   </code>
   <p>Note that NaviServer library is referenced in two places in that line,
     in case your local system locates NaviServer's installation directory elsewhere.</p>
-  <p>If there are errors during startup related to FD_SETSIZE and nsd crashing, try this get nsd to not quit:</p>
+  <p>If there are errors during startup related to FD_SETSIZE and nsd crashing, try this to get nsd to not quit unexpectedly during startup:</p>
   <p>In the startup script for nsd, add the following before invoking nsd:</p>
   <pre>
     # aolserver4 recommends descriptors limit (FD_SETSIZE) to be set to 1024, 
