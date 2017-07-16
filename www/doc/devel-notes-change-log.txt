@@ -26,7 +26,33 @@ From                            To
  acs_mail_lite::get_package_id   apm_package_id_from_key
  acs_mail_lite::get_parameter    parameter::get_from_package_key
                                  acs_mail_lite::scan_incoming 
+ acs_mail_lite::parse_email      See these ns_imap equivalents:
+                                 ns_imap header #s msgno
+                                 ns_imap header #s msgno hdrname
+                                 ns_imap headers #s msgno ?-array name?
+                                 ns_imap text #s msgno ?-flags flags?
+                                 ns_imap body #s msgno part ?-flags flags? ?-decode? ?-file name?
+acs_mail_lite::load_mails        acs_mail_lite::load_via_imap
 
+
+Other useful lib procs provied by ns_map:
+
+  ns_imap parsedate datestring
+        parses date/time string and returns seconds since epoch if date is
+        correct or empty string if not
+
+  ns_imap uid #s msgno
+        returns UID for specified message number
+
+  ns_imap striphtml text ?tags?
+        strips dangerous HTML tags from the given HTML text, 
+        by default it removes body/title/div/object/frame tags.
+        If tags are specified it will use them instead of internal list.
+
+  ns_imap encode type data
+  ns_imap decode type data
+        performs encodeing/decoding given text according given format.
+        type may be one of the following: base64 qprint
 
 New parameters added to new section: inbound_email
 
