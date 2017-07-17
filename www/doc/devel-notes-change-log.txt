@@ -34,6 +34,14 @@ From                            To
                                  ns_imap body #s msgno part ?-flags flags? ?-decode? ?-file name?
 acs_mail_lite::load_mails        acs_mail_lite::load_via_imap
 
+                                 ns_imap struct #s msgno ?-flags flags? ?-array name?
+                                 ns_imap bodystruct #s msgno part ?-flags flags? ?-array name?
+                                 fetches all the structured information
+                                 (envelope, internal date, RFC 822 size, flags, and body structure) for
+                                 the given msgno and returns it as a Tcl name value list
+                                 ns_imap bodystruct fetches just one particular message body part.
+                                 if array name is specified result will be placed into array variable
+
 
 Other useful lib procs provied by ns_map:
 
