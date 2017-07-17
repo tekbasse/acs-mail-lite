@@ -74,4 +74,5 @@ Parameters
                                  IMAPTimeout
                                  IMAPUser
                                  IncomingFilterProcName
-                                 
+                                 ExternalSource default is blank. Value is prefixed to value of table.name: default acs_mail_lite_email_uid_map.src_ext value. Suggest setting to mailbox.host before use, or leave blank. Changing value resets memory of prior processed emails. To avoid re-processing prior email, do not change once a service is in use.
+

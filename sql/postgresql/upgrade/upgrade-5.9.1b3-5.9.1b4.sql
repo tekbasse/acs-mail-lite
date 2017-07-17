@@ -38,6 +38,9 @@ create table acs_mail_lite_from_external (
 -- The Questions become:
 
 -- What scenarios might we run into?
+-- Another  user reseting flags.
+-- A server migration or restore with some conflicting UIDs.
+
 -- Can we recognize a change in server?
 -- If so, can we signal ACS Mail Lite to ignore existing email 
 -- in a new environment?
@@ -57,15 +60,23 @@ create table acs_mail_lite_from_external (
 -- prior total, there's more of a chance that they are new messages;
 -- Maybe check for one or two duplicates.
 -- If new message count is over the total prior messsage count, flag a problem.
+-- rfc3501 2.3.1.1.  ..A client can only assume.. at the time
+--        that it obtains the next unique identifier value.. that
+--        messages arriving after that time will have a UID greater
+--        than or equal to that value...
+
 
 -- Can we recognize a change in server?
 -- rfc3501 does not specify a unqiue server id
 -- It specifies a unique id for a mailbox: UIDVALIDITY
--- So each email has a unique reference:
--- mailbox.name + UIDVALIDITY (of mailbox) + UID.
+-- UIDVALIDITY is optional, quite useful.
+-- Rfc3501 specifies a unique id for each email: UID.
+-- We can assign each email a more unique reference:
+-- mailbox.host + mailbox.name + UIDVALIDITY (of mailbox) + UID.
 -- We are more specific so that we detect more subtle cases of 
--- server change, where checks by UID and UIDVALIDITY may
--- be inadequate.
+-- server change, where checks by UID and UIDVALIDITY may not.
+
+
 -- For example, when migrating email service and
 -- and the new system initially restores the UIVALIDITY and message UID,
 -- but references a different state of each email. The cause
@@ -73,17 +84,25 @@ create table acs_mail_lite_from_external (
 -- from backup to a new email host or restoring
 -- before some batch event changed a bunch of things. So,
 -- src_ext = mailbox.host + (user?) + mailbox.name + UIDVALIDITY
--- Leave user out for now.. Mostly, a robust way to ignore
--- prior messages recognized as 'new' messages needs to be considered.
--- uid_ext = the UID provided by the external (IMAP) server.
+-- Leave user out for now..
+-- Priority is to have a robust way to ignore 
+-- prior messages recognized as 'new' messages.
+
 create table acs_mail_lite_email_uid_map (
        aml_id  integer not null,
        --uisng varchar instead of text for indexing purposes
-       -- Each UID external such as from imap4 server
+       -- Each UID externally defined such as from imap4 server
        uid_ext varchar(3000) not null,
        -- Each external source may apply a different uid.
-       -- This is an arbitrary constant reference in most scenarios.
-       -- external source reference
+       -- This is essentialy an arbitrary constant frame reference between 
+       -- connecting sessions with external server in most scenarios.
+       -- For IMAP4v1 rfc3501  2.3.1.1. item 4 ..combination of
+       -- mailbox.name, UIDVALIDITY, and UID must refer to a single 
+       -- immutable message on that server forever. 
+       -- default is: 
+       -- ExternalSource parameter mailbox.name  UIDVALIDITY with dash as delimiter
+       -- where ExternalSource parameter is either blank or maybe mailbox.host for example.
+       -- external source reference  
        src_ext varchar(1000) not null
 )
 
