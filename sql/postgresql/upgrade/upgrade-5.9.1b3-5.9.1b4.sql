@@ -104,7 +104,18 @@ create table acs_mail_lite_email_uid_map (
        -- where ExternalSource parameter is either blank or maybe mailbox.host for example.
        -- external source reference  
        src_ext varchar(1000) not null
-)
+);
 
 create index acs_mail_lite_email_uid_map_uid_ext on acs_mail_lite_email_uid_map (uid_ext);
 create index acs_mail_lite_email_uid_map_src_ext on acs_mail_lite_email_uid_map (src_ext);
+
+-- Packages that are services, such as ACS Mail Lite, do not have a web UI.
+-- Scheduled procs cannot read changes in values of package parameters
+-- or get updates via web UI connections, or changes in tcl via apm.
+-- Choices are updates via nsv variables and database value updates.
+-- Choices via database have persistence across server restarts.
+create table acs_mail_lite_ui (
+       -- scan_replies_est_dur_per_cycle_s_override
+       sredpcs_override integer,
+       reprocess_old boolean default 'f'
+);

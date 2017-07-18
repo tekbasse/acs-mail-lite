@@ -274,7 +274,7 @@
     <dd>Tracks duration of processing of each email in ms of most recent process, appended as a list.
       When a new process starts processing email, the list is reset to only include the last 100 emails. That way, there is always rolling statistics for forecasting process times.</dd>
 
-    <dt>scan_replies_est_dur_per_cycle</dt>
+    <dt>scan_replies_est_dur_per_cycle_s</dt>
     <dd>Estimate of duration of current cycle</dd>
 
     <dt>scan_replies_est_quit_time_cs</dt>
@@ -292,8 +292,8 @@
     <dt>parameter_val_changed_p</dt>
     <dd>If related parameters change, performance tuning underway. Reset statistics.</dd>
 
-    <dt>scan_replies_est_dur_per_cycle_override</dt>
-    <dd>If this value is set, use it instead of the <code>scan_replies_est_dur_per_cycle</code></dd>
+    <dt>scan_replies_est_dur_per_cycle_s_override</dt>
+    <dd>If this value is set, use it instead of the <code>scan_replies_est_dur_per_cycle_s</code></dd>
 
     <dt>accumulative_delay_cycles</dt>
     <dd>Number of cycles that have been skipped 100% due to ongoing process (in cycles).</dd>
@@ -312,7 +312,7 @@
   </p>
   <p>
     Use <code>duration_ms_list</code> to determine a time adjustment for quiting before next cycle:
-    <code>scan_replies_est_dur_per_cycle</code> + <code>scan_repies_start_time</code> =
+    <code>scan_replies_est_dur_per_cycle_s</code> + <code>scan_repies_start_time</code> =
     <code>scan_replies_est_quit_time_cs</code>
   </p>
   <p>
@@ -335,7 +335,7 @@
   <h3>Prioritized stack processing cycle</h3>
   <p>
     If next cylce starts and current cycle is still running,
-    set <code>scan_replies_est_dur_per_cycle_override</code> to actual wait time the current cycle has to wait including any prior cycle wait time --if the delays exceed one cycle (<code>accumulative_delay_cycles</code>.
+    set <code>scan_replies_est_dur_per_cycle_s_override</code> to actual wait time the current cycle has to wait including any prior cycle wait time --if the delays exceed one cycle (<code>accumulative_delay_cycles</code>.
   </p>
   <pre>From acs-tcl/tcl/test/ad-proc-test-procs.tcl
     # This example gets list of implimentations of a callback: (so they could be triggered one by one)
@@ -345,10 +345,10 @@
   </pre>
   <p>
     Each subsquent cycle moves toward renormalization by adjusting
-    <code>scan_replies_est_dur_per_cycle_override</code> toward value of
-    <code>scan_replies_est_dur_per_cycle</code> by one
+    <code>scan_replies_est_dur_per_cycle_s_override</code> toward value of
+    <code>scan_replies_est_dur_per_cycle_s</code> by one
     <code>replies_est_dur_per_cycle</code> with minimum of
-    <code>scan_replies_est_dur_per_cycle</code>.
+    <code>scan_replies_est_dur_per_cycle_s</code>.
     Changes are exponential to quickly adjust to changing dynamics.
   </p>
   <p>
@@ -379,6 +379,6 @@
     </h4>
   <p>
    Since messages are not immediately deleted, create a table of attachment url references. Remove attachments older than AttachmentLife parameter seconds.
-   Set default to 3 days old (259200 seconds).
+   Set default to 30 days old (2592000 seconds).
    Unless ProcessFolderName is Trash, email attachments can be recovered by original email in ProcessFolderName.
     </p>
