@@ -331,9 +331,12 @@
   </p>
   <p>Priorities should offer 3 levels of performance:</p>
   <ul><li>
-      Priority 1 to 3 digits: allow concurrent processes. That is, when a new process starts, it can also process  emails. 
-</li><li>
-      Priority 4 digits:  only process one at a time. (Try to) quit before next process starts.
+      Priority 1 to 3 digits: allow concurrent processes. That is, when a new process starts, it can also process unprocessed cases. As the stack grows, processes run in parallel to reduce stack up to acs_mail_lite_ui.max_concurrent.
+    </li><li>
+      Priority 4 digits: Process one at a time with casual overlap. (Try to) quit before next process starts. It's okay if there is a little overlapping.
+    </li><li>
+      Priority 5 digits: Process one at a time only. If a new cycle starts and the last is still running, wait for it to quit (or quit before next cycle).
+  </li></ul>
   <h3>Import Cycle</h3>
   <p>This scheduling should be simple.  Maybe check if a new process wants to take over. If so, quit.</p>
   

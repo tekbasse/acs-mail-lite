@@ -30,6 +30,20 @@ nsv_set acs_mail_lite check_bounce_p 0
 
 ##code  acs_mail_lite::check_bounces should quit if not configured.
 # ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces
+if { [db_table_exists acs_mail_lite_ui] } {
+    db_0or1row acs_mail_lite_ui_r {
+        select sredpcs_override,reprocesss_old_p,max_concurrent
+        from acs_mail_lite_ui limit 1
+    }
+    if { ![info exists sredpcs_override] } {
+        db_dml acs_mail_lite_ui_w {
+            insert into acs_mail_lite_ui 
+            (sredpcs_override,reprocess_old_p,max_concurrent)
+            values ('0','f','8');
+        }
+    }
+}
+
 
 
 # Redefine ns_sendmail as a wrapper for acs_mail_lite::send

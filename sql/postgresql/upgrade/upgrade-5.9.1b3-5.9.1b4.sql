@@ -117,5 +117,6 @@ create index acs_mail_lite_email_uid_map_src_ext on acs_mail_lite_email_uid_map 
 create table acs_mail_lite_ui (
        -- scan_replies_est_dur_per_cycle_s_override
        sredpcs_override integer,
-       reprocess_old boolean default 'f'
+       reprocess_old_p boolean default 'f',
+       max_concurrent integer default '8'
 );
