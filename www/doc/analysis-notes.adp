@@ -341,7 +341,7 @@
 <p>Priority is calculated from an equation. equation = size of email in characters + default for package  * ?
 </p>
 <p>FastPriorityPackageIds and SlowPriorityPackageIds and StandardPriorityMin and StandardPriorityMax are defined in acs_maile_lite_ui, so they can be tuned without restarting server.</p>
-
+<p>A proc should be available to recalculate existing email priorities. This means more info needs to be added to table acs_mail_lite_from_external (including size_chars)</p>
   <h3>Import Cycle</h3>
   <p>This scheduling should be simple.  Maybe check if a new process wants to take over. If so, quit.</p>
   
