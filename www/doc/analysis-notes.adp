@@ -329,6 +329,11 @@
   </p>
   <p>To reduce overhead on low volume systems, these processes should be scheduled to minimize concurrent operation.
   </p>
+  <p>Priorities should offer 3 levels of performance:</p>
+  <ul><li>
+      Priority 1 to 3 digits: allow concurrent processes. That is, when a new process starts, it can also process  emails. 
+</li><li>
+      Priority 4 digits:  only process one at a time. (Try to) quit before next process starts.
   <h3>Import Cycle</h3>
   <p>This scheduling should be simple.  Maybe check if a new process wants to take over. If so, quit.</p>
   
