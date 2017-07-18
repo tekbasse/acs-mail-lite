@@ -5,20 +5,44 @@
 
 -- New tables
 
+-- table tracking incoming email
 create table acs_mail_lite_from_external (
-       aml_id               integer primary key not null DEFAULT nextval ('acs_mail_lite_id_seq'), 
+       aml_id               integer primary key 
+                            not null 
+                            DEFAULT nextval ('acs_mail_lite_id_seq'), 
        -- using varchar instead of text for indexing
+       -- to and from email are defined according to headers. 
+       -- See table acs_mail_lite_ie_headers
        to_email_addrs       varchar(1000),
        from_email_addrs     text,
        subject              text,
-       party_id             integer,
-       object_id            integer,
+       party_id             integer
+                            constraint aml_from_external_party_id_fk
+                            references parties (party_id),
+       object_id            integer 
+                            constraint aml_from_external_obect_id_fk
+                            refrences acs_objects (object_id),
        package_id           integer
                             constraint amlq_package_id_fk
                             references apm_packages,
-       aml_processed_p      boolean,
-       release_for_delete_p boolean
+       -- Answers question: 
+       -- Has all ACS Mail Lite processes finished for this email?
+       -- Processes like parsing email, bounced email, input validation
+       processed_p      boolean,
+       -- Answers question: 
+       -- Have all callbacks related to this email finished processing?
+       -- Upon release, delete  all components of aml_id also from
+       -- tables acs_mail_lite_ie_headers, acs_mail_lite_ie_body_parts, and
+       -- acs_mail_lite_ie_files.
+       -- Release essentially means its available to be deleted.
+       release_p boolean
 );
+
+create index acs_mail_lite_from_external_aml_id_idx on acs_mail_lite_from_external (aml_id);
+create index acs_mail_lite_from_external_processed_p_idx on acs_mail_lite_from_external (processed_p);
+create index acs_mail_lite_from_external_release_p_idx on acs_mail_lite_from_external (release_p);
+
+
 
 -- Some services are offered between sessions of importing incoming email.
 -- A unique ID provided by acs_mail_lite_email_uid_map.uid_ext is designed to
@@ -106,17 +130,64 @@ create table acs_mail_lite_email_uid_map (
        src_ext varchar(1000) not null
 );
 
-create index acs_mail_lite_email_uid_map_uid_ext on acs_mail_lite_email_uid_map (uid_ext);
-create index acs_mail_lite_email_uid_map_src_ext on acs_mail_lite_email_uid_map (src_ext);
+create index acs_mail_lite_email_uid_map_uid_ext_idx on acs_mail_lite_email_uid_map (uid_ext);
+create index acs_mail_lite_email_uid_map_src_ext_idx on acs_mail_lite_email_uid_map (src_ext);
 
 -- Packages that are services, such as ACS Mail Lite, do not have a web UI.
 -- Scheduled procs cannot read changes in values of package parameters
 -- or get updates via web UI connections, or changes in tcl via apm.
 -- Choices are updates via nsv variables and database value updates.
 -- Choices via database have persistence across server restarts.
+-- Defaults are set in tcl/acs-mail-lite-init.tcl
 create table acs_mail_lite_ui (
-       -- scan_replies_est_dur_per_cycle_s_override
+       -- scan_replies_est_dur_per_cycle_s_override see www/doc/analysis-notes
        sredpcs_override integer,
-       reprocess_old_p boolean default 'f',
-       max_concurrent integer default '8'
+       -- Answers question: Reprocess old email?
+       reprocess_old_p boolean,
+       -- Max number of concurrent threads for high priority processing of
+       -- incoming email 
+       max_concurrent integer,
+       max_blob_chars integer
 );
+
+-- Following tables store parsed incoming email for processing by callbacks
+-- defined in the rest of OpenACS
+
+-- incoming email headers
+create table acs_mail_lite_ie_headers (
+       -- incoming email local id
+       aml_id integer,
+       -- header name, one header per row
+       -- For all headers together, see acs_mail_lite_ie_parts.c_type=headers
+       h_hame text,
+       h_value text
+);
+
+create index acs_mail_lite_ie_headers_aml_id_idx on acs_mail_lite_ie_headers (aml_id);
+
+-- incoming email body parts
+create table acs_mail_lite_ie_parts (
+       aml_id integer,
+       -- In addition to content_type, we have a special case:
+       -- headers, which contains all headers for email in one field
+       -- content_type
+       c_type text,
+       content text,
+       -- An alternate file for large blob
+       -- A local absolute filepath location
+       c_filepathname
+);
+
+create index acs_mail_lite_ie_parts_aml_id_idx on acs_mail_lite_ie_parts (aml_id);
+
+-- incoming email files
+create table acs_mail_lite_ie_files (
+       aml_id integer,
+       -- content_type
+       c_type text,
+       filename text,
+       -- A local absolute filepath location
+       c_filepathname
+);
+
+create index acs_mail_lite_ie_files_aml_id_idx on acs_mail_lite_ie_files (aml_id);
