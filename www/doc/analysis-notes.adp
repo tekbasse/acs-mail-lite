@@ -331,12 +331,17 @@
   </p>
   <p>Priorities should offer 3 levels of performance:</p>
   <ul><li>
-      Priority 1 to 3 digits: allow concurrent processes. That is, when a new process starts, it can also process unprocessed cases. As the stack grows, processes run in parallel to reduce stack up to acs_mail_lite_ui.max_concurrent.
+      Fast Priority ie priority value 1 to StandardPriorityMin  (default 999): allow concurrent processes. That is, when a new process starts, it can also process unprocessed cases. As the stack grows, processes run in parallel to reduce stack up to acs_mail_lite_ui.max_concurrent.
     </li><li>
-      Priority 4 digits: Process one at a time with casual overlap. (Try to) quit before next process starts. It's okay if there is a little overlapping.
+      Standard Priority (priority StandardPriorityMin to StandardPriorityMax (default 9999)): Process one at a time with casual overlap. (Try to) quit before next process starts. It's okay if there is a little overlapping.
     </li><li>
-      Priority 5 digits: Process one at a time only. If a new cycle starts and the last is still running, wait for it to quit (or quit before next cycle).
+      Low Priority (priority value over StandardPriorityMax): Process one at a time only. If a new cycle starts and the last is still running, wait for it to quit (or quit before next cycle).
   </li></ul>
+
+<p>Priority is calculated from an equation. equation = size of email in characters + default for package  * ?
+</p>
+<p>FastPriorityPackageIds and SlowPriorityPackageIds and StandardPriorityMin and StandardPriorityMax are defined in acs_maile_lite_ui, so they can be tuned without restarting server.</p>
+
   <h3>Import Cycle</h3>
   <p>This scheduling should be simple.  Maybe check if a new process wants to take over. If so, quit.</p>
   
