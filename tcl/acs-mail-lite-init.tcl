@@ -32,19 +32,7 @@ nsv_set acs_mail_lite check_bounce_p 0
 # ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces
 
 if { [db_table_exists acs_mail_lite_ui] } {
-    set sredpcs_override 0
-    set reprocess_old_p "f"
-    set max_concurrent 6
-    set max_blob_chars 32767
-    db_0or1row acs_mail_lite_ui_r {
-        select sredpcs_override,reprocess_old_p,max_concurrent
-        from acs_mail_lite_ui limit 1
-    }
-    db_dml acs_mail_lite_ui_w {
-        insert into acs_mail_lite_ui 
-        (sredpcs_override,reprocess_old_p,max_concurrent)
-        values (:sredpcs_override,:reprocess_old_p,:max_concurrent);
-    }
+    acs_mail_lite::sched_parameters
 }
 
 
