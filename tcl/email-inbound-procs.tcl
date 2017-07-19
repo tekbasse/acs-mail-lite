@@ -125,7 +125,8 @@ ad_proc acs_mail_lite::sched_parameters {
 
     if { $exists_p } {
         if { $changes_p } {
-            foreach sp_n [array names new] {
+            set new_pv_list [array names new]
+            foreach sp_n $new_pv_list {
                 set ${sp_n} $new($sp_n)
             }
         }
@@ -148,46 +149,93 @@ ad_proc acs_mail_lite::sched_parameters {
     }
 
     if { !$exists_p || $changes_p } {
-        db_transaction {
-            if { $changes_p } {
-                db_dml acs_mail_lite_ui_d {
-                    delete from acs_mail_lite_ui
+        set validated_p 1
+        if { $changes_p } {
+            foreach spn $new_pv_list {
+                switch -exact -- $spn {
+                    sredpcs_override -
+                    max_concurrent -
+                    max_blob_chars -
+                    mpri_min -
+                    mpri_max {
+                        set v_p [ad_var_type_check_integer_p $new(${spn})]
+                    }
+                    reprocess_old_p {
+                        if { $new(${spn}) eq \
+                                 [template::util::is_true $new(${spn}) ] } {
+                            set v_p 1
+                        } else {
+                            set v_p 0
+                        }
+                    }
+                    hpri_package_ids -
+                    lpri_package_ids -
+                    hpri_party_ids -
+                    lpri_party_ids -
+                    hpri_object_ids -
+                    lpri_object_ids {
+                        set v_p [ad_var_type_check_integerlist_p $new(${spn})]
+                    }
+                    hpri_subject_glob -
+                    lpri_subject_glob {
+                        set v_p [regexp -- {^[[:graph:]\ ]+$} $new(${spn})] scratch
+                        if { $v_p && [string match {*[\[;]*} $new(${spn}) ] } {
+                            set v_p 0
+                        }
+                    }
+                    defaults {
+                        ns_log Warning "acs_mail_lite::sched_parameters \
+ No validation check made for parameter '${spn}'"
+                    }
                 }
-            }
-            db_dml acs_mail_lite_ui_i {
-                insert into acs_mail_lite_ui 
-                (sredpcs_override,
-                 reprocess_old_p,
-                 max_concurrent,
-                 max_blob_chars,
-                 mpri_min,
-                 mpri_max,
-                 hpri_package_ids,
-                 lpri_package_ids,
-                 hpri_party_ids,
-                 lpri_party_ids,
-                 hpri_subject_glob,
-                 lpri_subject_glob,
-                 hpri_object_ids,
-                 lpri_object_ids)
-                values 
-                (:sredpcs_override,
-                 :reprocess_old_p,
-                 :max_concurrent,
-                 :max_blob_chars,
-                 :mpri_min,
-                 :mpri_max,
-                 :hpri_package_ids,
-                 :lpri_package_ids,
-                 :hpri_party_ids,
-                 :lpri_party_ids,
-                 :hpri_subject_glob,
-                 :lpri_subject_glob,
-                 :hpri_object_ids,
-                 :lpri_object_ids
-                 )
+                if { !$v_p } {
+                    set validated_p 0
+                    ns_log Warning "acs_mail_lite::sched_parameters \
+ value '$new(${spn})' for parameter '${spn}' not allowed."
             }
         }
+        if { $validated_p } {
+            db_transaction {
+                if { $changes_p } {
+                    db_dml acs_mail_lite_ui_d {
+                        delete from acs_mail_lite_ui
+                    }
+                }
+                db_dml acs_mail_lite_ui_i {
+                    insert into acs_mail_lite_ui 
+                    (sredpcs_override,
+                     reprocess_old_p,
+                     max_concurrent,
+                     max_blob_chars,
+                     mpri_min,
+                     mpri_max,
+                     hpri_package_ids,
+                     lpri_package_ids,
+                     hpri_party_ids,
+                     lpri_party_ids,
+                     hpri_subject_glob,
+                     lpri_subject_glob,
+                     hpri_object_ids,
+                     lpri_object_ids)
+                    values 
+                    (:sredpcs_override,
+                     :reprocess_old_p,
+                     :max_concurrent,
+                     :max_blob_chars,
+                     :mpri_min,
+                     :mpri_max,
+                     :hpri_package_ids,
+                     :lpri_package_ids,
+                     :hpri_party_ids,
+                     :lpri_party_ids,
+                     :hpri_subject_glob,
+                     :lpri_subject_glob,
+                     :hpri_object_ids,
+                     :lpri_object_ids
+                     )
+                }
+            }
+        } 
     }
     set s_list [list ]
     foreach s $sp_list {
