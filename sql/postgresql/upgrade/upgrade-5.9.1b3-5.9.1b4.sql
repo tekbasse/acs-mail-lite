@@ -25,6 +25,9 @@ create table acs_mail_lite_from_external (
        package_id           integer
                             constraint amlq_package_id_fk
                             references apm_packages,
+       -- used by prioritization calculations
+       -- For IMAP4 this is size defined by rfc822
+       size_chars           numeric,
        -- Answers question: 
        -- Has all ACS Mail Lite processes finished for this email?
        -- Processes like parsing email, bounced email, input validation
