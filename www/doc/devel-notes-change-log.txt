@@ -42,8 +42,15 @@ acs_mail_lite::load_mails        acs_mail_lite::load_via_imap
                                  ns_imap bodystruct fetches just one particular message body part.
                                  if array name is specified result will be placed into array variable
 
+                                 acs_mail_lite::parameters
+                                  returns parameter names and values as a name value list 
+                                 acs_mail_lite::parameters -name value 
+                                  sets value to parameter 'name'
+                                  This api bypasses issues of value updates not detected
+                                  by scheduled procs by using existing OpenACS parameter api
 
-Other useful lib procs provied by ns_map:
+
+Other useful lib procs provided by ns_map:
 
   ns_imap parsedate datestring
         parses date/time string and returns seconds since epoch if date is

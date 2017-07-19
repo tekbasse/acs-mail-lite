@@ -115,7 +115,7 @@ create index acs_mail_lite_from_external_release_p_idx on acs_mail_lite_from_ext
 -- Priority is to have a robust way to ignore 
 -- prior messages recognized as 'new' messages.
 
-create table acs_mail_lite_email_uid_map (
+create table acs_mail_lite_email_uid_id_map (
        aml_id  integer not null,
        --uisng varchar instead of text for indexing purposes
        -- Each UID externally defined such as from imap4 server
@@ -129,12 +129,19 @@ create table acs_mail_lite_email_uid_map (
        -- default is: 
        -- ExternalSource parameter mailbox.name  UIDVALIDITY with dash as delimiter
        -- where ExternalSource parameter is either blank or maybe mailbox.host for example.
-       -- external source reference  
-       src_ext varchar(1000) not null
+       -- external source reference id, see acs_mail_lite_email_src_ext_id_map.aml_id
+       src_ext_id integer
 );
 
 create index acs_mail_lite_email_uid_map_uid_ext_idx on acs_mail_lite_email_uid_map (uid_ext);
-create index acs_mail_lite_email_uid_map_src_ext_idx on acs_mail_lite_email_uid_map (src_ext);
+create index acs_mail_lite_email_uid_map_src_ext_id_idx on acs_mail_lite_email_uid_map (src_ext_id);
+
+create table acs_mail_lite_email_src_ext_id_map (
+       aml_id integer not null,
+       src_ext varchar(1000) not null
+);
+
+
 
 -- Packages that are services, such as ACS Mail Lite, do not have a web UI.
 -- Scheduled procs cannot read changes in values of package parameters
@@ -150,7 +157,9 @@ create table acs_mail_lite_ui (
        -- Max number of concurrent threads for high priority processing of
        -- incoming email 
        max_concurrent integer,
+       -- Any incoming email body part over this size is stored in file instead of database.
        max_blob_chars integer
+       
 );
 
 -- Following tables store parsed incoming email for processing by callbacks

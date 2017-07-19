@@ -329,13 +329,13 @@
   </p>
   <p>To reduce overhead on low volume systems, these processes should be scheduled to minimize concurrent operation.
   </p>
-  <p>Priorities should offer 3 levels of performance:</p>
+  <p>Priorities should offer 3 levels of performance. Colors designate priority to discern from other email priority schemes:</p>
   <ul><li>
-      Fast Priority ie priority value 1 to StandardPriorityMin  (default 999): allow concurrent processes. That is, when a new process starts, it can also process unprocessed cases. As the stack grows, processes run in parallel to reduce stack up to acs_mail_lite_ui.max_concurrent.
+      High (abbrev: hpri, Fast Priority, a priority value 1 to mpri_min  (default 999): allow concurrent processes. That is, when a new process starts, it can also process unprocessed cases. As the stack grows, processes run in parallel to reduce stack up to acs_mail_lite_ui.max_concurrent.
     </li><li>
-      Standard Priority (priority StandardPriorityMin to StandardPriorityMax (default 9999)): Process one at a time with casual overlap. (Try to) quit before next process starts. It's okay if there is a little overlapping.
+      Med (abbrev: mpri, Standard Priority, a priority mpri_min to mpri_max (default 9999)): Process one at a time with casual overlap. (Try to) quit before next process starts. It's okay if there is a little overlapping.
     </li><li>
-      Low Priority (priority value over StandardPriorityMax): Process one at a time only. If a new cycle starts and the last is still running, wait for it to quit (or quit before next cycle).
+      Low (abbrev: lpri, Low Priority, a priority value over mpri_max): Process one at a time only. If a new cycle starts and the last is still running, wait for it to quit (or quit before next cycle).
   </li></ul>
 
 <p>Priority is calculated based on timing and file size</p>
@@ -353,7 +353,7 @@ size_priority =
 set equation = int( $midpoint + ($time_priority + size_priority) / 2)
 </pre>
 <p>Average of time and file size priorities. </p>
-<p>FastPriorityPackageIds and SlowPriorityPackageIds and FastPriorityPartyIds and SlowPriorityPartyIds and StandardPriorityMin and StandardPriorityMax and FastPrioritySubjectGlob and SlowPrioritySubjectGLob are defined in acs_maile_lite_ui, so they can be tuned without restarting server. ps. Code should check if user is banned before parsing any further.</p>
+<p>hpri_pkg_ids and lpri_pkg_ids and hpri_party_ids and lpri_party_ids and mpri_min and mpri_max and hpri_subject_glob and lpri_subject_glob are defined in acs_maile_lite_ui, so they can be tuned without restarting server. ps. Code should check if user is banned before parsing any further.</p>
 <p>A proc should be available to recalculate existing email priorities. This means more info needs to be added to table acs_mail_lite_from_external (including size_chars)</p>
   <h3>Import Cycle</h3>
   <p>This scheduling should be simple.  Maybe check if a new process wants to take over. If so, quit.</p>
