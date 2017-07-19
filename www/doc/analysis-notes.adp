@@ -353,7 +353,7 @@ size_priority =
 set equation = int( $midpoint + ($time_priority + size_priority) / 2)
 </pre>
 <p>Average of time and file size priorities. </p>
-<p>hpri_pkg_ids and lpri_pkg_ids and hpri_party_ids and lpri_party_ids and mpri_min and mpri_max and hpri_subject_glob and lpri_subject_glob are defined in acs_maile_lite_ui, so they can be tuned without restarting server. ps. Code should check if user is banned before parsing any further.</p>
+<p>hpri_package_ids and lpri_package_ids and hpri_party_ids and lpri_party_ids and mpri_min and mpri_max and hpri_subject_glob and lpri_subject_glob are defined in acs_maile_lite_ui, so they can be tuned without restarting server. ps. Code should check if user is banned before parsing any further.</p>
 <p>A proc should be available to recalculate existing email priorities. This means more info needs to be added to table acs_mail_lite_from_external (including size_chars)</p>
   <h3>Import Cycle</h3>
   <p>This scheduling should be simple.  Maybe check if a new process wants to take over. If so, quit.</p>
