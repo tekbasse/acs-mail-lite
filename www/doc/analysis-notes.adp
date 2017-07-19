@@ -339,14 +339,18 @@
   </li></ul>
 
 <p>Priority is calculated from an equation.</p>
-<pre> equation = 
-midpoint of prioirty + 
-diff of midpoint to max of priority  * 
-(
-     (size of email in characters)/(config.tcl's max_file_upload_mb *1000000) +  
-     (  clock seconds of received datetime - scan_replies_start_time_cs ) / 
-            ( scan_replies_est_dur_per_cycle_s * 4 )???? <--rework
-) / 2
+<pre> 
+set max_min_diff priority_max - priority_min
+set range { ($max_min_diff / 2 }
+set midpoint { priority_min + $range }
+time_priority =  (  clock seconds of received datetime - scan_replies_start_time_cs ) / 
+            ( day in seconds )
+if { expr abs($equation1) > $range } { set equation1 priority_min * sign($equation1) }
+
+size_priority = 
+   $range * ((  (size of email in characters)/(config.tcl's max_file_upload_mb *1000000) ) - 0.5)
+
+set equation = int( $midpoint + ($time_priority + size_priority) / 2)
 </pre>
 <p>2 is number of terms</p>
 <p>FastPriorityPackageIds and SlowPriorityPackageIds and FastPriorityPartyIds and SlowPriorityPartyIds and StandardPriorityMin and StandardPriorityMax and FastPrioritySubjectGlob and SlowPrioritySubjectGLob are defined in acs_maile_lite_ui, so they can be tuned without restarting server. ps. Code should check if user is banned before parsing any further.</p>
