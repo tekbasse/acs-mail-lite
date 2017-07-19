@@ -159,10 +159,10 @@ create table acs_mail_lite_email_src_ext_id_map (
 -- Defaults are set in acs_mail_lite::sched_parameters
 -- These all are used in context of processing incoming email 
 -- unless stated otherwise.
--- Flag precedence is most specific dominates.
+-- Most specific flag takes precedence.
 -- If an email is flagged high priority by package_id and
 -- low priority by subject glob. It is assigned low priority.
--- Order of specificity:
+-- Order of specificity.
 -- package_id package_id party_id subject_id object_id
 -- party_id can be group_id or user_id
 -- If fast and low flag the same specificity for an email, low is chosen.
@@ -181,21 +181,21 @@ create table acs_mail_lite_ui (
        -- Maximum value for default medium (standard) priority
        mpri_max integer,
        --space delimited list of package_ids to process at fast/high priority
-       hpri_pkg_ids text,
+       hpri_package_ids text,
        --space delimited list of package_ids to process at low priority
-       lpri_pkg_ids text,
+       lpri_package_ids text,
        --space delimited list of party_ids to process at fast/high priority
        hpri_party_ids text,
        --space delimited list of party_ids to process at low priority
        lpri_party_ids text,
-       -- a glob to flag subjects for fast/high priority 
+       -- a glob for searching subjects to flag for fast/high priority 
        hpri_subject_glob text,
-       -- a glob to flag subjects for low priority 
+       -- a glob for searching subjects to flag for low priority 
        lpri_subject_glob text
        --space delimited list of object_ids to process at fast/high priority
        hpri_object_ids text,
        --space delimited list of object_ids to process at low priority
-       lpri_object_ids text,
+       lpri_object_ids text
 );
 
 -- Following tables store parsed incoming email for processing by callbacks
