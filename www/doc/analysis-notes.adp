@@ -338,21 +338,21 @@
       Low Priority (priority value over StandardPriorityMax): Process one at a time only. If a new cycle starts and the last is still running, wait for it to quit (or quit before next cycle).
   </li></ul>
 
-<p>Priority is calculated from an equation.</p>
+<p>Priority is calculated based on timing and file size</p>
 <pre> 
 set max_min_diff priority_max - priority_min
 set range { ($max_min_diff / 2 }
 set midpoint { priority_min + $range }
-time_priority =  (  clock seconds of received datetime - scan_replies_start_time_cs ) / 
-            ( day in seconds )
-if { expr abs($equation1) > $range } { set equation1 priority_min * sign($equation1) }
+time_priority =  $range (  clock seconds of received datetime - scan_replies_start_time_cs ) / 
+            ( 2 * scan_replies_est_dur_per_cycle_s )
+if { expr abs(time_priority) > $range } { set time_priority priority_midpoint +  sign($time_priority) *$range }
 
 size_priority = 
    $range * ((  (size of email in characters)/(config.tcl's max_file_upload_mb *1000000) ) - 0.5)
 
 set equation = int( $midpoint + ($time_priority + size_priority) / 2)
 </pre>
-<p>2 is number of terms</p>
+<p>Average of time and file size priorities. </p>
 <p>FastPriorityPackageIds and SlowPriorityPackageIds and FastPriorityPartyIds and SlowPriorityPartyIds and StandardPriorityMin and StandardPriorityMax and FastPrioritySubjectGlob and SlowPrioritySubjectGLob are defined in acs_maile_lite_ui, so they can be tuned without restarting server. ps. Code should check if user is banned before parsing any further.</p>
 <p>A proc should be available to recalculate existing email priorities. This means more info needs to be added to table acs_mail_lite_from_external (including size_chars)</p>
   <h3>Import Cycle</h3>
