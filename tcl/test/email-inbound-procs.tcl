@@ -32,7 +32,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     set val [randomRange 32767]
                 } elseif { $p in $ints_list } {
                     set nums ""
-                    for {set i 0} {$i < [randomRange 10] } {
+                    set up_to_10 [randomRange 10]
+                    for {set i 0} {$i < $up_to_10 } {incr i} {
                         append nums " " [randomRange 32767]
                     }
                 } 
@@ -41,10 +42,10 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 array set params_new $b_list
                 foreach ii [array names params_initial] {
                     if { $ii eq $p } {
-                        aa_equal "Changed sched_parameter '${ii}' value set" \
+                        aa_equals "Changed sched_parameter '${ii}' value set" \
                             $params_new(${ii}) $params_initial(${ii})
                     } else {
-                        aa_equal "Unchanged sched_parameter '${ii}' same" \
+                        aa_equals "Unchanged sched_parameter '${ii}' same" \
                             $params_new(${ii}) $params_initial(${ii})
                     }
                 }

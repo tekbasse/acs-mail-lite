@@ -33,20 +33,20 @@ ad_proc acs_mail_lite::imap_cache_clear {
 }
 
 ad_proc acs_mail_lite::sched_parameters {
-    -sredpcs_override:optional
-    -reprocess_old_p:optional
-    -max_concurrent:optional
-    -max_blob_chars:optional
-    -mpri_min:optional
-    -mpri_max:optional
-    -hpri_package_ids:optional
-    -lpri_package_ids:optional
-    -hpri_party_ids:optional
-    -lpri_party_ids:optional
-    -hpri_subject_glob:optional
-    -lpri_subject_glob:optional
-    -hpri_object_ids:optional
-    -lpri_object_ids:optional
+    -sredpcs_override
+    -reprocess_old_p
+    -max_concurrent
+    -max_blob_chars
+    -mpri_min
+    -mpri_max
+    -hpri_package_ids
+    -lpri_package_ids
+    -hpri_party_ids
+    -lpri_party_ids
+    -hpri_subject_glob
+    -lpri_subject_glob
+    -hpri_object_ids
+    -lpri_object_ids
 } {
     Returns a name value list of parameters used by ACS Mail Lite scheduled procs.
     If a parameter is passed with value, the value is assigned to parameter.
@@ -123,9 +123,7 @@ ad_proc acs_mail_lite::sched_parameters {
         from acs_mail_lite_ui limit 1
     } ]
 
-    if { $exists_p } {
-        set s_list 
-    } else {
+    if { !$exists_p } {
         # set initial defaults
         set sredpcs_override 0
         set reprocess_old_p "f"
@@ -146,6 +144,7 @@ ad_proc acs_mail_lite::sched_parameters {
     if { !$exists_p || $changes_p } {
         set validated_p 1
         if { $changes_p } {
+            set new_pv_list [array names new]
             foreach spn $new_pv_list {
                 switch -exact -- $spn {
                     sredpcs_override -
@@ -178,7 +177,7 @@ ad_proc acs_mail_lite::sched_parameters {
                     }
                     hpri_subject_glob -
                     lpri_subject_glob {
-                        set v_p [regexp -- {^[[:graph:]\ ]+$} $new(${spn})] x
+                        set v_p [regexp -- {^[[:graph:]\ ]+$} $new(${spn}) x]
                         if { $v_p && [string match {*[\[;]*} $new(${spn}) ] } {
                             set v_p 0
                         }
@@ -203,7 +202,6 @@ ad_proc acs_mail_lite::sched_parameters {
         }
             
         if { $validated_p } {
-            set new_pv_list [array names new]
             foreach sp_n $new_pv_list {
                 set ${sp_n} $new($sp_n)
             }
