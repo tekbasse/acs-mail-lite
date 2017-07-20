@@ -124,12 +124,7 @@ ad_proc acs_mail_lite::sched_parameters {
     } ]
 
     if { $exists_p } {
-        if { $changes_p } {
-            set new_pv_list [array names new]
-            foreach sp_n $new_pv_list {
-                set ${sp_n} $new($sp_n)
-            }
-        }
+        set s_list 
     } else {
         # set initial defaults
         set sredpcs_override 0
@@ -159,6 +154,11 @@ ad_proc acs_mail_lite::sched_parameters {
                     mpri_min -
                     mpri_max {
                         set v_p [ad_var_type_check_integer_p $new(${spn})]
+                        if { $v_p } {
+                            if { $new(${spn}) < 0 } {
+                                set v_p 0
+                            }
+                        }
                     }
                     reprocess_old_p {
                         if { $new(${spn}) eq \
@@ -178,7 +178,7 @@ ad_proc acs_mail_lite::sched_parameters {
                     }
                     hpri_subject_glob -
                     lpri_subject_glob {
-                        set v_p [regexp -- {^[[:graph:]\ ]+$} $new(${spn})] scratch
+                        set v_p [regexp -- {^[[:graph:]\ ]+$} $new(${spn})] x
                         if { $v_p && [string match {*[\[;]*} $new(${spn}) ] } {
                             set v_p 0
                         }
@@ -192,9 +192,22 @@ ad_proc acs_mail_lite::sched_parameters {
                     set validated_p 0
                     ns_log Warning "acs_mail_lite::sched_parameters \
  value '$new(${spn})' for parameter '${spn}' not allowed."
+                }
+            }
+            if { $mpri_min >= $mpri_max } {
+                set validated_p 0
+                    ns_log Warning "acs_mail_lite::sched_parameters \
+ parameter mpri_min must be less than mpri_max"
+
             }
         }
+            
         if { $validated_p } {
+            set new_pv_list [array names new]
+            foreach sp_n $new_pv_list {
+                set ${sp_n} $new($sp_n)
+            }
+
             db_transaction {
                 if { $changes_p } {
                     db_dml acs_mail_lite_ui_d {
@@ -236,10 +249,11 @@ ad_proc acs_mail_lite::sched_parameters {
                 }
             }
         } 
+                
     }
     set s_list [list ]
     foreach s $sp_list {
-        lappend s_list $s [set $s]
+        lappend s_list ${s} [set ${s}]
     }
     return $s_list
 }
