@@ -38,13 +38,15 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     }
                     set val [join $nums_list " "]
                 } 
-                set params_initial(${p}) $val
-                aa_log "Testing change of parameter '${p}' to '${val}'"
+                aa_log "Testing change of parameter '${p}' from \
+ '$params_initial(${p})' to '${val}'"
+                #set params_initial(${p}) $val
                 set b_list [acs_mail_lite::sched_parameters $param $val]
                 array set params_new $b_list
                 foreach ii [array names params_initial] {
                     if { $ii eq $p } {
-                        aa_equals "Changed sched_parameter '${ii}' value set" \
+                        aa_equals "Changed sched_parameter '${ii}' \
+  value '$params_initial(${ii})' to '$params_new(${ii})' set" \
                             [template::util::is_true $params_new(${ii})] \
                             [template::util::is_true $params_initial(${ii})]
                     } else {
@@ -54,13 +56,26 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     }
                 }
             }
-            # Use default permissions provided by tcl/q-control-init.tcl
-            # Yet, users must have read access permissions or test fails
-            # Some tests will fail (predictably) in a hardened system
 
             set instance_id [ad_conn package_id]
+            foreach priority [list fast med slow] {
+                # reset prameters
+                foreach {n v} $a_list {
+                    #set $n $v
+                    set p "-"
+                    append p $n
+                    set b_list [acs_mail_lite::sched_parameters $p $v]
+                }
+                # set 
+
+            }
+
+
+
         }
 }
+
+
 # Local variables:
 #    mode: tcl
 #    tcl-indent-level: 4
