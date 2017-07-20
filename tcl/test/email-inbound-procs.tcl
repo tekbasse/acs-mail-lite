@@ -31,22 +31,26 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 } elseif { $p in $integer_list } {
                     set val [randomRange 32767]
                 } elseif { $p in $ints_list } {
-                    set nums ""
+                    set nums_list [list]
                     set up_to_10 [randomRange 10]
                     for {set i 0} {$i < $up_to_10 } {incr i} {
-                        append nums " " [randomRange 32767]
+                        lappend nums_list [randomRange 32767]
                     }
+                    set val [join $nums_list " "]
                 } 
                 set params_initial(${p}) $val
+                aa_log "Testing change of parameter '${p}' to '${val}'"
                 set b_list [acs_mail_lite::sched_parameters $param $val]
                 array set params_new $b_list
                 foreach ii [array names params_initial] {
                     if { $ii eq $p } {
                         aa_equals "Changed sched_parameter '${ii}' value set" \
-                            $params_new(${ii}) $params_initial(${ii})
+                            [template::util::is_true $params_new(${ii})] \
+                            [template::util::is_true $params_initial(${ii})]
                     } else {
                         aa_equals "Unchanged sched_parameter '${ii}' same" \
-                            $params_new(${ii}) $params_initial(${ii})
+                            [template::util::is_true $params_new(${ii})] \
+                            [template::util::is_true $params_initial(${ii})]
                     }
                 }
             }
