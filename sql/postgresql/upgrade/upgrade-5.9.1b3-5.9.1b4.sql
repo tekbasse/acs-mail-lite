@@ -21,7 +21,7 @@ create table acs_mail_lite_from_external (
                             references parties (party_id),
        object_id            integer 
                             constraint aml_from_external_obect_id_fk
-                            refrences acs_objects (object_id),
+                            references acs_objects (object_id),
        package_id           integer
                             constraint amlq_package_id_fk
                             references apm_packages,
@@ -139,10 +139,10 @@ create table acs_mail_lite_email_uid_id_map (
        src_ext_id integer
 );
 
-create index acs_mail_lite_email_uid_map_uid_ext_idx
-	on acs_mail_lite_email_uid_map (uid_ext);
-create index acs_mail_lite_email_uid_map_src_ext_id_idx
-	on acs_mail_lite_email_uid_map (src_ext_id);
+create index acs_mail_lite_email_uid_id_map_uid_ext_idx
+	on acs_mail_lite_email_uid_id_map (uid_ext);
+create index acs_mail_lite_email_uid_id_map_src_ext_id_idx
+	on acs_mail_lite_email_uid_id_map (src_ext_id);
 
 create table acs_mail_lite_email_src_ext_id_map (
        aml_id integer not null,
@@ -191,7 +191,7 @@ create table acs_mail_lite_ui (
        -- a glob for searching subjects to flag for fast/high priority 
        hpri_subject_glob text,
        -- a glob for searching subjects to flag for low priority 
-       lpri_subject_glob text
+       lpri_subject_glob text,
        --space delimited list of object_ids to process at fast/high priority
        hpri_object_ids text,
        --space delimited list of object_ids to process at low priority
@@ -224,7 +224,7 @@ create table acs_mail_lite_ie_parts (
        content text,
        -- An alternate file for large blob
        -- A local absolute filepath location
-       c_filepathname
+       c_filepathname text
 );
 
 create index acs_mail_lite_ie_parts_aml_id_idx
@@ -237,7 +237,7 @@ create table acs_mail_lite_ie_files (
        c_type text,
        filename text,
        -- A local absolute filepath location
-       c_filepathname
+       c_filepathname text
 );
 
 create index acs_mail_lite_ie_files_aml_id_idx
