@@ -260,11 +260,11 @@
   </p>
   <h4>nsv inter-procedure array acs_mail_lite indexes</h4>
   <pre>example usage:
-    nsv_set acs_mail_lite scan_replies_active_p 0
+    nsv_set acs_mail_lite scan_in_active_p 0
   </pre>
 <h3>variables useful while exploring new processes like forecasting and scheduling</h3>
   <dl>
-    <dt>scan_replies_active_p</dt>
+    <dt>scan_in_active_p</dt>
     <dd>Answers question. Is a proc currently scanning replies?</dd>
 
     <dt>replies_est_next_start</dt>
@@ -274,13 +274,13 @@
     <dd>Tracks duration of processing of each email in ms of most recent process, appended as a list.
       When a new process starts processing email, the list is reset to only include the last 100 emails. That way, there is always rolling statistics for forecasting process times.</dd>
 
-    <dt>scan_replies_est_dur_per_cycle_s</dt>
+    <dt>scan_in_est_dur_per_cycle_s</dt>
     <dd>Estimate of duration of current cycle</dd>
 
-    <dt>scan_replies_est_quit_time_cs</dt>
+    <dt>scan_in_est_quit_time_cs</dt>
     <dd>When the current cycle should quit based on [clock seconds]</dd>
 
-    <dt>scan_replies_start_time_cs</dt>
+    <dt>scan_in_start_time_cs</dt>
     <dd>When the current cycle started scanning based on [clock seconds]</dd>
 
     <dt>cycle_start_time_cs</dt>
@@ -292,8 +292,8 @@
     <dt>parameter_val_changed_p</dt>
     <dd>If related parameters change, performance tuning underway. Reset statistics.</dd>
 
-    <dt>scan_replies_est_dur_per_cycle_s_override</dt>
-    <dd>If this value is set, use it instead of the <code>scan_replies_est_dur_per_cycle_s</code></dd>
+    <dt>scan_in_est_dur_per_cycle_s_override</dt>
+    <dd>If this value is set, use it instead of the <code>scan_in_est_dur_per_cycle_s</code></dd>
 
     <dt>accumulative_delay_cycles</dt>
     <dd>Number of cycles that have been skipped 100% due to ongoing process (in cycles).</dd>
@@ -301,7 +301,7 @@
     
   </dl>
   <p>
-    Check <code>scan_replies_active_p</code> when running new cycle.
+    Check <code>scan_in_active_p</code> when running new cycle.
     Also set <code>replies_est_next_start</code> to clock seconds for use with time calcs later in cycle.
     If already running, wait a second, check again.. until 90% of duration has elapsed.
     If still running, log a message and quit in time for next event.
@@ -312,8 +312,8 @@
   </p>
   <p>
     Use <code>duration_ms_list</code> to determine a time adjustment for quiting before next cycle:
-    <code>scan_replies_est_dur_per_cycle_s</code> + <code>scan_repies_start_time</code> =
-    <code>scan_replies_est_quit_time_cs</code>
+    <code>scan_in_est_dur_per_cycle_s</code> + <code>scan_repies_start_time</code> =
+    <code>scan_in_est_quit_time_cs</code>
   </p>
   <p>
     And yet, predicting the duration of the future process is difficult.
@@ -340,15 +340,14 @@
 
 <p>Priority is calculated based on timing and file size</p>
 <pre> 
-set max_min_diff priority_max - priority_min
-set range { ($max_min_diff / 2 }
-set midpoint { priority_min + $range }
-time_priority =  $range (  clock seconds of received datetime - scan_replies_start_time_cs ) / 
-            ( 2 * scan_replies_est_dur_per_cycle_s )
-if { expr abs(time_priority) > $range } { set time_priority priority_midpoint +  sign($time_priority) *$range }
+set range priority_max - priority_min
+set deviation_max { ($range / 2 }
+set midpoint { priority_min + $deviation_max }
+time_priority =  $deviation_max (  clock seconds of received datetime - scan_in_start_time_cs ) / 
+            ( 2 * scan_in_est_dur_per_cycle_s )
 
 size_priority = 
-   $range * ((  (size of email in characters)/(config.tcl's max_file_upload_mb *1000000) ) - 0.5)
+   $deviation_max * ((  (size of email in characters)/(config.tcl's max_file_upload_mb *1000000) ) - 0.5)
 
 set equation = int( $midpoint + ($time_priority + size_priority) / 2)
 </pre>
@@ -361,7 +360,7 @@ set equation = int( $midpoint + ($time_priority + size_priority) / 2)
   <h3>Prioritized stack processing cycle</h3>
   <p>
     If next cylce starts and current cycle is still running,
-    set <code>scan_replies_est_dur_per_cycle_s_override</code> to actual wait time the current cycle has to wait including any prior cycle wait time --if the delays exceed one cycle (<code>accumulative_delay_cycles</code>.
+    set <code>scan_in_est_dur_per_cycle_s_override</code> to actual wait time the current cycle has to wait including any prior cycle wait time --if the delays exceed one cycle (<code>accumulative_delay_cycles</code>.
   </p>
   <pre>From acs-tcl/tcl/test/ad-proc-test-procs.tcl
     # This example gets list of implimentations of a callback: (so they could be triggered one by one)
@@ -371,14 +370,14 @@ set equation = int( $midpoint + ($time_priority + size_priority) / 2)
   </pre>
   <p>
     Each subsquent cycle moves toward renormalization by adjusting
-    <code>scan_replies_est_dur_per_cycle_s_override</code> toward value of
-    <code>scan_replies_est_dur_per_cycle_s</code> by one
+    <code>scan_in_est_dur_per_cycle_s_override</code> toward value of
+    <code>scan_in_est_dur_per_cycle_s</code> by one
     <code>replies_est_dur_per_cycle</code> with minimum of
-    <code>scan_replies_est_dur_per_cycle_s</code>.
+    <code>scan_in_est_dur_per_cycle_s</code>.
     Changes are exponential to quickly adjust to changing dynamics.
   </p>
   <p>
-    For acs_mail_lite::scan_replies,
+    For acs_mail_lite::scan_in,
   </p><p>
     Keep track of email flags while processing.<br/>
     Mark /read when reading.<br/>
