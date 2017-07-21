@@ -48,24 +48,25 @@ ad_proc -public acs_mail_lite::sched_parameters {
     -hpri_object_ids
     -lpri_object_ids
 } {
-    Returns a name value list of parameters used by ACS Mail Lite scheduled procs.
+    Returns a name value list of parameters 
+    used by ACS Mail Lite scheduled procs.
     If a parameter is passed with value, the value is assigned to parameter.
 
     @option sched_parameter value
 
-    @param sredpcs_override If set, use this value instead of scan_replies_est_dur_per_cycle_s. See www/doc/analysis-notes
+    @param sredpcs_override If set, use this instead of scan_in_est_dur_per_cycle_s. See www/doc/analysis-notes
 
-    @param reprocess_old_p If set, does not check if unread email was processed before.
+    @param reprocess_old_p If set, does not ignore prior unread email
 
-    @param max_concurrent Max number of concurrent threads for fast priority importing of email.
+    @param max_concurrent Max concurrent processes to import (fast priority)
 
-    @param max_blob_chars Any incoming email body part over this many characters is stored in a file instead of database. 
+    @param max_blob_chars Email body parts larger are stored in a file.
 
-    @param mpri_min Minimum threshold integer for medium priority. Below this is fast High priority.
+    @param mpri_min Minimum threshold integer for medium priority. Smaller is fast High priority.
 
-    @param mpri_max Maximum integer for medium priority. Above this is Low priority.
+    @param mpri_max Maximum integer for medium priority. Larger is Low priority.
 
-    @param hpri_package_ids List of package_ids to process at fast/high priority.
+    @param hpri_package_ids List of package_ids to process at fast priority.
 
     @param lpri_package_ids List of package_ids to process at low priority.
 
@@ -73,9 +74,9 @@ ad_proc -public acs_mail_lite::sched_parameters {
 
     @param lpri_party_ids List of party_ids to process at low priority.
     
-    @param hpri_subject_glob A glob searching subjects to flag as fast/high priority.
+    @param hpri_subject_glob When email subject matches, flag as fast priority.
 
-    @param lpri_subject_glob A glob searching subjects to flag as low priority.   
+    @param lpri_subject_glob When email subject matches, flag as low priority.
 
     @param hpri_object_ids List of object_ids to process at fast/high priority.
 
