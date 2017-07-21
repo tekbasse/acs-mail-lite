@@ -10,7 +10,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
         -rollback \
         -test_code {
 
-            ns_log Notice "aa_register_case:acs_mail_lite_inbound_procs_check"
+           ns_log Notice "aa_register_case:acs_mail_lite_inbound_procs_check"
 
             set a_list [acs_mail_lite::sched_parameters]
             array set params_initial $a_list
@@ -38,19 +38,19 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     }
                     set val [join $nums_list " "]
                 } 
-                aa_log "Testing change of parameter '${p}' from \
+                aa_log "r41. Testing change of parameter '${p}' from \
  '$params_initial(${p})' to '${val}'"
-                #set params_initial(${p}) $val
+                
                 set b_list [acs_mail_lite::sched_parameters $param $val]
                 array set params_new $b_list
                 foreach ii [array names params_initial] {
                     if { $ii eq $p } {
-                        aa_equals "Changed sched_parameter '${ii}' \
-  value '$params_initial(${ii})' to '$params_new(${ii})' set" \
+                        aa_equals "r48 Changed sched_parameter '${ii}' \
+  value '$params_initial(${ii})' to '${val}' set" \
                             [template::util::is_true $params_new(${ii})] \
-                            [template::util::is_true $params_initial(${ii})]
+                            [template::util::is_true $val]
                     } else {
-                        aa_equals "Unchanged sched_parameter '${ii}' same" \
+                        aa_equals "r53 Unchanged sched_parameter '${ii}' same" \
                             [template::util::is_true $params_new(${ii})] \
                             [template::util::is_true $params_initial(${ii})]
                     }
@@ -102,11 +102,12 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
 
                     # make low or high?
                     set p [util::random_list_element $lh_list]
-                    set pa $p
+                    set pa "-"
+                    append pa $p
                     switch -exact -- $p_i {
                         package_ids {
                             append pa "pri_package_ids"
-                            set v $package_id
+                            set v $instance_id
                         }
                         party_ids {
                             append pa "pri_party_ids"
@@ -132,33 +133,33 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 set dur_s [nsv_get acs_mail_lite scan_in_est_dur_p_cycle_s]
                 set s0 [ns_config -int -set nssock_v4 maxinput $su_max]
 
-                set t1 [expr { $t0 - $dur_s * 1.9 * [random] } ]
-                set t2 [expr { $t0 - $dur_s * 1.9 * [random] } ]
-                set s1 [expr { $s0 * 0.9 * [random] } ]
-                set s2 [expr { $s0 * 0.9 * [random] } ]
+                set t1 [expr { int( $t0 - $dur_s * 1.9 * [random]) } ]
+                set t2 [expr { int( $t0 - $dur_s * 1.9 * [random]) } ]
+                set s1 [expr { int( $s0 * 0.9 * [random]) } ]
+                set s2 [expr { int( $s0 * 0.9 * [random]) } ]
 
                 if { $t1 < $t2 } {
                     set t $t1
                     # first in chronology = f1
                     # second in chronology = f2
-                    set f1 1
-                    set f2 2
+                    set f1 t1
+                    set f2 t2
                 } else {
                     set t $t2
-                    set f1 2
-                    set f2 1
+                    set f1 t2
+                    set f2 t1
                 }
 
                 if { $s1 < $s2 } {
                     set s $s1
                     # first in priority for size = z1
                     # second in priority for size = z2
-                    set z1 1
-                    set z2 2
+                    set z1 s1
+                    set z2 s2
                 } else {
                     set s $s2
-                    set z1 2
-                    set z2 1
+                    set z1 s2
+                    set z2 s1
                 }
                 
                 set p_arr(t1) [acs_mail_lite::prioritize_in \
@@ -168,6 +169,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                        -package_id $instance_id \
                                        -party_id $user_id \
                                        -object_id $instance_id]
+                aa_log "p_arr(t1) = '$p_arr(t1)'"
 
                 set p_arr(t2) [acs_mail_lite::prioritize_in \
                                    -size_chars $s \
@@ -176,6 +178,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                    -package_id $instance_id \
                                    -party_id $user_id \
                                    -object_id $instance_id]
+                aa_log "p_arr(t2) = '$p_arr(t2)'"
 
                 set p_arr(s1) [acs_mail_lite::prioritize_in \
                                    -size_chars $s1 \
@@ -184,6 +187,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                    -package_id $instance_id \
                                    -party_id $user_id \
                                    -object_id $instance_id]
+                aa_log "p_arr(s1) = '$p_arr(s1)'"
 
                 set p_arr(s2) [acs_mail_lite::prioritize_in \
                                    -size_chars $s2 \
@@ -193,21 +197,25 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                    -party_id $user_id \
                                    -object_id $instance_id]
                 
+                aa_log "p_arr(s2) = '$p_arr(s2)'"
+
                 # verify earlier is higher priority 
-                if { $p_arr(t${f1}) < $p_arr(t${f2}) } {
+                if { $p_arr(${f1}) < $p_arr(${f2}) } {
                     set cron_p 1
                 } else {
                     set cron_p 0
                 }
-                aa_true "earlier email has faster priority" $cron_p
+                aa_true "earlier email assigned first \
+ ${f1} '$p_arr(${f1})' < ${f2} '$p_arr(${f2})' " $cron_p
 
                 # verify larger size has slower priority
-                if { $p_arr(s${z1}) < $p_arr(s${z2}) } {
+                if { $p_arr(${z1}) < $p_arr(${z2}) } {
                     set size_p 1
                 } else {
                     set size_p 0
                 }
-                aa_true "bigger email has slower priority" $size_p
+                aa_true "smaller email assigned first \
+ ${z1} '$p_arr(${z1})' < ${z2} '$p_arr(${z2})' " $size_p
 
                 # verify that none hit or exceed the range limit
                 foreach j [list t1 t2 s1 s2] {
@@ -216,8 +224,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     } else {
                         set within_limits_p 0
                     }
-                    aa_true "prioirty for case ${j} is within limits." \
-                        $within_limits_p
+                    aa_true "prioirty for case ${j} '$p_arr(${j})' \
+ is within limits." $within_limits_p
                 }
 
 

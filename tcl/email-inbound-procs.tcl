@@ -173,9 +173,14 @@ ad_proc -public acs_mail_lite::sched_parameters {
                     }
                     hpri_subject_glob -
                     lpri_subject_glob {
-                        set v_p [regexp -- {^[[:graph:]\ ]+$} $new(${spn}) x]
-                        if { $v_p && [string match {*[\[;]*} $new(${spn}) ] } {
-                            set v_p 0
+                        if { $new(${spn}) eq "" } {
+                            set v_p 1
+                        } else {
+                            set v_p [regexp -- {^[[:graph:]\ ]+$} $new(${spn})]
+                            if { $v_p && \
+                                     [string match {*[\[;]*} $new(${spn}) ] } {
+                                set v_p 0
+                            }
                         }
                     }
                     defaults {
@@ -192,7 +197,7 @@ ad_proc -public acs_mail_lite::sched_parameters {
             if { $mpri_min >= $mpri_max } {
                 set validated_p 0
                     ns_log Warning "acs_mail_lite::sched_parameters \
- parameter mpri_min must be less than mpri_max"
+ mpri_min '${mpri_min}' must be less than mpri_max '${mpri_max}'"
 
             }
         }
@@ -278,7 +283,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
 
 } {
     set priority_fine ""
-    set input_error 0
+    set input_error_p 0
     # validate email inputs
     if { ! ([string is integer -strict $size_chars] && $size_chars > 0) } {
         set input_error_p 1
