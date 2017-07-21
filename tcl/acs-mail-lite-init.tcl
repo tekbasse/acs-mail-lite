@@ -21,12 +21,19 @@ if {$queue_dir ne ""} {
 # check every few minutes for new email to filter and maybe flag for parsing.
 #ad_schedule_proc -thread t [acs_mail_lite::get_parameter -name IncomingScanQueue -default 120] acs_mail_lite::scan_replies
 
+# Scan incoming start time in clock seconds.
+set scan_in_start_time_cs [clock seconds]
+# Scan incoming estimated duration pur cycle in seconds
+set scan_in_est_dur_per_cycle_s 120
 # check every few minutes for new email to filter and maybe flag for parsing.
 ##code ad_schedule_proc -thread t [acs_mail_lite::get_parameter -name IncomingScanQueue -default 120] acs_mail_lite::scan_incoming
 
 
 nsv_set acs_mail_lite send_mails_p 0
 nsv_set acs_mail_lite check_bounce_p 0
+# Used by incoming email system
+nsv_set acs_mail_lite scan_in_start_t_cs $scan_in_start_time_cs
+nsv_set acs_mail_lite scan_in_est_dur_p_cycle_s $scan_in_est_dur_per_cycle_s
 
 ##code  acs_mail_lite::check_bounces should quit if not configured.
 # ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces

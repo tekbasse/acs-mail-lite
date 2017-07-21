@@ -163,7 +163,7 @@ create table acs_mail_lite_email_src_ext_id_map (
 -- If an email is flagged high priority by package_id and
 -- low priority by subject glob. It is assigned low priority.
 -- Order of specificity.
--- package_id package_id party_id subject_id object_id
+-- medium default package_id party_id subject_id object_id
 -- party_id can be group_id or user_id
 -- If fast and low flag the same specificity for an email, low is chosen.
 create table acs_mail_lite_ui (
