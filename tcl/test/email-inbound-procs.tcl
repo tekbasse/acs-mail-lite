@@ -88,7 +88,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 # set new case of parameters
                 set r [randomRange 10000]
                 set p_min [expr { $r + 999 } ]
-                set p_max [expr { $p_threshold_min * 1000 + $r } ]
+                set p_max [expr { $p_min * 1000 + $r } ]
+                set su_max [expr { $p_max * 30 } ]
                 acs_mail_lite::sched_parameters \
                     -mpri_min $p_min \
                     -mpri_max $p_max
@@ -123,20 +124,103 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     acs_mail_lite::sched_parameters ${p} $v
                     incr i
                 }
-                # make four low priority tests
-                # two vary in time, two vary in size
+
+                # make four tests for each priority p_arr
+                # two vary in time, t1, t2
+                # two vary in size, s1, s2
+                set t0 [nsv_get acs_mail_lite scan_in_start_t_cs]
+                set dur_s [nsv_get acs_mail_lite scan_in_est_dur_p_cycle_s]
+                set s0 [ns_config -int -set nssock_v4 maxinput $su_max]
+
+                set t1 [expr { $t0 - $dur_s * 1.9 * [random] } ]
+                set t2 [expr { $t0 - $dur_s * 1.9 * [random] } ]
+                set s1 [expr { $s0 * 0.9 * [random] } ]
+                set s2 [expr { $s0 * 0.9 * [random] } ]
+
+                if { $t1 < $t2 } {
+                    set t $t1
+                    # first in chronology = f1
+                    # second in chronology = f2
+                    set f1 1
+                    set f2 2
+                } else {
+                    set t $t2
+                    set f1 2
+                    set f2 1
+                }
+
+                if { $s1 < $s2 } {
+                    set s $s1
+                    # first in priority for size = z1
+                    # second in priority for size = z2
+                    set z1 1
+                    set z2 2
+                } else {
+                    set s $s2
+                    set z1 2
+                    set z2 1
+                }
+                
+                set p_arr(t1) [acs_mail_lite::prioritize_in \
+                                       -size_chars $s \
+                                       -received_cs $t1 \
+                                       -subject $subject \
+                                       -package_id $instance_id \
+                                       -party_id $user_id \
+                                       -object_id $instance_id]
+
+                set p_arr(t2) [acs_mail_lite::prioritize_in \
+                                   -size_chars $s \
+                                   -received_cs $t2 \
+                                   -subject $subject \
+                                   -package_id $instance_id \
+                                   -party_id $user_id \
+                                   -object_id $instance_id]
+
+                set p_arr(s1) [acs_mail_lite::prioritize_in \
+                                   -size_chars $s1 \
+                                   -received_cs $t \
+                                   -subject $subject \
+                                   -package_id $instance_id \
+                                   -party_id $user_id \
+                                   -object_id $instance_id]
+
+                set p_arr(s2) [acs_mail_lite::prioritize_in \
+                                   -size_chars $s2 \
+                                   -received_cs $t \
+                                   -subject $subject \
+                                   -package_id $instance_id \
+                                   -party_id $user_id \
+                                   -object_id $instance_id]
+                
                 # verify earlier is higher priority 
-                # verify larger size is lower priority
-                # verify that none hit the range limit
+                if { $p_arr(t${f1}) < $p_arr(t${f2}) } {
+                    set cron_p 1
+                } else {
+                    set cron_p 0
+                }
+                aa_true "earlier email has faster priority" $cron_p
 
-                # make four high priority test
-                # two vary in time, two vary in size
-                # verify earlier is higher priority 
-                # verify larger size is lower priority
-                # verify that none hit the range limit
+                # verify larger size has slower priority
+                if { $p_arr(s${z1}) < $p_arr(s${z2}) } {
+                    set size_p 1
+                } else {
+                    set size_p 0
+                }
+                aa_true "bigger email has slower priority" $size_p
+
+                # verify that none hit or exceed the range limit
+                foreach j [list t1 t2 s1 s2] {
+                    if { $p_arr($j) > $p_min && $p_arr($j) < $p_max } {
+                        set within_limits_p 1
+                    } else {
+                        set within_limits_p 0
+                    }
+                    aa_true "prioirty for case ${j} is within limits." \
+                        $within_limits_p
+                }
 
 
-               
             }
 
 
