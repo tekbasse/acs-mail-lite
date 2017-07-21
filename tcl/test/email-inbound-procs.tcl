@@ -58,7 +58,25 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
             }
 
             set instance_id [ad_conn package_id]
-            foreach priority [list fast med slow] {
+            set sysowner_email [ad_system_owner]
+            set sysowner_user_id [party::get_by_email -email $sysowner_email]
+            set user_id [ad_conn user_id]
+            set package_ids [list $instance_id]
+            set party_ids [util::randomize_list \
+                               [list $user_id $sysowner_user_id]]
+            set object_ids [concat $party_ids $package_ids $user_id $sysowner_user_id]
+            set priority_types [list \
+                                    package_ids \
+                                    party_ids \
+                                    glob_str \
+                                    object_ids]
+            set lh_list [list l h]
+            set subject [ad_generate_random_string]
+            set su_glob "*"
+            append su_glob [string range $subject [randomRange 8] end]
+ 
+            foreach p_type $priority_types {
+
                 # reset prameters
                 foreach {n v} $a_list {
                     #set $n $v
@@ -66,8 +84,59 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     append p $n
                     set b_list [acs_mail_lite::sched_parameters $p $v]
                 }
-                # set 
 
+                # set new case of parameters
+                set r [randomRange 10000]
+                set p_min [expr { $r + 999 } ]
+                set p_max [expr { $p_threshold_min * 1000 + $r } ]
+                acs_mail_lite::sched_parameters \
+                    -mpri_min $p_min \
+                    -mpri_max $p_max
+
+                set i 0
+                set p_i [lindex $priority_types $i]
+                while { $p_i ne $p_type } {
+                    # set a random value to be ignored 
+                    # with higher significance of p_type value
+
+                    # make low or high?
+                    set p [util::random_list_element $lh_list]
+                    set pa $p
+                    switch -exact -- $p_i {
+                        package_ids {
+                            append pa "pri_package_ids"
+                            set v $package_id
+                        }
+                        party_ids {
+                            append pa "pri_party_ids"
+                            set v [join $party_ids " "]
+                        }
+                        glob_str {
+                            append pa "pri_subject_glob"
+                            set v $su_glob
+                        }
+                        object_ids {
+                            append pa "pri_object_ids"
+                            set v [join $object_ids " "]
+                        }
+                    } 
+                    acs_mail_lite::sched_parameters ${p} $v
+                    incr i
+                }
+                # make four low priority tests
+                # two vary in time, two vary in size
+                # verify earlier is higher priority 
+                # verify larger size is lower priority
+                # verify that none hit the range limit
+
+                # make four high priority test
+                # two vary in time, two vary in size
+                # verify earlier is higher priority 
+                # verify larger size is lower priority
+                # verify that none hit the range limit
+
+
+               
             }
 
 
