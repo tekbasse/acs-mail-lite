@@ -410,9 +410,182 @@ ad_proc -public acs_mail_lite::prioritize_in {
 
     return $priority_fine
 }
+
+ad_proc -private acs_mail_lite::imap_conn_set {
+    {-host ""}
+    {-password ""}
+    {-port ""}
+    {-timeout ""}
+    {-user ""}
+} {
+    Establishes a connection if it doesn't exist.
+    Defaults to use connection info provided by parameters.
+    
+
+    @return connectionId or empty string if unsuccessful.
+} {
+    # See one row table acs_mail_lite_imap_conn
+    # imap_conn_ = ic
+    set ic_list [list \
+                     host \
+                     password \
+                     port \
+                     timeout \
+                     user ]
+    # ic fields = icf
+    set icf_list [list ]
+    foreach ic $ic_list {
+        set icf [string range $ic 0 1]
+        lappend icf_list $icf
+        if { [info exists $ic] } {
+            set new_arr(${ic}) [set $ic]
+        }
+    }
+    set changes_p [array exists new]
+    set exists_p [db_0or1row acs_mail_lite_imap_conn_r {
+        select ho,pa,po,ti,us
+        from acs_mail_lite_imap_conn limit 1
+    } ]
+
+    if { !$exists_p } {
+        # set initial defaults
+        set mb [ns_config nsimap mailbox ""]
+        if { [string match "*@*" $mb] } {
+            set mb_list [split $mb "@"]
+            set ho [lindex $mb_list end]
+        } else {
+            set ho [ns_config nssock hostname ""]
+            if { $ho eq "" } {
+                set ho [ns_config nssock_v4 hostname ""]
+            }
+            if { $ho eq "" } {
+                set ho [ns_config nssock_v6 hostname ""]
+            }
+        }
+        set pa [ns_config nsimap password ""]
+        set po [ns_config nsimap port ""]
+        set ti [ns_config -int nsimap timeout 1800]
+        set us [ns_config nsimap user ""]
+    }
+
+    if { !$exists_p || $changes_p } {
+        set validated_p 1
+        if { $changes_p } {
+            set new_pv_list [array names new]
+            foreach spn $new_pv_list {
+                switch -exact -- $spn {
+                    port -
+                    timeout {
+                        if { $new_arr(${spn}) eq "" } {
+                            set v_p 1
+                        } else {
+                            set v_p [string is digit -strict $new_arr(${spn})]
+                            if { $v_p } {
+                                if { $new_arr(${spn}) < 0 } {
+                                    set v_p 0
+                                }
+                            }
+                        }
+                    }
+                    host -
+                    password -
+                    user {
+                        if { $new_arr(${spn}) eq "" } {
+                            set v_p 1
+                        } else {
+                            set v_p [regexp -- {^[[:graph:]\ ]+$} $new_arr(${spn})]
+                            if { $v_p && \
+                                     [string match {*[\[;]*} $new_arr(${spn}) ] } {
+                                set v_p 0
+                            }
+                        }
+                    }
+                    defaults {
+                        ns_log Warning "acs_mail_lite::imap_conn_set \
+ No validation check made for parameter '${spn}'"
+                    }
+                }
+                if { !$v_p } {
+                    set validated_p 0
+                    ns_log Warning "acs_mail_lite::imap_conn_set \
+ value '$new_arr(${spn})' for parameter '${spn}' not allowed."
+                }
+            }
+        }
+            
+        if { $validated_p } {
+            foreach sp_n $new_pv_list {
+                set ${sp_n} $new_arr($sp_n)
+            }
+
+            db_transaction {
+                if { $changes_p } {
+                    db_dml acs_mail_lite_imap_conn_d {
+                        delete from acs_mail_lite_imap_conn
+                    }
+                }
+                db_dml acs_mail_lite_imap_conn_i {
+                    insert into acs_mail_lite_imap_conn 
+                    (sredpcs_override,
+                     reprocess_old_p,
+                     max_concurrent,
+                     max_blob_chars,
+                     mpri_min,
+                     mpri_max,
+                     hpri_package_ids,
+                     lpri_package_ids,
+                     hpri_party_ids,
+                     lpri_party_ids,
+                     hpri_subject_glob,
+                     lpri_subject_glob,
+                     hpri_object_ids,
+                     lpri_object_ids)
+                    values 
+                    (:sredpcs_override,
+                     :reprocess_old_p,
+                     :max_concurrent,
+                     :max_blob_chars,
+                     :mpri_min,
+                     :mpri_max,
+                     :hpri_package_ids,
+                     :lpri_package_ids,
+                     :hpri_party_ids,
+                     :lpri_party_ids,
+                     :hpri_subject_glob,
+                     :lpri_subject_glob,
+                     :hpri_object_ids,
+                     :lpri_object_ids
+                     )
+                }
+            }
+        } 
+                
+    }
+    set s_list [list ]
+    foreach s $sp_list {
+        set sv [set ${s}]
+        lappend s_list ${s} $sv
+    }
+    return $s_list
+}
+
+ad_proc -private acs_mail_lite::imap_conn_hello {
+    {-host ""}
+    {-password ""}
+    {-port ""}
+    {-timeout ""}
+    {-user ""}
+} {
+    Establishes a connection if it doesn't exist.
+    Defaults to use connection info provided by parameters.
+    
+
+    @return connectionId or empty string if unsuccessful.
+} {
+
+
+
 #
-
-
 # Local variables:
 #    mode: tcl
 #    tcl-indent-level: 4
