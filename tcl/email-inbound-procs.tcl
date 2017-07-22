@@ -159,6 +159,22 @@ ad_proc -public acs_mail_lite::sched_parameters {
                                 set v_p 0
                             }
                         }
+                        if { $v_p && $spn eq "mpri_min" } {
+                            if { $new(${spn}) >= $mpri_max } {
+                                set v_p 0
+                                ns_log Warning "acs_mail_lite::\
+ sched_parameters mpri_min '$new(${spn})' \
+ must be less than mpri_max '${mpri_max}'"
+                            }
+                        }
+                        if { $v_p && $spn eq "mpri_max" } {
+                            if { $new(${spn}) <= $mpri_min } {
+                                set v_p 0
+                                ns_log Warning "acs_mail_lite::\
+ sched_parameters mpri_min '${mpri_min}' \
+ must be less than mpri_max '$new(${spn})'"
+                            }
+                        }
                     }
                     reprocess_old_p {
                         set v_p [string is boolean -strict $new(${spn}) ]
@@ -193,12 +209,6 @@ ad_proc -public acs_mail_lite::sched_parameters {
                     ns_log Warning "acs_mail_lite::sched_parameters \
  value '$new(${spn})' for parameter '${spn}' not allowed."
                 }
-            }
-            if { $mpri_min >= $mpri_max } {
-                set validated_p 0
-                    ns_log Warning "acs_mail_lite::sched_parameters \
- mpri_min '${mpri_min}' must be less than mpri_max '${mpri_max}'"
-
             }
         }
             
@@ -252,7 +262,8 @@ ad_proc -public acs_mail_lite::sched_parameters {
     }
     set s_list [list ]
     foreach s $sp_list {
-        lappend s_list ${s} [set ${s}]
+        set sv [set ${s}]
+        lappend s_list ${s} $sv
     }
     return $s_list
 }
@@ -301,7 +312,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
 
     # *_cs means clock time from epoch in seconds, 
     #      same as returned from tcl clock seconds
-    array set param_arr [acs_mail_lite::sched_parameters]
+    array set params_arr [acs_mail_lite::sched_parameters]
 
     set priority 2
     # Set general priority in order of least specific first
@@ -358,7 +369,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
         }
         3 {
             set pri_min $params_arr(mpri_max)
-            set pri_max $file_max
+            set pri_max $size_max
         }
         default {
             ns_log Warning "acs_mail_lite::prioritize_in.305: \
@@ -375,8 +386,8 @@ ad_proc -public acs_mail_lite::prioritize_in {
     # char_size, date time stamp
     set varnum 2
     # Get most recent scan start time for reference to batch present time
-    set start_cs [nsv_get acs_mail_lite scan_in_start_time_cs]
-    set dur_s [nsv_get acs_mail_lite scan_in_est_dur_per_cycle_s]
+    set start_cs [nsv_get acs_mail_lite scan_in_start_t_cs]
+    set dur_s [nsv_get acs_mail_lite scan_in_est_dur_p_cycle_s]
 
     # Priority favors earlier reception, returns decimal -1. to 0.
     # for normal operation. Maybe  -0.5 to 0. for most.
@@ -384,7 +395,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
 
     # Priority favors smaller message size. Returns decimal 0. to 1.
     # and for most, somewhere closer to perhaps 0.
-    set pri_s [expr { ( $size_chars / ( $file_max + 0. ) ) } ]
+    set pri_s [expr { ( $size_chars / ( $size_max + 0. ) ) } ]
     
     set priority_fine [expr { int( ( $pri_t + $pri_s ) * $d_max ) + $mp } ] 
     set priority_fine [f::min $priority_fine $pri_max]

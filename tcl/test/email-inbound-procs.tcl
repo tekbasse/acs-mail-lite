@@ -103,6 +103,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     #set $n $v
                     set p "-"
                     append p $n
+                    aa_log "r106 p '${p}' v '${v}'"
                     set b_list [acs_mail_lite::sched_parameters $p $v]
                 }
 
@@ -111,13 +112,14 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 set p_min [expr { $r + 999 } ]
                 set p_max [expr { $p_min * 1000 + $r } ]
                 set su_max [expr { $p_max * 30 } ]
+                    aa_log "r115 p_min '${p_min}' p_max '${p_max}'"
                 acs_mail_lite::sched_parameters \
                     -mpri_min $p_min \
                     -mpri_max $p_max
 
                 set i 0
                 set p_i [lindex $priority_types $i]
-                while { $p_i ne $p_type } {
+                while { $p_i ne $p_type && $i < 100 } {
                     # set a random value to be ignored 
                     # with higher significance of p_type value
 
@@ -142,8 +144,11 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                             append pa "pri_object_ids"
                             set v [join $object_ids " "]
                         }
-                    } 
-                    acs_mail_lite::sched_parameters ${p} $v
+                    }
+                    aa_log "r148 pa '${pa}' v '${v}'"
+                    acs_mail_lite::sched_parameters ${pa} $v
+
+                    set p_i [lindex $priority_types $i]
                     incr i
                 }
 
