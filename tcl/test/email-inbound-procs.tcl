@@ -155,15 +155,17 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 # make four tests for each priority p_arr
                 # two vary in time, t1, t2
                 # two vary in size, s1, s2
+                nsv_set acs_mail_lite scan_in_start_t_cs [clock seconds]
                 set t0 [nsv_get acs_mail_lite scan_in_start_t_cs]
                 set dur_s [nsv_get acs_mail_lite scan_in_est_dur_p_cycle_s]
                 set s0 [ns_config -int -set nssock_v4 maxinput $su_max]
+                aa_log "r161 given: t0 '${t0}' dur_s '${dur_s}' s0 '${s0}'"
 
                 set t1 [expr { int( $t0 - $dur_s * 1.9 * [random]) } ]
                 set t2 [expr { int( $t0 - $dur_s * 1.9 * [random]) } ]
                 set s1 [expr { int( $s0 * 0.9 * [random]) } ]
                 set s2 [expr { int( $s0 * 0.9 * [random]) } ]
-
+                aa_log "r167 priorities: t1 '${t1}' t2 '${t2}' s1 '${s1}' s2 '${s2}'"
                 if { $t1 < $t2 } {
                     set t $t1
                     # first in chronology = f1

@@ -339,10 +339,10 @@ ad_proc -public acs_mail_lite::prioritize_in {
         set priority 1
     }
     if { [string match $params_arr(lpri_subject_glob) $subject] } {
-            set priority 3
+        set priority 3
     }
 
-
+    
     if { $object_id ne "" } {
         if { $object_id in $params_arr(hpri_object_ids) } {
             set priority 1
@@ -351,7 +351,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
             set priority 3
         }
     }
-
+    
     # quick math for arbitrary super max of maxes
     set su_max $params_arr(mpri_max)
     append pri_max "00"
@@ -376,11 +376,15 @@ ad_proc -public acs_mail_lite::prioritize_in {
  Priority value not expected '${priority}'"
         }
     }
+
+    ns_log Dev "prioritize_in: pri_max '${pri_max}' pri_min '${pri_min}'"
+
     set range [expr { $pri_max - $pri_min } ]
     # deviation_max = d_max
     set d_max [expr { $range / 2 } ]
     # midpoint = mp
-    set mp [expr { $pri_min + $range } ]
+    set mp [expr { $pri_min + $d_max } ]
+    ns_log Dev "prioritize_in: range '${range}' d_max '${d_max}' mp '${mp}'"
 
     # number of variables in fine granularity calcs: 
     # char_size, date time stamp
@@ -388,6 +392,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
     # Get most recent scan start time for reference to batch present time
     set start_cs [nsv_get acs_mail_lite scan_in_start_t_cs]
     set dur_s [nsv_get acs_mail_lite scan_in_est_dur_p_cycle_s]
+    ns_log Dev "prioritize_in: start_cs '${start_cs}' dur_s '${dur_s}'"
 
     # Priority favors earlier reception, returns decimal -1. to 0.
     # for normal operation. Maybe  -0.5 to 0. for most.
@@ -398,6 +403,8 @@ ad_proc -public acs_mail_lite::prioritize_in {
     set pri_s [expr { ( $size_chars / ( $size_max + 0. ) ) } ]
     
     set priority_fine [expr { int( ( $pri_t + $pri_s ) * $d_max ) + $mp } ] 
+    ns_log Dev "prioritize_in: pri_t '${pri_t}' pri_s '${pri_s}'"
+    ns_log Dev "prioritize_in: pre(max/min) priority_fine '${priority_fine}'"
     set priority_fine [f::min $priority_fine $pri_max]
     set priority_fine [f::max $priority_fine $pri_min]
 
