@@ -13,7 +13,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            ns_log Notice "aa_register_case:acs_mail_lite_inbound_procs_check"
 
             set a_list [acs_mail_lite::sched_parameters]
-            array set params_initial $a_list
+            array set params_def $a_list
 
             set bools_list [list reprocess_old_p]
             set integer_list [list sredpcs_override max_concurrent \
@@ -21,7 +21,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
             set ints_list [list hpri_package_ids lpri_package_idx hpri_party_ids lpri_party_ids hpri_object_ids lpri_object_ids]
             set globs_list [list hpri_subject_glob lpri_subject_glob]
             set bools_v_list [list 0 1 t f true false]
-            foreach p [array names params_initial] {
+            foreach p [array names params_def] {
                 # test setting of each parameter separately
                 set param "-"
                 append param $p
@@ -39,22 +39,39 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     set val [join $nums_list " "]
                 } 
                 aa_log "r41. Testing change of parameter '${p}' from \
- '$params_initial(${p})' to '${val}'"
+ '$params_def(${p})' to '${val}'"
                 
                 set b_list [acs_mail_lite::sched_parameters $param $val]
+                aa_log "param $param val $val b_list $b_list"
+                array unset params_new
                 array set params_new $b_list
-                foreach ii [array names params_initial] {
-                    if { $ii eq $p } {
-                        aa_equals "r48 Changed sched_parameter '${ii}' \
-  value '$params_initial(${ii})' to '${val}' set" \
-                            [template::util::is_true $params_new(${ii})] \
-                            [template::util::is_true $val]
+                foreach pp [array names params_def] {
+                    if { $pp eq $p } {
+                        if { $pp in $bools_list } {
+                            aa_equals "r48 Changed sched_parameter '${pp}' \
+  value '$params_def(${pp})' to '${val}' set" \
+                                [template::util::is_true $params_new(${pp})] \
+                                [template::util::is_true $val]
+                        } else {
+                            aa_equals "r56 Changed sched_parameter '${pp}' \
+  value '$params_def(${pp})' to '${val}' set" $params_new(${pp}) $val
+
+                        }
                     } else {
-                        aa_equals "r53 Unchanged sched_parameter '${ii}' same" \
-                            [template::util::is_true $params_new(${ii})] \
-                            [template::util::is_true $params_initial(${ii})]
+                        if { $pp in $bools_list } {
+                            aa_equals "r62 Unchanged sched_parameter '${pp}' \
+  value '$params_def(${pp})' to '$params_new(${pp})' set" \
+                                [template::util::is_true $params_new(${pp})] \
+                                [template::util::is_true $params_def(${pp})]
+                        } else {
+                            aa_equals "r67 Unchanged sched_parameter '${pp}' \
+  value '$params_def(${pp})' to '$params_new(${pp})' set" \
+                                $params_new(${pp}) $params_def(${pp})
+
+                        }
                     }
                 }
+                array set params_def $b_list
             }
 
             set instance_id [ad_conn package_id]
@@ -64,7 +81,11 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
             set package_ids [list $instance_id]
             set party_ids [util::randomize_list \
                                [list $user_id $sysowner_user_id]]
-            set object_ids [concat $party_ids $package_ids $user_id $sysowner_user_id]
+            set object_ids [concat \
+                                $party_ids \
+                                $package_ids \
+                                $user_id \
+                                $sysowner_user_id]
             set priority_types [list \
                                     package_ids \
                                     party_ids \
