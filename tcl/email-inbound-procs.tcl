@@ -354,7 +354,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
     
     # quick math for arbitrary super max of maxes
     set su_max $params_arr(mpri_max)
-    append pri_max "00"
+    append su_max "00"
     set size_max [ns_config -int -min $su_max -set nssock_v4 maxinput $su_max]
 
     # add granularity

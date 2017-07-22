@@ -53,9 +53,19 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                 [template::util::is_true $params_new(${pp})] \
                                 [template::util::is_true $val]
                         } else {
-                            aa_equals "r56 Changed sched_parameter '${pp}' \
-  value '$params_def(${pp})' to '${val}' set" $params_new(${pp}) $val
-
+                            if { $params_new(${pp}) eq $params_def(${pp}) } {
+                                if { $pp eq "mpri_max" \
+                                         && $val < $params_def(mpri_min) } {
+                                    aa_log "r54 mpri_max<mpri_min no change"
+                                } elseif { $pp eq "mpri_min" \
+                                               && $val > $params_def(mpri_max) } {
+                                    aa_log "r55 mpri_min>mpri_max no change."
+                                }
+                            } else {
+                                aa_equals "r56 Changed sched_parameter \
+ '${pp}' value '$params_def(${pp})' to '${val}' set" $params_new(${pp}) $val
+                                
+                            }
                         }
                     } else {
                         if { $pp in $bools_list } {
@@ -67,7 +77,6 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                             aa_equals "r67 Unchanged sched_parameter '${pp}' \
   value '$params_def(${pp})' to '$params_new(${pp})' set" \
                                 $params_new(${pp}) $params_def(${pp})
-
                         }
                     }
                 }
@@ -103,7 +112,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     #set $n $v
                     set p "-"
                     append p $n
-                    aa_log "r106 p '${p}' v '${v}'"
+                    aa_log "r106 resetting p '${p}' to v '${v}'"
                     set b_list [acs_mail_lite::sched_parameters $p $v]
                 }
 
@@ -111,11 +120,18 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 set r [randomRange 10000]
                 set p_min [expr { $r + 999 } ]
                 set p_max [expr { $p_min * 1000 + $r } ]
-                set su_max [expr { $p_max * 30 } ]
-                    aa_log "r115 p_min '${p_min}' p_max '${p_max}'"
-                acs_mail_lite::sched_parameters \
-                    -mpri_min $p_min \
-                    -mpri_max $p_max
+                set su_max $p_max
+                append su_max "00"
+
+                set c_list [acs_mail_lite::sched_parameters \
+                                -mpri_min $p_min \
+                                -mpri_max $p_max]
+                array set c_arr $c_list
+                set p_min $c_arr(mpri_min)
+                set p_max $c_arr(mpri_max)
+
+                aa_log "r115 p_min '${p_min}' p_max '${p_max}'"
+
 
                 set i 0
                 set p_i [lindex $priority_types $i]
@@ -145,20 +161,47 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                             set v [join $object_ids " "]
                         }
                     }
-                    aa_log "r148 pa '${pa}' v '${v}'"
+                    aa_log "r148: pa '${pa}' v '${v}' gets overridden"
                     acs_mail_lite::sched_parameters ${pa} $v
 
-                    set p_i [lindex $priority_types $i]
                     incr i
+                    set p_i [lindex $priority_types $i]
                 }
+                # What priority are we testing?
+                set p [util::random_list_element $lh_list]
+                aa_log "r163: Testing priority '${p}' for '${p_type}'"
+
+                set pa "-"
+                append pa $p
+                switch -exact -- $p_type {
+                    package_ids {
+                        append pa "pri_package_ids"
+                        set v $instance_id
+                    }
+                    party_ids {
+                        append pa "pri_party_ids"
+                        set v [join $party_ids " "]
+                    }
+                    glob_str {
+                        append pa "pri_subject_glob"
+                        set v $su_glob
+                    }
+                    object_ids {
+                        append pa "pri_object_ids"
+                        set v [join $object_ids " "]
+                    }
+                }
+                aa_log "r185: pa '${pa}' v '${v}'"
+                acs_mail_lite::sched_parameters ${pa} $v
+
 
                 # make four tests for each priority p_arr
                 # two vary in time, t1, t2
                 # two vary in size, s1, s2
-                nsv_set acs_mail_lite scan_in_start_t_cs [clock seconds]
+
                 set t0 [nsv_get acs_mail_lite scan_in_start_t_cs]
                 set dur_s [nsv_get acs_mail_lite scan_in_est_dur_p_cycle_s]
-                set s0 [ns_config -int -set nssock_v4 maxinput $su_max]
+                set s0 [ns_config -int -set -min $su_max nssock_v4 maxinput $su_max]
                 aa_log "r161 given: t0 '${t0}' dur_s '${dur_s}' s0 '${s0}'"
 
                 set t1 [expr { int( $t0 - $dur_s * 1.9 * [random]) } ]
@@ -246,20 +289,30 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
  ${z1} '$p_arr(${z1})' < ${z2} '$p_arr(${z2})' " $size_p
 
                 # verify that none hit or exceed the range limit
-                foreach j [list t1 t2 s1 s2] {
-                    if { $p_arr($j) > $p_min && $p_arr($j) < $p_max } {
-                        set within_limits_p 1
-                    } else {
-                        set within_limits_p 0
+                if { $p eq "l" } {
+                    foreach j [list t1 t2 s1 s2] {
+                        if { $p_arr($j) > $p_max && $p_arr($j) < $s0 } {
+                            set within_limits_p 1
+                        } else {
+                            set within_limits_p 0
+                        }
+                        aa_true "r266; prioirty for case '${j}' '${p_max}' < \
+  '$p_arr(${j})' < '${s0}' is within limits." $within_limits_p
                     }
-                    aa_true "prioirty for case ${j} '$p_arr(${j})' \
- is within limits." $within_limits_p
+                } elseif { $p eq "h" } {
+                    foreach j [list t1 t2 s1 s2] {
+                        if { $p_arr($j) > 0 && $p_arr($j) < $p_min } {
+                            set within_limits_p 1
+                        } else {
+                            set within_limits_p 0
+                        }
+                        aa_true "r276: prioirty for case '${j}' '0' < \
+  '$p_arr(${j})' < '${p_min}' is within limits." $within_limits_p
+                    }
+
+
                 }
-
-
             }
-
-
 
         }
 }
