@@ -418,11 +418,10 @@ ad_proc -private acs_mail_lite::imap_conn_set {
     {-timeout ""}
     {-user ""}
 } {
-    Establishes a connection if it doesn't exist.
-    Defaults to use connection info provided by parameters.
-    
+    Returns a name value list of parameters
+    used by ACS Mail Lite imap connections
 
-    @return connectionId or empty string if unsuccessful.
+    If a parameter is passed with value, the value is assigned to parameter.
 } {
     # See one row table acs_mail_lite_imap_conn
     # imap_conn_ = ic
@@ -471,17 +470,18 @@ ad_proc -private acs_mail_lite::imap_conn_set {
     if { !$exists_p || $changes_p } {
         set validated_p 1
         if { $changes_p } {
-            set new_pv_list [array names new]
-            foreach spn $new_pv_list {
-                switch -exact -- $spn {
+            # new = n
+            set n_pv_list [array names new]
+            foreach icn $n_pv_list {
+                switch -exact -- $icn {
                     port -
                     timeout {
-                        if { $new_arr(${spn}) eq "" } {
+                        if { $n_arr(${icn}) eq "" } {
                             set v_p 1
                         } else {
-                            set v_p [string is digit -strict $new_arr(${spn})]
+                            set v_p [string is digit -strict $n_arr(${icn})]
                             if { $v_p } {
-                                if { $new_arr(${spn}) < 0 } {
+                                if { $n_arr(${icn}) < 0 } {
                                     set v_p 0
                                 }
                             }
@@ -490,32 +490,32 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                     host -
                     password -
                     user {
-                        if { $new_arr(${spn}) eq "" } {
+                        if { $n_arr(${icn}) eq "" } {
                             set v_p 1
                         } else {
-                            set v_p [regexp -- {^[[:graph:]\ ]+$} $new_arr(${spn})]
+                            set v_p [regexp -- {^[[:graph:]\ ]+$} $n_arr(${icn})]
                             if { $v_p && \
-                                     [string match {*[\[;]*} $new_arr(${spn}) ] } {
+                                     [string match {*[\[;]*} $n_arr(${icn}) ] } {
                                 set v_p 0
                             }
                         }
                     }
                     defaults {
                         ns_log Warning "acs_mail_lite::imap_conn_set \
- No validation check made for parameter '${spn}'"
+ No validation check made for parameter '${icn}'"
                     }
                 }
                 if { !$v_p } {
                     set validated_p 0
                     ns_log Warning "acs_mail_lite::imap_conn_set \
- value '$new_arr(${spn})' for parameter '${spn}' not allowed."
+ value '$n_arr(${icn})' for parameter '${icn}' not allowed."
                 }
             }
         }
             
         if { $validated_p } {
-            foreach sp_n $new_pv_list {
-                set ${sp_n} $new_arr($sp_n)
+            foreach ic_n $n_pv_list {
+                set ${ic_n} $n_arr($ic_n)
             }
 
             db_transaction {
@@ -561,28 +561,74 @@ ad_proc -private acs_mail_lite::imap_conn_set {
         } 
                 
     }
-    set s_list [list ]
-    foreach s $sp_list {
-        set sv [set ${s}]
-        lappend s_list ${s} $sv
+    set i_list [list ]
+    foreach i $ic_list {
+        set svi [string range $i 0 1]
+        set sv [set ${svi}]
+        lappend i_list ${i} $sv
     }
-    return $s_list
+    return $i_list
 }
 
-ad_proc -private acs_mail_lite::imap_conn_hello {
+ad_proc -private acs_mail_lite::imap_conn_go {
+    {-conn_id ""}
     {-host ""}
     {-password ""}
     {-port ""}
     {-timeout ""}
     {-user ""}
 } {
-    Establishes a connection if it doesn't exist.
+    Verifies connection (connId) is established.
+    Tries to establish a connection if it doesn't exist.
+
+    If -host parameter is supplied, will try connection with supplied params.
     Defaults to use connection info provided by parameters.
-    
 
     @return connectionId or empty string if unsuccessful.
 } {
+    imap_conn_go = icg
+    imap_conn_set = ics
+    if { $host eq "" } {
+        set ics_list [acs_mail_lite::imap_conn_set ]
+        foreach {n v} $ics_list {
+            set $n "${v}"
+        }
+    }
 
+    set prior_conn_exists_p 0
+    if { $conn_id ne "" } {
+        # list {id opentime accesstime mailbox} ...
+        set id ""
+        set opentime ""
+        set accesstime ""
+        set mailbox ""
+
+        set sessions_list [ns_imap sessions]
+        set s_len [llength $sessions_list]
+        set i 0
+        while { $i < $s_len && $id ne $conn_id }  {
+            set s_list [lindex $sessions_list 0]
+            set id [lindex $s_list 0]
+            if { $id eq $conn_id } {
+                set prior_conn_exists_p 1
+                set opentime [lindex $s_list 1]
+                set accesstime [lindex $s_list 2]
+                set mailbox [lindex $s_list 3]
+            }
+            incr i
+        }
+    }
+
+    if { $prior_conn_exists_p } {
+        # ns_imap status $conn_id
+        # if no connection, set prior_conn_exists_p 0
+    } 
+
+    # prior_conn_exists_p 0, 
+        ##login
+        set conn_id ""
+
+}
 
 
 #
