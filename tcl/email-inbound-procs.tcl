@@ -7,7 +7,11 @@ ad_library {
 
 }
 
-#package require mime 1.4
+#package require mime 1.4  ? (no. Choose ns_imap option if available
+# at least to avoid tcl's 1024 open file descriptors limit[1].
+# 1. http://openacs.org/forums/message-view?message_id=5370874#msg_5370878
+# base64 and qprint encoding/decoding available via:
+# ns_imap encode/decode type data
 
 namespace eval acs_mail_lite {}
 
@@ -472,16 +476,16 @@ ad_proc -private acs_mail_lite::imap_conn_set {
         if { $changes_p } {
             # new = n
             set n_pv_list [array names new]
-            foreach icn $n_pv_list {
-                switch -exact -- $icn {
+            foreach n $n_pv_list {
+                switch -exact -- $n {
                     port -
                     timeout {
-                        if { $n_arr(${icn}) eq "" } {
+                        if { $n_arr(${n}) eq "" } {
                             set v_p 1
                         } else {
-                            set v_p [string is digit -strict $n_arr(${icn})]
+                            set v_p [string is digit -strict $n_arr(${n})]
                             if { $v_p } {
-                                if { $n_arr(${icn}) < 0 } {
+                                if { $n_arr(${n}) < 0 } {
                                     set v_p 0
                                 }
                             }
@@ -490,25 +494,25 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                     host -
                     password -
                     user {
-                        if { $n_arr(${icn}) eq "" } {
+                        if { $n_arr(${n}) eq "" } {
                             set v_p 1
                         } else {
-                            set v_p [regexp -- {^[[:graph:]\ ]+$} $n_arr(${icn})]
+                            set v_p [regexp -- {^[[:graph:]\ ]+$} $n_arr(${n})]
                             if { $v_p && \
-                                     [string match {*[\[;]*} $n_arr(${icn}) ] } {
+                                     [string match {*[\[;]*} $n_arr(${n}) ] } {
                                 set v_p 0
                             }
                         }
                     }
                     defaults {
                         ns_log Warning "acs_mail_lite::imap_conn_set \
- No validation check made for parameter '${icn}'"
+ No validation check made for parameter '${n}'"
                     }
                 }
                 if { !$v_p } {
                     set validated_p 0
                     ns_log Warning "acs_mail_lite::imap_conn_set \
- value '$n_arr(${icn})' for parameter '${icn}' not allowed."
+ value '$n_arr(${n})' for parameter '${n}' not allowed."
                 }
             }
         }
@@ -526,40 +530,11 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                 }
                 db_dml acs_mail_lite_imap_conn_i {
                     insert into acs_mail_lite_imap_conn 
-                    (sredpcs_override,
-                     reprocess_old_p,
-                     max_concurrent,
-                     max_blob_chars,
-                     mpri_min,
-                     mpri_max,
-                     hpri_package_ids,
-                     lpri_package_ids,
-                     hpri_party_ids,
-                     lpri_party_ids,
-                     hpri_subject_glob,
-                     lpri_subject_glob,
-                     hpri_object_ids,
-                     lpri_object_ids)
-                    values 
-                    (:sredpcs_override,
-                     :reprocess_old_p,
-                     :max_concurrent,
-                     :max_blob_chars,
-                     :mpri_min,
-                     :mpri_max,
-                     :hpri_package_ids,
-                     :lpri_package_ids,
-                     :hpri_party_ids,
-                     :lpri_party_ids,
-                     :hpri_subject_glob,
-                     :lpri_subject_glob,
-                     :hpri_object_ids,
-                     :lpri_object_ids
-                     )
+                    (ho,pa,po,ti,us)
+                    values (:ho,:pa,:po,:ti,:us)
                 }
             }
         } 
-                
     }
     set i_list [list ]
     foreach i $ic_list {
@@ -595,6 +570,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
         }
     }
 
+    set connected_p 0
     set prior_conn_exists_p 0
     if { $conn_id ne "" } {
         # list {id opentime accesstime mailbox} ...
@@ -620,14 +596,30 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     }
 
     if { $prior_conn_exists_p } {
-        # ns_imap status $conn_id
-        # if no connection, set prior_conn_exists_p 0
+        set status_flags_lists [ns_imap status $conn_id ]
+        ##code
+        ##What is returned if connection was broken?
+
+        ## if no connection, set prior_conn_exists_p 0
     } 
 
-    # prior_conn_exists_p 0, 
+    if { !$prior_conn_exists_p } {
+        set connected_p 0
+        set mb $user
+        apppend mb "@"
+        append mb $host
         ##login
+        set conn_id [ns_imap open \
+                         -mailbox "${mb}" \
+                         -user $user \
+                         -password $password]
+        ## What does ns_imap open return if could not connect?
+        # If connected, set connected_p 1
+    }
+    if { !$connected_p } {
         set conn_id ""
-
+    }
+    return $conn_id
 }
 
 
