@@ -22,6 +22,8 @@ drop table acs_mail_lite_ie_headers;
 
 drop table acs_mail_lite_ui;
 
+drop table acs_mail_lite_imap_conn;
+
 drop table acs_mail_lite_email_src_ext_id_map;
 
 drop index acs_mail_lite_email_uid_id_map_uid_ext_idx;
