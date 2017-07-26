@@ -43,7 +43,6 @@ if { [db_table_exists acs_mail_lite_ui] } {
 }
 
 
-
 # Redefine ns_sendmail as a wrapper for acs_mail_lite::send
 #ns_log Notice "acs-mail-lite: renaming acs_mail_lite::sendmail to ns_sendmail"
 #rename ns_sendmail _old_ns_sendmail

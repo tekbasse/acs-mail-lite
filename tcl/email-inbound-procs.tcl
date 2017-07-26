@@ -146,10 +146,11 @@ ad_proc -public acs_mail_lite::sched_parameters {
         set lpri_object_ids ""
     }
 
+
     if { !$exists_p || $changes_p } {
         set validated_p 1
+        set new_pv_list [array names new]
         if { $changes_p } {
-            set new_pv_list [array names new]
             foreach spn $new_pv_list {
                 switch -exact -- $spn {
                     sredpcs_override -
@@ -261,7 +262,7 @@ ad_proc -public acs_mail_lite::sched_parameters {
                      )
                 }
             }
-        } 
+        }
                 
     }
     set s_list [list ]
@@ -561,8 +562,8 @@ ad_proc -private acs_mail_lite::imap_conn_go {
 
     @return connectionId or empty string if unsuccessful.
 } {
-    imap_conn_go = icg
-    imap_conn_set = ics
+    # imap_conn_go = icg
+    # imap_conn_set = ics
     if { $host eq "" } {
         set ics_list [acs_mail_lite::imap_conn_set ]
         foreach {n v} $ics_list {
@@ -599,6 +600,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
         set status_flags_lists [ns_imap status $conn_id ]
         ##code
         ##What is returned if connection was broken?
+        ## Probably an error.
 
         ## if no connection, set prior_conn_exists_p 0
     } 
@@ -606,7 +608,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     if { !$prior_conn_exists_p } {
         set connected_p 0
         set mb $user
-        apppend mb "@"
+        append mb "@"
         append mb $host
         ##login
         set conn_id [ns_imap open \
@@ -615,6 +617,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
                          -password $password]
         ## What does ns_imap open return if could not connect?
         # If connected, set connected_p 1
+        # an error.
     }
     if { !$connected_p } {
         set conn_id ""
