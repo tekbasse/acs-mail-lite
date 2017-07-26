@@ -593,6 +593,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
         set ics_list [acs_mail_lite::imap_conn_set ]
         foreach {n v} $ics_list {
             set $n "${v}"
+            ns_log Dev "acs_mail_lite::imap_conn_go.596. set ${n} '${v}'"
         }
     }
     set fl_list [split $flags " "]
@@ -609,6 +610,11 @@ ad_proc -private acs_mail_lite::imap_conn_go {
 
         set sessions_list [ns_imap sessions]
         set s_len [llength $sessions_list]
+        ns_log Dev "acs_mail_lite::imap_conn_go.612: \
+ sessions_list '${sessions_list}'"
+        # Example session_list as val0 val1 val2 val3 val4 val5 val6..:
+        #'40 1501048046 1501048046 {{or97.net:143/imap/tls/user="testimap1"}<no_mailbox>} 
+        # 39 1501047978 1501047978 {{or97.net:143/imap/tls/user="testimap1"}<no_mailbox>}'
         set i 0
         while { $i < $s_len && $id ne $conn_id }  {
             set s_list [lindex $sessions_list 0]
@@ -630,23 +636,24 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     if { $prior_conn_exists_p } {
         # Test connection.
         # status_flags = sf
-        if { [catch { set sf_lists [ns_imap status $conn_id ] } err_txt } {
+        if { [catch { set sf_list [ns_imap status $conn_id ] } err_txt ] } {
             ns_log Warning "acs_mail_lite::imap_conn_go.624 \
  Error connection conn_id '${conn_id}' unable to get status. Broken? \
  Set to retry. Error is: ${err_txt}"
             set prior_conn_exists_p 0
         } else {
             set connected_p 1
+            ns_log Dev "acs_mail_lite::imap_conn_go.640: fl_list '${fl_list}'"
         }
-    } 
+    }
         
     if { !$prior_conn_exists_p } {
         set mb "{{"
         append mb $host
-        if { "ssl" in $f_list && ![string match "*/ssl" $host] } {
+        if { "ssl" in $fl_list && ![string match "*/ssl" $host] } {
             append mb "/ssl"
         }
-        append mb "}" $na "}"
+        append mb "}" $name_mb "}"
         if { "novalidatecert" in $fl_list } {
             if { [catch { set conn_id [ns_imap open \
                                            -novalidatecert \
@@ -654,10 +661,12 @@ ad_proc -private acs_mail_lite::imap_conn_go {
                                            -user $user \
                                            -password $password] \
                           } err_txt ] \
-                 } { ns_log Warning "acs_mail_lite::imap_con_go.653 \
+                 } { ns_log Warning "acs_mail_lite::imap_conn_go.653 \
  Error attempting ns_imap open. Error is: '${err_txt}'" 
             } else {
                 set connected_p 1
+                ns_log Dev "acs_mail_lite::imap_conn_go.662: \
+ new session conn_id '${conn_id}'"
             }
         } else {
             if { [catch { set conn_id [ns_imap open \
@@ -665,10 +674,12 @@ ad_proc -private acs_mail_lite::imap_conn_go {
                                            -user $user \
                                            -password $password] \
                           } err_txt ] \
-                 } { ns_log Warning "acs_mail_lite::imap_con_go.653 \
+                 } { ns_log Warning "acs_mail_lite::imap_conn_go.653 \
  Error attempting ns_imap open. Error is: '${err_txt}'" 
             } else {
                 set connected_p 1
+                ns_log Dev "acs_mail_lite::imap_conn_go.675: \
+ new session conn_id '${conn_id}'"
             }
         }
 
