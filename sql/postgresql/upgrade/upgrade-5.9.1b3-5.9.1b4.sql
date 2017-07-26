@@ -202,6 +202,8 @@ create table acs_mail_lite_ui (
 -- This table has similar requirements to acs_mail_lite_ui
 -- proc acs_mail_lite_imap_conn_* needs to be able to update values
 -- within scheduled procs without restarting server.
+-- Port is ignored. Added because it is a common requirement of connections
+-- that might one day be useful here, too.
 create table acs_mail_lite_imap_conn (
        -- mailbox.host
        ho text,

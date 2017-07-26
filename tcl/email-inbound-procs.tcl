@@ -431,6 +431,7 @@ ad_proc -private acs_mail_lite::imap_conn_set {
     If a parameter is passed with value, the value is assigned to parameter.
  
     @param name_mb See nsimap documentaion for mailbox.name. 
+    @param port Ignored for now. SSL automatically switches port.
 } {
     # See one row table acs_mail_lite_imap_conn
     # imap_conn_ = ic
@@ -581,6 +582,8 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     Defaults to use connection info provided by parameters 
     via acs_mail_lite::imap_conn_set.
 
+    @param port Ignored for now. SSL automatically switches port.
+
     @return connectionId or empty string if unsuccessful.
     @see acs_mail_lite::imap_conn_set
 } {
@@ -592,11 +595,11 @@ ad_proc -private acs_mail_lite::imap_conn_go {
             set $n "${v}"
         }
     }
-
     set fl_list [split $flags " "]
 
     set connected_p 0
     set prior_conn_exists_p 0
+
     if { $conn_id ne "" } {
         # list {id opentime accesstime mailbox} ...
         set id ""
@@ -625,38 +628,49 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     }
 
     if { $prior_conn_exists_p } {
+        # Test connection.
         # status_flags = sf
         if { [catch { set sf_lists [ns_imap status $conn_id ] } err_txt } {
             ns_log Warning "acs_mail_lite::imap_conn_go.624 \
  Error connection conn_id '${conn_id}' unable to get status. Broken? \
  Set to retry. Error is: ${err_txt}"
             set prior_conn_exists_p 0
+        } else {
+            set connected_p 1
         }
     } 
-
+        
     if { !$prior_conn_exists_p } {
-        set connected_p 0
         set mb "{{"
         append mb $host
         if { "ssl" in $f_list && ![string match "*/ssl" $host] } {
             append mb "/ssl"
         }
         append mb "}" $na "}"
-## somethin g hokey with braces:  interrupted. stopping for now.
         if { "novalidatecert" in $fl_list } {
             if { [catch { set conn_id [ns_imap open \
                                            -novalidatecert \
                                            -mailbox "${mb}" \
                                            -user $user \
-                                           -password $password] } err_txt } {
-                                               ns_log Warning \
- "acs_mail_lite::imap_con_go.653 Error attempting ns_imap open. \
- error is: '${err_txt}'"
-                                           }
-
-             }
+                                           -password $password] \
+                          } err_txt ] \
+                 } { ns_log Warning "acs_mail_lite::imap_con_go.653 \
+ Error attempting ns_imap open. Error is: '${err_txt}'" 
+            } else {
+                set connected_p 1
+            }
         } else {
-
+            if { [catch { set conn_id [ns_imap open \
+                                           -mailbox "${mb}" \
+                                           -user $user \
+                                           -password $password] \
+                          } err_txt ] \
+                 } { ns_log Warning "acs_mail_lite::imap_con_go.653 \
+ Error attempting ns_imap open. Error is: '${err_txt}'" 
+            } else {
+                set connected_p 1
+            }
+        }
 
     }
     if { !$connected_p } {
