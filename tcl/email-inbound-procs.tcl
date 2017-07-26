@@ -422,11 +422,15 @@ ad_proc -private acs_mail_lite::imap_conn_set {
     {-port ""}
     {-timeout ""}
     {-user ""}
+    {-name_mb ""}
+    {-flags ""}
 } {
     Returns a name value list of parameters
     used by ACS Mail Lite imap connections
 
     If a parameter is passed with value, the value is assigned to parameter.
+ 
+    @param name_mb See nsimap documentaion for mailbox.name. 
 } {
     # See one row table acs_mail_lite_imap_conn
     # imap_conn_ = ic
@@ -435,7 +439,9 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                      password \
                      port \
                      timeout \
-                     user ]
+                     user \
+                     name_mb \
+                     flags]
     # ic fields = icf
     set icf_list [list ]
     foreach ic $ic_list {
@@ -447,17 +453,21 @@ ad_proc -private acs_mail_lite::imap_conn_set {
     }
     set changes_p [array exists new]
     set exists_p [db_0or1row acs_mail_lite_imap_conn_r {
-        select ho,pa,po,ti,us
+        select ho,pa,po,ti,us,na,fl
         from acs_mail_lite_imap_conn limit 1
     } ]
 
     if { !$exists_p } {
         # set initial defaults
         set mb [ns_config nsimap mailbox ""]
-        if { [string match "*@*" $mb] } {
-            set mb_list [split $mb "@"]
-            set ho [lindex $mb_list end]
-        } else {
+        set mb_good_form_p [regexp -nocase -- \
+                                {^[{][{]([a-z0-9\.\/]+)[}]([a-z0-9\/\ ]+)[}]$} \
+                                $mb x ho na] 
+        # ho and na defined by regexp?
+        if { !$mb_good_form_p } {
+            ns_log Notice "acs_mail_lite::imap_conn_set.463. \
+ config.tcl's mailbox '${mailbox}' not in good form. \
+ Use {{mailbox.host}mailbox.name} with curly braces."
             set ho [ns_config nssock hostname ""]
             if { $ho eq "" } {
                 set ho [ns_config nssock_v4 hostname ""]
@@ -465,18 +475,23 @@ ad_proc -private acs_mail_lite::imap_conn_set {
             if { $ho eq "" } {
                 set ho [ns_config nssock_v6 hostname ""]
             }
+            set na "mail/INBOX"
+            set mb "{{"
+            append mb $ho "}" $na "}"
         }
+ 
         set pa [ns_config nsimap password ""]
         set po [ns_config nsimap port ""]
         set ti [ns_config -int nsimap timeout 1800]
         set us [ns_config nsimap user ""]
+        set fl ""
     }
 
     if { !$exists_p || $changes_p } {
         set validated_p 1
+        set n_pv_list [array names new]
         if { $changes_p } {
             # new = n
-            set n_pv_list [array names new]
             foreach n $n_pv_list {
                 switch -exact -- $n {
                     port -
@@ -492,6 +507,8 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                             }
                         }
                     }
+                    name_mb -
+                    flags -
                     host -
                     password -
                     user {
@@ -531,8 +548,8 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                 }
                 db_dml acs_mail_lite_imap_conn_i {
                     insert into acs_mail_lite_imap_conn 
-                    (ho,pa,po,ti,us)
-                    values (:ho,:pa,:po,:ti,:us)
+                    (ho,pa,po,ti,us,na,fl)
+                    values (:ho,:pa,:po,:ti,:us,:na,:fl)
                 }
             }
         } 
@@ -553,14 +570,19 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     {-port ""}
     {-timeout ""}
     {-user ""}
+    {-flags ""}
+    {-name_mb ""}
+    
 } {
     Verifies connection (connId) is established.
     Tries to establish a connection if it doesn't exist.
 
     If -host parameter is supplied, will try connection with supplied params.
-    Defaults to use connection info provided by parameters.
+    Defaults to use connection info provided by parameters 
+    via acs_mail_lite::imap_conn_set.
 
     @return connectionId or empty string if unsuccessful.
+    @see acs_mail_lite::imap_conn_set
 } {
     # imap_conn_go = icg
     # imap_conn_set = ics
@@ -570,6 +592,8 @@ ad_proc -private acs_mail_lite::imap_conn_go {
             set $n "${v}"
         }
     }
+
+    set fl_list [split $flags " "]
 
     set connected_p 0
     set prior_conn_exists_p 0
@@ -594,30 +618,46 @@ ad_proc -private acs_mail_lite::imap_conn_go {
             }
             incr i
         }
+        if { $prior_conn_exists_p eq 0 } {
+            ns_log Warning "acs_mail_lite::imap_conn_go.620: \
+ Connection broken? conn_id '${conn_id}' not found."
+        }
     }
 
     if { $prior_conn_exists_p } {
-        set status_flags_lists [ns_imap status $conn_id ]
-        ##code
-        ##What is returned if connection was broken?
-        ## Probably an error.
-
-        ## if no connection, set prior_conn_exists_p 0
+        # status_flags = sf
+        if { [catch { set sf_lists [ns_imap status $conn_id ] } err_txt } {
+            ns_log Warning "acs_mail_lite::imap_conn_go.624 \
+ Error connection conn_id '${conn_id}' unable to get status. Broken? \
+ Set to retry. Error is: ${err_txt}"
+            set prior_conn_exists_p 0
+        }
     } 
 
     if { !$prior_conn_exists_p } {
         set connected_p 0
-        set mb $user
-        append mb "@"
+        set mb "{{"
         append mb $host
-        ##login
-        set conn_id [ns_imap open \
-                         -mailbox "${mb}" \
-                         -user $user \
-                         -password $password]
-        ## What does ns_imap open return if could not connect?
-        # If connected, set connected_p 1
-        # an error.
+        if { "ssl" in $f_list && ![string match "*/ssl" $host] } {
+            append mb "/ssl"
+        }
+        append mb "}" $na "}"
+## somethin g hokey with braces:  interrupted. stopping for now.
+        if { "novalidatecert" in $fl_list } {
+            if { [catch { set conn_id [ns_imap open \
+                                           -novalidatecert \
+                                           -mailbox "${mb}" \
+                                           -user $user \
+                                           -password $password] } err_txt } {
+                                               ns_log Warning \
+ "acs_mail_lite::imap_con_go.653 Error attempting ns_imap open. \
+ error is: '${err_txt}'"
+                                           }
+
+             }
+        } else {
+
+
     }
     if { !$connected_p } {
         set conn_id ""

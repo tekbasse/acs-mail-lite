@@ -203,7 +203,7 @@ create table acs_mail_lite_ui (
 -- proc acs_mail_lite_imap_conn_* needs to be able to update values
 -- within scheduled procs without restarting server.
 create table acs_mail_lite_imap_conn (
-       -- host
+       -- mailbox.host
        ho text,
        -- you guessed it
        pa text,
@@ -212,7 +212,13 @@ create table acs_mail_lite_imap_conn (
        --timeout
        ti integer,
        -- user
-       us text
+       us text,
+       -- mailbox.name See nsimap documentation for definition
+       na text,
+       -- space separated list of flags for imap related modifications
+       -- ssl means connect via ssl.
+       -- novalidatecert means accept a self-signed certificate
+       fl text
 );
 
 
