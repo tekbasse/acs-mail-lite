@@ -462,23 +462,38 @@ ad_proc -private acs_mail_lite::imap_conn_set {
         # set initial defaults
         set mb [ns_config nsimap mailbox ""]
         set mb_good_form_p [regexp -nocase -- \
-                                {^[{][{]([a-z0-9\.\/]+)[}]([a-z0-9\/\ ]+)[}]$} \
+                                {^[{]([a-z0-9\.\/]+)[}]([a-z0-9\/\ \_]+)$} \
                                 $mb x ho na] 
         # ho and na defined by regexp?
         if { !$mb_good_form_p } {
             ns_log Notice "acs_mail_lite::imap_conn_set.463. \
  config.tcl's mailbox '${mailbox}' not in good form. \
- Use {{mailbox.host}mailbox.name} with curly braces."
-            set ho [ns_config nssock hostname ""]
-            if { $ho eq "" } {
-                set ho [ns_config nssock_v4 hostname ""]
+ Quote mailbox with curly braces like: {{mailbox.host}mailbox.name} "
+
+            set cb_idx [string first "\}" $mailbox]
+            if { $cb_idx > -1 } {
+                set ho [string range $mailbox 1 $cb_idx-1]
+                set na [string range $mailbox $cb_idx+1 end]
             }
-            if { $ho eq "" } {
-                set ho [ns_config nssock_v6 hostname ""]
+            if { $ho ne "" && $na ne "" } {
+                ns_log Notice "acs_mail_lite::imap_conn_set.479: \
+ Used alternate parsing. host '${ho}' mailbox.name '${na}'"
+            } else {
+                set ho [ns_config nssock hostname ""]
+                if { $ho eq "" } {
+                    set ho [ns_config nssock_v4 hostname ""]
+                }
+                if { $ho eq "" } {
+                    set ho [ns_config nssock_v6 hostname ""]
+                }
+                set na "mail/INBOX"
+                set mb "{{"
+                append mb $ho
+                append mb "}" ${na} "}"
+                ns_log Notice "acs_mail_Lite::imap_conn_set.482: \
+ Using values from nsd config.tcl. host '${ho}' mailbox.name '${na}'"
+
             }
-            set na "mail/INBOX"
-            set mb "{{"
-            append mb $ho "}" $na "}"
         }
  
         set pa [ns_config nsimap password ""]
@@ -648,12 +663,12 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     }
         
     if { !$prior_conn_exists_p } {
-        set mb "{{"
-        append mb $host
-        if { "ssl" in $fl_list && ![string match "*/ssl" $host] } {
-            append mb "/ssl"
+        set mb "{"
+        append mb ${host}
+        if { "ssl" in $fl_list && ![string match {*/ssl} $host] } {
+            append mb {/ssl}
         }
-        append mb "}" $name_mb "}"
+        append mb "}" ${name_mb}
         if { "novalidatecert" in $fl_list } {
             if { [catch { set conn_id [ns_imap open \
                                            -novalidatecert \
