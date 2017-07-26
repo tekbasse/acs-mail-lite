@@ -27,6 +27,19 @@
   </p>
   <code>ns_param  nsimap    ${bindir}/nsimap.so
     </code>
+  <h3>Tcl quoting mailbox value</h3>
+  <p>For parsing to work in 'ns_imap open' avoid wrapping 
+    the mailbox value with double quotes. Quote with curly braces only.</p>
+  <p>This works:</p>
+  <pre>
+    set mailbox {{localhost}/mail/INBOX}
+    </pre>
+  <p>These may not parse as expected:</p>
+  <pre>
+    set mailbox "{localhost}/mail/INBOX"
+    set mailbox "{{localhost}/mail/INBOX}"
+  </pre>
+
   <h2>Notes on installing nsimap on FreeBSD 10.3-STABLE</h2>
   <p>
     Build panda-imap with:
