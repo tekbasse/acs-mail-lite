@@ -644,7 +644,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
         }
         if { $prior_conn_exists_p eq 0 } {
             ns_log Warning "acs_mail_lite::imap_conn_go.620: \
- Connection broken? conn_id '${conn_id}' not found."
+ Session broken? conn_id '${conn_id}' not found."
         }
     }
 
@@ -703,6 +703,44 @@ ad_proc -private acs_mail_lite::imap_conn_go {
         set conn_id ""
     }
     return $conn_id
+}
+
+
+ad_proc acs_mail_lite::imap_conn_close {
+    {-conn_id:required }
+} {
+    Closes nsimap session with conn_id.
+    If conn_id is 'all', then all open sessions are closed.
+
+    Returns 1 if a session is closed, otherwise returns 0.
+} {
+    set sessions_list [ns_imap sessions]
+    set s_len [llength $sessions_list]
+    ns_log Dev "acs_mail_lite::imap_conn_close.716: \
+ sessions_list '${sessions_list}'"
+    # Example session_list as val0 val1 val2 val3 val4 val5 val6..:
+    #'40 1501048046 1501048046 {{or97.net:143/imap/tls/user="testimap1"}<no_mailbox>} 
+    # 39 1501047978 1501047978 {{or97.net:143/imap/tls/user="testimap1"}<no_mailbox>}'
+    set id ""
+    set i 0
+    set conn_exists_p 0
+    while { $i < $s_len && $id ne $conn_id }  {
+        set id [lindex [lindex $sessions_list 0] 0]
+        if { $id eq $conn_id || $conn_id eq "all" } {
+            set conn_exists_p 1
+            ns_log Dev "acs_mail_lite::imap_conn_close.731 session_id '${id}'"
+            if { [catch { ns_imap close $id } err_txt ] } {
+                ns_log Warning "acs_mail_lite::imap_conn_close.733 \
+ session_id '${id}' error on close. Error is: ${err_txt}"
+            }
+        }
+        incr i
+    }
+    if { $conn_exists_p eq 0 } {
+        ns_log Warning "acs_mail_lite::imap_conn_close.732: \
+ Session(s) broken? conn_id '${conn_id}' not found."
+    } 
+    return $conn_exists_p
 }
 
 
