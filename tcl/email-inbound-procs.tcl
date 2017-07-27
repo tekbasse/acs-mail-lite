@@ -743,6 +743,51 @@ ad_proc acs_mail_lite::imap_conn_close {
     return $conn_exists_p
 }
 
+ad_proc -public acs_mail_lite::imap_mailbox_join {
+    {-host ""}
+    {-name ""}
+    {-ssl_p "0"}
+} {
+    Creates an ns_imap usable mailbox consisting of curly brace quoted
+    {mailbox.host}mailbox.name.
+} {
+    # Quote mailbox with curly braces per nsimap documentation.
+    set mb "{"
+    append mb ${ho}
+    if { $ssl_p && ![string match {*/ssl} $ho] } {
+        append mb {/ssl}
+    }
+    append mb "}" ${na}
+
+    return $mb
+}
+ad_proc -public acs_mail_lite::imap_mailbox_split {
+    {mailbox ""}
+} {
+    Returns a list of mailbox.host mailbox.name ssl_p.
+    If mailbox.host has suffix "/ssl", suffix is removed and ssl_p is "1",
+    otherwise ssl_p is "0".
+
+    If mailbox cannot be parsed, returns an empty list.
+} {
+    set cb_idx [string first "\}" $mailbox]
+    if { $cb_idx > -1 } {
+        set ho [string range $mailbox 1 $cb_idx-1]
+        set na [string range $mailbox $cb_idx+1 end]
+        if { [string match {*/ssl} $ho ] } {
+            set ssl_p 1
+            set ho [string range $ho 0 end-4]
+        } else {
+            set ssl_p 0
+        }
+        set mb_list [list $ho $na $ssl_p]
+    } else {
+        # Not a mailbox
+        set mb_list [list ]
+    }
+    return $mb_list
+}
+
 
 #
 # Local variables:
