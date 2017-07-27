@@ -314,52 +314,55 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 }
             }
 
+           set ho "localhost"
+           set na "mail/INBOX"
+           set ssl_p 0
+           set t1 [acs_mail_lite::imap_mailbox_join \
+                       -host $ho -name $na -ssl_p $ssl_p]
+           set t2 {{localhost}mail/INBOX}
+           aa_equals "Test acs_mail_lite::imap_mailbox_join" $t1 $t2
 
-           acs_mail_lite::imap_mailbox_concat -host -name_mb -flags
-           acs_mail_lite::imap_mailbox_parse -mailbox  (returns list host, name, \ssl)
+           set t2_list [acs_mail_lite::imap_mailbox_split $t2]
+           set t1_list [list $ho $na $ssl_p]
+           aa_equals "Test acs_mail_lite::imap_mailbox_split" $t1_list $t2_list
 
 
+           aa_log "Testing imap open/close via default connection params"
            set conn_id [acs_mail_lite::imap_conn_close -conn_id "all"]
+           set es ""
 
-           set conn_id [acs_mail_lite::imap_conn_close -conn_id $conn_id]
+           aa_log "Following three tests pass when no imap sessions open."
+           aa_false "acs_mail_lite::imap_conn_close -conn_id 'all'" $conn_id
 
-set cb_idx [string first "\}" $mailbox]
+           set conn_id [randomRange 1000]
+           set t3 [acs_mail_lite::imap_conn_close -conn_id $conn_id]
+           aa_false "acs_mail_lite::imap_conn_close -conn_id '${conn_id}'" $t3
 
-if { $cb_idx > -1 } {
-    set ho [string range $mailbox 1 $cb_idx-1]
-    set na [string range $mailbox $cb_idx+1 end]
-}
-# Quote mailbox with curly braces per nsimap documentation.
-set mb "{"
-append mb ${ho}
-if { "ssl" in $fl_list && ![string match {*/ssl} $ho] } {
-    append mb {/ssl}
-}
-append mb "}" ${na}
+           set conn_id ""
+           set t3 [acs_mail_lite::imap_conn_close -conn_id $conn_id]
+           aa_false "acs_mail_lite::imap_conn_close -conn_id '${conn_id}'" $t3
 
-set conn_id [acs_mail_lite::imap_conn_close -conn_id "all"]
-aa_log "acs_mail_lite::imap_conn_close all returns '${conn_id}'"
+           aa_log "Following tests various session cases with open/close"
+           aa_log "Some will fail if a session cannot be established."
 
-set closed_p [acs_mail_lite::imap_conn_go]
-aa_log "test acs_mail_lite::imap_conn_go returns '${conn_id}'"
+           set sid [acs_mail_lite::imap_conn_go]
+           set sid_p [ad_var_type_check_integer_p $sid]
+           aa_true "acs_mail_lite::imap_conn_go" $sid_p
 
-aa_log "acs_mail_lite::imap_conn_close '${conn_id} returns '${closed_p}'"
-set conn_id [acs_mail_lite::imap_conn_close -conn_id $conn_id]
+           set sid2 [acs_mail_lite::imap_conn_close -conn_id $sid]
+           aa_true "acs_mail_lite::imap_conn_close -conn_id '${sid}'" $sid2
 
-##code
-aa_log "conn_id '${conn_id}'"
-aa_log "3. test acs_mail_lite::imap_conn_go\n"
-set conn_id [acs_mail_lite::imap_conn_go -conn_id $conn_id]
-aa_log "4. test acs_mail_lite::imap_conn_go\n"
-aa_log "conn_id '${conn_id}'"
-set conn_id [acs_mail_lite::imap_conn_go -conn_id $conn_id]
-aa_log "conn_id '${conn_id}'"
-aa_log "4. test ns_imap close"
-set closed_p [acs_mail_lite::imap_conn_close -conn_id "all"]
-aa_log "closed_p '${closed_p}'"
+           set sid3 [acs_mail_lite::imap_conn_go -conn_id $sid]
+           set sid3_p [ad_var_type_check_integer_p $sid3]
+           aa_false "acs_mail_lite::imap_conn_go -conn_id '${sid}'" $sid3_p
 
+           set sid4 [acs_mail_lite::imap_conn_go -conn_id ""]
+           set sid4_p [ad_var_type_check_integer_p $sid4]
+           aa_true "acs_mail_lite::imap_conn_go -conn_id ''" $sid4_p
 
-
+           set sid5 "all"
+           set closed_p [acs_mail_lite::imap_conn_close -conn_id $sid5]
+           aa_true "acs_mail_lite::imap_conn_close -conn_id '${sid5}'" $closed_p
 
 
 

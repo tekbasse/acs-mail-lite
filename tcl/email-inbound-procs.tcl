@@ -468,7 +468,7 @@ ad_proc -private acs_mail_lite::imap_conn_set {
         set ssl_p 0
         if { !$mb_good_form_p } {
             ns_log Notice "acs_mail_lite::imap_conn_set.463. \
- config.tcl's mailbox '${mailbox}' not in good form. \
+ config.tcl's mailbox '${mb}' not in good form. \
  Quote mailbox with curly braces like: {{mailbox.host}mailbox.name} "
             set mb_list [acs_mail_lite::imap_mailbox_split $mb]
             if { [llength $mb_list] eq 3 } {
@@ -486,7 +486,7 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                     set ho [ns_config nssock_v6 hostname ""]
                 }
                 set na "mail/INBOX"
-                set mb [acs_mail_lite::imap_mailbox_join -host $ho -name $na
+                set mb [acs_mail_lite::imap_mailbox_join -host $ho -name $na]
 
                 ns_log Notice "acs_mail_Lite::imap_conn_set.482: \
  Using values from nsd config.tcl. host '${ho}' mailbox.name '${na}'"
@@ -673,7 +673,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
         set mb [acs_mail_lite::imap_mailbox_join \
                     -host $host \
                     -name $name_mb \
-                    -ssl_p $ssl_p
+                    -ssl_p $ssl_p]
         if { "novalidatecert" in $fl_list } {
             if { [catch { set conn_id [ns_imap open \
                                            -novalidatecert \
@@ -758,11 +758,11 @@ ad_proc -public acs_mail_lite::imap_mailbox_join {
 } {
     # Quote mailbox with curly braces per nsimap documentation.
     set mb "{"
-    append mb ${ho}
-    if { $ssl_p && ![string match {*/ssl} $ho] } {
+    append mb ${host}
+    if { [string is true -strict $ssl_p] && ![string match {*/ssl} $host] } {
         append mb {/ssl}
     }
-    append mb "}" ${na}
+    append mb "}" ${name}
 
     return $mb
 }
