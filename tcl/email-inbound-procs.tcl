@@ -457,7 +457,7 @@ ad_proc -private acs_mail_lite::imap_conn_set {
         select ho,pa,po,ti,us,na,fl
         from acs_mail_lite_imap_conn limit 1
     } ]
-
+    
     if { !$exists_p } {
         # set initial defaults
         set mb [ns_config nsimap mailbox ""]
@@ -465,19 +465,18 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                                 {^[{]([a-z0-9\.\/]+)[}]([a-z0-9\/\ \_]+)$} \
                                 $mb x ho na] 
         # ho and na defined by regexp?
+        set ssl_p 0
         if { !$mb_good_form_p } {
             ns_log Notice "acs_mail_lite::imap_conn_set.463. \
  config.tcl's mailbox '${mailbox}' not in good form. \
  Quote mailbox with curly braces like: {{mailbox.host}mailbox.name} "
-
-            set cb_idx [string first "\}" $mailbox]
-            if { $cb_idx > -1 } {
-                set ho [string range $mailbox 1 $cb_idx-1]
-                set na [string range $mailbox $cb_idx+1 end]
-            }
-            if { $ho ne "" && $na ne "" } {
+            set mb_list [acs_mail_lite::imap_mailbox_split $mb]
+            if { [llength $mb_list] eq 3 } {
+                set ho [lindex $mb_list 0]
+                set na [lindex $mb_list 1]
+                set ssl_p [lindex $mb_list 2]
                 ns_log Notice "acs_mail_lite::imap_conn_set.479: \
- Used alternate parsing. host '${ho}' mailbox.name '${na}'"
+ Used alternate parsing. host '${ho}' mailbox.name '${na}' ssl_p '${ssl_p}'"
             } else {
                 set ho [ns_config nssock hostname ""]
                 if { $ho eq "" } {
@@ -487,9 +486,8 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                     set ho [ns_config nssock_v6 hostname ""]
                 }
                 set na "mail/INBOX"
-                set mb "{{"
-                append mb $ho
-                append mb "}" ${na} "}"
+                set mb [acs_mail_lite::imap_mailbox_join -host $ho -name $na
+
                 ns_log Notice "acs_mail_Lite::imap_conn_set.482: \
  Using values from nsd config.tcl. host '${ho}' mailbox.name '${na}'"
 
@@ -500,7 +498,11 @@ ad_proc -private acs_mail_lite::imap_conn_set {
         set po [ns_config nsimap port ""]
         set ti [ns_config -int nsimap timeout 1800]
         set us [ns_config nsimap user ""]
-        set fl ""
+        if { $ssl_p } {
+            set fl "/ssl"
+        } else {
+            set fl ""
+        }
     }
 
     if { !$exists_p || $changes_p } {
@@ -663,12 +665,15 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     }
         
     if { !$prior_conn_exists_p } {
-        set mb "{"
-        append mb ${host}
-        if { "ssl" in $fl_list && ![string match {*/ssl} $host] } {
-            append mb {/ssl}
+        if { "ssl" in $fl_list } {
+            set ssl_p 1
+        } else {
+            set ssl_p 0
         }
-        append mb "}" ${name_mb}
+        set mb [acs_mail_lite::imap_mailbox_join \
+                    -host $host \
+                    -name $name_mb \
+                    -ssl_p $ssl_p
         if { "novalidatecert" in $fl_list } {
             if { [catch { set conn_id [ns_imap open \
                                            -novalidatecert \
@@ -761,17 +766,19 @@ ad_proc -public acs_mail_lite::imap_mailbox_join {
 
     return $mb
 }
+
 ad_proc -public acs_mail_lite::imap_mailbox_split {
     {mailbox ""}
 } {
-    Returns a list of mailbox.host mailbox.name ssl_p.
+    Returns a list: mailbox.host mailbox.name ssl_p,
+    where mailbox.host and mailbox.name are defined in ns_map documentation.
     If mailbox.host has suffix "/ssl", suffix is removed and ssl_p is "1",
     otherwise ssl_p is "0".
 
     If mailbox cannot be parsed, returns an empty list.
 } {
     set cb_idx [string first "\}" $mailbox]
-    if { $cb_idx > -1 } {
+    if { $cb_idx > -1  && [string range $mailbox 0 0] eq "\{" } {
         set ho [string range $mailbox 1 $cb_idx-1]
         set na [string range $mailbox $cb_idx+1 end]
         if { [string match {*/ssl} $ho ] } {
