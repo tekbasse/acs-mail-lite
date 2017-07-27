@@ -314,7 +314,56 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 }
             }
 
-        }
+
+           acs_mail_lite::imap_mailbox_concat -host -name_mb -flags
+           acs_mail_lite::imap_mailbox_parse -mailbox  (returns list host, name, \ssl)
+
+
+           set conn_id [acs_mail_lite::imap_conn_close -conn_id "all"]
+
+           set conn_id [acs_mail_lite::imap_conn_close -conn_id $conn_id]
+
+set cb_idx [string first "\}" $mailbox]
+
+if { $cb_idx > -1 } {
+    set ho [string range $mailbox 1 $cb_idx-1]
+    set na [string range $mailbox $cb_idx+1 end]
+}
+# Quote mailbox with curly braces per nsimap documentation.
+set mb "{"
+append mb ${ho}
+if { "ssl" in $fl_list && ![string match {*/ssl} $ho] } {
+    append mb {/ssl}
+}
+append mb "}" ${na}
+
+set conn_id [acs_mail_lite::imap_conn_close -conn_id "all"]
+aa_log "acs_mail_lite::imap_conn_close all returns '${conn_id}'"
+
+set closed_p [acs_mail_lite::imap_conn_go]
+aa_log "test acs_mail_lite::imap_conn_go returns '${conn_id}'"
+
+aa_log "acs_mail_lite::imap_conn_close '${conn_id} returns '${closed_p}'"
+set conn_id [acs_mail_lite::imap_conn_close -conn_id $conn_id]
+
+##code
+aa_log "conn_id '${conn_id}'"
+aa_log "3. test acs_mail_lite::imap_conn_go\n"
+set conn_id [acs_mail_lite::imap_conn_go -conn_id $conn_id]
+aa_log "4. test acs_mail_lite::imap_conn_go\n"
+aa_log "conn_id '${conn_id}'"
+set conn_id [acs_mail_lite::imap_conn_go -conn_id $conn_id]
+aa_log "conn_id '${conn_id}'"
+aa_log "4. test ns_imap close"
+set closed_p [acs_mail_lite::imap_conn_close -conn_id "all"]
+aa_log "closed_p '${closed_p}'"
+
+
+
+
+
+
+       }
 }
 
 
