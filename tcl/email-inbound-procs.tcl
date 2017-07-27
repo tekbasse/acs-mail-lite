@@ -711,7 +711,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
 }
 
 
-ad_proc acs_mail_lite::imap_conn_close {
+ad_proc -public acs_mail_lite::imap_conn_close {
     {-conn_id:required }
 } {
     Closes nsimap session with conn_id.
@@ -795,6 +795,135 @@ ad_proc -public acs_mail_lite::imap_mailbox_split {
     return $mb_list
 }
 
+ad_proc -public acss_mail_lite::is_autoreply_q {
+    {-subject ""}
+    {-from ""}
+    {-headers ""}
+    {-header_arr_name ""}
+    {-reply_too_fast_s "10"}
+} {
+    Scans email's subject and from.
+
+    Returns 1 if email is detected as an autoreply, otherwise returns 0.
+
+    If headers and header_arr_name provided, only header_arr_name will be used.
+
+    @param subject of email
+    @param from of email
+    @param headers of email, a block of text containing all headers and values
+    @param header_arr_name, the name of an array containing headers.
+
+} {
+    set ia_p 0
+    
+    # header cases:  {*auto-generated*} {*auto-replied*} {*auto-notified*}
+    # from:
+    # https://www.iana.org/assignments/auto-submitted-keywords/auto-submitted-keywords.xhtml
+    # and rfc3834 https://www.ietf.org/rfc/rfc3834.txt
+
+    # Do NOT use x-auto-response-supress
+    # per: https://stackoverflow.com/questions/1027395/detecting-outlook-autoreply-out-of-office-emails
+
+    # header cases: 
+    # {*x-autoresponder*} {*autoresponder*} {*autoreply*}
+    # {*x-autorespond*} {*auto_reply*} 
+    # from: 
+    # https://github.com/jpmckinney/multi_mail/wiki/Detecting-autoresponders
+    # redundant cases are removed from list.
+
+
+    set kw_list [list \
+                     {*auto-generated*} \
+                     {*auto-notified*} \
+                     {*auto-replied*} \
+                     {*auto_reply*} \
+                     {*autoreply*} \
+                     {*autoresponder*} \
+                     {*x-autorespond*} \
+                        ]
+
+    
+    if { $header_arr_name ne "" } {
+        upvar 1 $header_arr_name h_arr
+    } elseif { $headers ne "" } {
+        #  To remove subject from headers to search, 
+        #  incase topic uses a reserved word,
+        #  we rebuild the semblence of array returned by ns_imap headers.
+        #  Split strategy from qss_txt_table_stats
+        set linebreaks "\n\r\f\v"
+        set row_list [split $headers $linebreaks]
+        foreach row $row_list {
+            set c_idx [string first ":" $row]
+            if { $c_idx > -1 } {
+                set header [string trim [string range $row 0 $c_idx-1]]
+                set value [string trim [string range $row $c_idx+1 end]]
+                # string match from proc safe_eval
+                if { [string match {*[\[;]*} $row ] } {
+                    set h_arr(${header}) "${value}"
+                }
+            }
+        }
+    }
+        
+    if { [array exists h_arr] } {
+        set hn_list [array names h_arr]
+        set i 0
+        set h [lindex $kw_list $i]
+        while { $h ne "" && !$ia_p } {
+            set ia_p [sring match -nocase $h $headers]
+
+            incr i
+            set h [lindex $kw_list $i]
+        }
+        if { !$ia_p } {
+            # Does response time indicate more likely by a machine?
+            # RFC 822 header required: DATE
+            # Need to check received timestamp vs. when OpenACS sent it.
+            # This is a more general case of bounce detection, 
+            # intended to prevent flooding server and avoiding looping
+            # that is not caught by standard smtp servers.
+            # As well as provide a place to intervene in uniquely
+            # crafted attacks.
+            ##code
+
+        }
+        
+
+    } elseif { 
+
+
+        set i 0
+        set h [lindex $kw_list $i]
+        while { $h ne "" && !$ia_p } {
+            set ia_p [sring match -nocase $h $headers]
+
+            incr i
+            set h [lindex $kw_list $i]
+        }
+        if { !$ia_p } {
+            # Does response time more likely by machine?
+            # RFC 822 header required: DATE
+            ##code
+
+        }
+    }
+    if { !$ia_p && $subject ne "" } {
+        # catch nonstandard cases
+        set ps1 [string match -nocase {*out of*office*} $subject]
+        set ps2 [string match -nocase {*automated response*} $subject]
+        set ps3 [string match -nocase {*autoreply*} $subject]
+        set ps4 [string match {*NDN*} $subject]
+        set ps5 [string match {*\[QuickML\] Error*} $subject]
+        # rfc3834 states to NOT rely on 'Auto: ' in subject for detection. 
+        #set ps6 \[string match {Auto: *} $subject\]
+
+        set pf1 [string match -nocase {*mailer*daemon*} $from]
+
+        set ia_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 || $pf1 } ]
+    }
+
+    return $ia_p
+}
 
 #
 # Local variables:

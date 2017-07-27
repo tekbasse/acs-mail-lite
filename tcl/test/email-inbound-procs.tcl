@@ -364,7 +364,9 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            set closed_p [acs_mail_lite::imap_conn_close -conn_id $sid5]
            aa_true "acs_mail_lite::imap_conn_close -conn_id '${sid5}'" $closed_p
 
-
+           aa_log "Testing for auto replies"
+           aa_true "acs_mail_lite::is_autoreply_q \
+ -subject '${su}' -from '${fr}' -headers '${he} 
 
        }
 }
