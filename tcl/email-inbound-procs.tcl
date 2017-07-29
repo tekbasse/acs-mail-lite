@@ -795,16 +795,18 @@ ad_proc -public acs_mail_lite::imap_mailbox_split {
     return $mb_list
 }
 
-ad_proc -public acss_mail_lite::is_autoreply_q {
+ad_proc -public acs_mail_lite::email_type {
     {-subject ""}
     {-from ""}
     {-headers ""}
     {-header_arr_name ""}
     {-reply_too_fast_s "10"}
 } {
-    Scans email's subject and from.
+    Scans email's subject, from and headers for actionable type.
+    Returns actionable type: 'auto_reply', 'bounce', or 'in_reply_to'.
 
-    Returns 1 if email is detected as an autoreply, otherwise returns 0.
+    If not a qualifying type, returns empty string.
+
 
     If headers and header_arr_name provided, only header_arr_name will be used.
 
@@ -814,7 +816,7 @@ ad_proc -public acss_mail_lite::is_autoreply_q {
     @param header_arr_name, the name of an array containing headers.
 
 } {
-    set ia_p 0
+    set ar_p 0
     
     # header cases:  {*auto-generated*} {*auto-replied*} {*auto-notified*}
     # from:
@@ -830,9 +832,8 @@ ad_proc -public acss_mail_lite::is_autoreply_q {
     # from: 
     # https://github.com/jpmckinney/multi_mail/wiki/Detecting-autoresponders
     # redundant cases are removed from list.
-
-
-    set kw_list [list \
+    # auto reply = ar
+    set ar_list [list \
                      {*auto-generated*} \
                      {*auto-notified*} \
                      {*auto-replied*} \
@@ -840,7 +841,7 @@ ad_proc -public acss_mail_lite::is_autoreply_q {
                      {*autoreply*} \
                      {*autoresponder*} \
                      {*x-autorespond*} \
-                        ]
+                    ]
 
     
     if { $header_arr_name ne "" } {
@@ -866,16 +867,31 @@ ad_proc -public acss_mail_lite::is_autoreply_q {
     }
         
     if { [array exists h_arr] } {
+
         set hn_list [array names h_arr]
+        # Following checks according to rfc3834 section 3.1 Message header
+        # https://tools.ietf.org/html/rfc3834
+
+        # check for in-reply-to = irt
+        set irt_idx [learch -glob -nocase $hn_list {*in-reply-to*}]
+        # check for message_id = mi
+        set mi_idx [learch -glob -nocase $hn_list {*message-id*}]
+
+
         set i 0
-        set h [lindex $kw_list $i]
-        while { $h ne "" && !$ia_p } {
-            set ia_p [sring match -nocase $h $headers]
+        set h [lindex $ar_list $i]
+        while { $h ne "" && !$ar_p } {
+            #set ar_p sring match -nocase $h $hn
+
+            set ar_idx [lsearch -glob $hn_list $h]
+            if { $ar_idx > -1 } {
+                set ar_p 1
+            }
 
             incr i
             set h [lindex $kw_list $i]
         }
-        if { !$ia_p } {
+        if { !$ar_p } {
             # Does response time indicate more likely by a machine?
             # RFC 822 header required: DATE
             # Need to check received timestamp vs. when OpenACS sent it.
@@ -889,25 +905,9 @@ ad_proc -public acss_mail_lite::is_autoreply_q {
         }
         
 
-    } elseif { 
+    } 
 
-
-        set i 0
-        set h [lindex $kw_list $i]
-        while { $h ne "" && !$ia_p } {
-            set ia_p [sring match -nocase $h $headers]
-
-            incr i
-            set h [lindex $kw_list $i]
-        }
-        if { !$ia_p } {
-            # Does response time more likely by machine?
-            # RFC 822 header required: DATE
-            ##code
-
-        }
-    }
-    if { !$ia_p && $subject ne "" } {
+    if { !$ar_p && $subject ne "" } {
         # catch nonstandard cases
         set ps1 [string match -nocase {*out of*office*} $subject]
         set ps2 [string match -nocase {*automated response*} $subject]
@@ -919,10 +919,10 @@ ad_proc -public acss_mail_lite::is_autoreply_q {
 
         set pf1 [string match -nocase {*mailer*daemon*} $from]
 
-        set ia_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 || $pf1 } ]
+        set ar_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 || $pf1 } ]
     }
 
-    return $ia_p
+    return $ar_p
 }
 
 #
