@@ -873,10 +873,21 @@ ad_proc -public acs_mail_lite::email_type {
         # https://tools.ietf.org/html/rfc3834
 
         # check for in-reply-to = irt
-        set irt_idx [learch -glob -nocase $hn_list {*in-reply-to*}]
+        set irt_idx [lsearch -glob -nocase $hn_list {*in-reply-to*}]
         # check for message_id = mi
-        set mi_idx [learch -glob -nocase $hn_list {*message-id*}]
+        # This is a new message id, not message id of email replied to
+        set mi_idx [lsearch -glob -nocase $hn_list {*message-id*}]
 
+        # Also per rfc5436 seciton 2.7.1 consider:
+        # auto-submitted = as
+        set as_idx [lsearch -glob -nocase $hn_list {*auto-submitted*}]
+        if { $as_idx > 1 } {
+            set as_h [lindex $hn_list $as_idx]
+            set as_p [string match -nocase $h_arr(${as_h}) {*auto-notified*}]
+        }
+        
+        # If one of the headers contains {*list-id*} then email
+        # is from a mailing list.
 
         set i 0
         set h [lindex $ar_list $i]
@@ -904,6 +915,12 @@ ad_proc -public acs_mail_lite::email_type {
 
         }
         
+        # Delivery Status Notifications, see rfc3464
+        # https://tools.ietf.org/html/rfc3464
+        # Note: original-envelope-id is not same as message-id.
+        # original-recipient = or
+        set or_idx [lsearch -glob -nocase $hn_list {*original-recipient*}]
+
 
     } 
 
