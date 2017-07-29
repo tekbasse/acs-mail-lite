@@ -920,7 +920,27 @@ ad_proc -public acs_mail_lite::email_type {
         # Note: original-envelope-id is not same as message-id.
         # original-recipient = or
         set or_idx [lsearch -glob -nocase $hn_list {*original-recipient*}]
-
+        # action = ac (required for DSN)
+        # per fc3464 s2.3.3
+        set ac_idx [lsearch -glob -nocase $hn_list {*action*}]
+        if { $ac_idx > -1 } {
+            set ac_h [lindex $hn_list $ac_idx]
+            set acv_idx [lsearch -glob -nocase [list failed \
+                                                    delayed \
+                                                    delivered \
+                                                    relayed \
+                                                    expaneded ] $ac_h]
+            if { $acv_idx > -1 } {
+                # status = st (required for DSN)
+                # per fc3464 s2.3.4
+                set st_idx [lsearch -glob -nocase $hn_list {*status*}]
+                if { $st_idx > -1 } {
+                    set st_h [lindex $hn_list $st_idx]
+                    set ar_p [string match {*[0-9][0-9][0-9]*} \
+                                  $h_arr(${st_h}) ]
+                }    
+            }
+        }
 
     } 
 
@@ -936,7 +956,8 @@ ad_proc -public acs_mail_lite::email_type {
 
         set pf1 [string match -nocase {*mailer*daemon*} $from]
 
-        set ar_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 || $pf1 } ]
+        set ar_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 \
+                             || $pf1 || $or_idx } ]
     }
 
     return $ar_p
