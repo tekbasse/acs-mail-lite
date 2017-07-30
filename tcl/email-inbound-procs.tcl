@@ -804,6 +804,14 @@ ad_proc -public acs_mail_lite::email_type {
 } {
     Scans email's subject, from and headers for actionable type.
     Returns actionable type: 'auto_reply', 'bounce', or 'in_reply_to'.
+    'auto_reply' may be a Delivery Status Notification for example.
+    'bounce' is a specific kind of Delivery Status Notification.
+    'in_reply_to' is an email reporting to originate from local email,
+    which needs to be tested further to see if OpenACS needs to act on
+    it versus a reply to a system administrator email for example.
+    'other' refers to email that the system does not recognize as a reply
+    of any kind.
+
 
     If not a qualifying type, returns empty string.
 
@@ -834,13 +842,13 @@ ad_proc -public acs_mail_lite::email_type {
     # redundant cases are removed from list.
     # auto reply = ar
     set ar_list [list \
-                     {*auto-generated*} \
-                     {*auto-notified*} \
-                     {*auto-replied*} \
-                     {*auto_reply*} \
-                     {*autoreply*} \
-                     {*autoresponder*} \
-                     {*x-autorespond*} \
+                     {auto-generated} \
+                     {auto-notified} \
+                     {auto-replied} \
+                     {auto_reply} \
+                     {autoreply} \
+                     {autoresponder} \
+                     {x-autorespond} \
                     ]
 
     
@@ -857,6 +865,14 @@ ad_proc -public acs_mail_lite::email_type {
             set c_idx [string first ":" $row]
             if { $c_idx > -1 } {
                 set header [string trim [string range $row 0 $c_idx-1]]
+                # list of email headers at:
+                # https://www.cs.tut.fi/~jkorpela/headers.html
+                # Suggests this filter for untrusted input:
+                if { [regsub -all -- {[^a-zA-Z0-9\-]+} $header {} h2 ] } {
+                    ns_log Warning "acs_mail_lite:email_type.864: \
+ Unexpected header '${header}' changed to '${h2}'"
+                    set header $h2
+                }
                 set value [string trim [string range $row $c_idx+1 end]]
                 # string match from proc safe_eval
                 if { [string match {*[\[;]*} $row ] } {
@@ -873,20 +889,20 @@ ad_proc -public acs_mail_lite::email_type {
         # https://tools.ietf.org/html/rfc3834
 
         # check for in-reply-to = irt
-        set irt_idx [lsearch -glob -nocase $hn_list {*in-reply-to*}]
+        set irt_idx [lsearch -glob -nocase $hn_list {in-reply-to}]
         # check for message_id = mi
         # This is a new message id, not message id of email replied to
-        set mi_idx [lsearch -glob -nocase $hn_list {*message-id*}]
+        set mi_idx [lsearch -glob -nocase $hn_list {message-id}]
 
         # Also per rfc5436 seciton 2.7.1 consider:
         # auto-submitted = as
-        set as_idx [lsearch -glob -nocase $hn_list {*auto-submitted*}]
+        set as_idx [lsearch -glob -nocase $hn_list {auto-submitted}]
         if { $as_idx > 1 } {
             set as_h [lindex $hn_list $as_idx]
-            set as_p [string match -nocase $h_arr(${as_h}) {*auto-notified*}]
+            set as_p [string match -nocase $h_arr(${as_h}) {auto-notified}]
         }
         
-        # If one of the headers contains {*list-id*} then email
+        # If one of the headers contains {list-id} then email
         # is from a mailing list.
 
         set i 0
@@ -919,10 +935,10 @@ ad_proc -public acs_mail_lite::email_type {
         # https://tools.ietf.org/html/rfc3464
         # Note: original-envelope-id is not same as message-id.
         # original-recipient = or
-        set or_idx [lsearch -glob -nocase $hn_list {*original-recipient*}]
+        set or_idx [lsearch -glob -nocase $hn_list {original-recipient}]
         # action = ac (required for DSN)
         # per fc3464 s2.3.3
-        set ac_idx [lsearch -glob -nocase $hn_list {*action*}]
+        set ac_idx [lsearch -glob -nocase $hn_list {action}]
         if { $ac_idx > -1 } {
             set ac_h [lindex $hn_list $ac_idx]
             set acv_idx [lsearch -glob -nocase [list failed \
@@ -933,7 +949,7 @@ ad_proc -public acs_mail_lite::email_type {
             if { $acv_idx > -1 } {
                 # status = st (required for DSN)
                 # per fc3464 s2.3.4
-                set st_idx [lsearch -glob -nocase $hn_list {*status*}]
+                set st_idx [lsearch -glob -nocase $hn_list {status}]
                 if { $st_idx > -1 } {
                     set st_h [lindex $hn_list $st_idx]
                     set ar_p [string match {*[0-9][0-9][0-9]*} \
@@ -946,6 +962,7 @@ ad_proc -public acs_mail_lite::email_type {
 
     if { !$ar_p && $subject ne "" } {
         # catch nonstandard cases
+        # subject flags
         set ps1 [string match -nocase {*out of*office*} $subject]
         set ps2 [string match -nocase {*automated response*} $subject]
         set ps3 [string match -nocase {*autoreply*} $subject]
@@ -954,12 +971,22 @@ ad_proc -public acs_mail_lite::email_type {
         # rfc3834 states to NOT rely on 'Auto: ' in subject for detection. 
         #set ps6 \[string match {Auto: *} $subject\]
 
+        # from flags = pf
         set pf1 [string match -nocase {*mailer*daemon*} $from]
 
         set ar_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 \
                              || $pf1 || $or_idx } ]
     }
 
+    # Return actionable type: 'auto_reply', 'bounce', or 'in_reply_to' 'other'.
+    if { $ar_p }  {
+        set type "auto_reply"
+
+
+
+
+    }
+    
     return $ar_p
 }
 
