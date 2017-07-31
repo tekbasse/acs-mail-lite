@@ -945,7 +945,7 @@ ad_proc -public acs_mail_lite::email_type {
                                                     delayed \
                                                     delivered \
                                                     relayed \
-                                                    expaneded ] $ac_h]
+                                                    expanded ] $ac_h]
             if { $acv_idx > -1 } {
                 # status = st (required for DSN)
                 # per fc3464 s2.3.4
