@@ -825,7 +825,7 @@ ad_proc -public acs_mail_lite::email_type {
 
 } {
     set ar_p 0
-    
+    set dsn_p 0
     # header cases:  {*auto-generated*} {*auto-replied*} {*auto-notified*}
     # from:
     # https://www.iana.org/assignments/auto-submitted-keywords/auto-submitted-keywords.xhtml
@@ -941,20 +941,27 @@ ad_proc -public acs_mail_lite::email_type {
         set ac_idx [lsearch -glob -nocase $hn_list {action}]
         if { $ac_idx > -1 } {
             set ac_h [lindex $hn_list $ac_idx]
-            set acv_idx [lsearch -glob -nocase [list failed \
-                                                    delayed \
-                                                    delivered \
-                                                    relayed \
-                                                    expanded ] $ac_h]
+            set status_list [list failed \
+                                 delayed \
+                                 delivered \
+                                 relayed \
+                                 expanded ]
+            # Should 'delivered' be removed from status_list?
+            # No, just set ar_p 1 instead of dsn_p 1
+
+            set acv_idx [lsearch -glob -nocase $status_list $ac_h]
             if { $acv_idx > -1 } {
                 # status = st (required for DSN)
                 # per fc3464 s2.3.4
                 set st_idx [lsearch -glob -nocase $hn_list {status}]
                 if { $st_idx > -1 } {
                     set st_h [lindex $hn_list $st_idx]
-                    set ar_p [string match {*[0-9][0-9][0-9]*} \
-                                  $h_arr(${st_h}) ]
-                }    
+                    set dsn_p [string match {*[0-9][0-9][0-9]*} \
+                                   $h_arr(${st_h}) ]
+                    if { $st_idx eq 2 || !$dns_p } {
+                       set ar_p 1
+                    }
+                }
             }
         }
 
@@ -978,16 +985,18 @@ ad_proc -public acs_mail_lite::email_type {
                              || $pf1 || $or_idx } ]
     }
 
-    # Return actionable type: 'auto_reply', 'bounce', or 'in_reply_to' 'other'.
-    if { $ar_p }  {
+    # Return actionable type: 'auto_reply', 'bounce', 'in_reply_to' or 'other'
+    if { $dsn_p } {
+        set type "bounce"
+    } elseif { $ar_p }  {
         set type "auto_reply"
-
-
-
-
+    } elseif { $irt_idx > -1 } {
+        set type "in_reply_to"
+    } else {
+        set type "other"
     }
     
-    return $ar_p
+    return $type
 }
 
 #
