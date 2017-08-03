@@ -368,6 +368,28 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            aa_true "acs_mail_lite::is_autoreply_q \
  -subject '${su}' -from '${fr}' -headers '${he} 
 
+
+# see Example of an IMAP LIST in rfc6154: 
+# https://tools.ietf.org/html/rfc6154#page-7
+# ns_imap list $conn_id $mailbox pattern(* or %) substr
+
+
+#set list [ns_imap list $conn_id $mailbox_host {}]
+# returns: '{} noselect'  When logged in is not successful..
+# set list [ns_imap list $conn_id $mailbox_host {*}]
+# returns 'INBOX {} INBOX.Trash {} INBOX.sent-mail {}' when really logged in
+# and mailbox_name part of mailbox is "", and mailbox is in form {{mailbox_host}}
+# set list [ns_imap list $conn_id $mailbox_host {%}]
+# returns 'INBOX {}' when really logged in
+# and mailbox_name part of mailbox is ""
+# If mailbox_name exists and is included in mailbox_host, returns '' 
+# If mailbox_name separate from mailbox_host, and exists and in place of %, returns 'mailbox {}'
+# for example 'INBOX.Trash {}'
+
+
+
+
+
        }
 }
 

@@ -590,10 +590,13 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     {-user ""}
     {-flags ""}
     {-name_mb ""}
-    
+    {-default_to_inbox_p "0"}
+    {-default_box_name "inbox"}
 } {
     Verifies connection (connId) is established.
     Tries to establish a connection if it doesn't exist.
+    If mailbox doesn't exist, tries to find an inbox at root of tree
+    or as close as possible to it.
 
     If -host parameter is supplied, will try connection with supplied params.
     Defaults to use connection info provided by parameters 
@@ -601,18 +604,27 @@ ad_proc -private acs_mail_lite::imap_conn_go {
 
     @param port Ignored for now. SSL automatically switches port.
 
+    @param default_to_inbox_p  If set to 1 and name_mb not found, \
+        assigns an inbox if found.
+    @param default_box_name Set if default name for default_to_inbox_p \
+        should be something other than inbox.
+
     @return connectionId or empty string if unsuccessful.
     @see acs_mail_lite::imap_conn_set
 } {
     # imap_conn_go = icg
     # imap_conn_set = ics
     if { $host eq "" } {
+        set default_conn_set_p 1
         set ics_list [acs_mail_lite::imap_conn_set ]
         foreach {n v} $ics_list {
             set $n "${v}"
             ns_log Dev "acs_mail_lite::imap_conn_go.596. set ${n} '${v}'"
         }
+    } else {
+        set default_conn_set_p 0
     }
+
     set fl_list [split $flags " "]
 
     set connected_p 0
@@ -706,6 +718,83 @@ ad_proc -private acs_mail_lite::imap_conn_go {
     }
     if { !$connected_p } {
         set conn_id ""
+    } else {
+        # Check if mailbox exists.
+        set status_nv_list [ns_imap status $conn_id]
+        array set stat_arr $status_nv_list
+        set stat_n_list [array get names stat_arr]
+        set msg_idx [lsearch -nocase -exact $stat_n_list "messages"]
+        if { $msg_idx < 0 } {
+            set mb_exists_p 0
+            ns_log Warning "acs_mail_lite::imap_conn_go.723 \
+ mailbox name '${name_mb}' not found."
+            # top level = t
+            set t_list [ns_imap list $conn_id $host {%}]
+            ns_log Notice "acs_mail_lite::imap_conn_go.725 \
+ available top level mailbox names '${t_list}'"
+            if { [llength $t_list < 2] && !$default_to_inbox_p } {
+                # Provide more hints. 
+                set t_list [ns_imap list $conn_id $host {*}]
+                ns_log Notice "acs_mail_lite::imap_conn_go.727 \
+ available mailbox names '${t_list}'"
+            }
+        } else {
+            set mb_exists_p 1
+        }
+        
+        if { !$mb_exists_p && $default_to_inbox_p } {
+            set mb_default ""
+            set idx [lsearch -exact -nocase $t_list "${default_box_name}"]
+            if { $idx < 0 } {
+                set idx [lsearch -glob -nocase $t_list "${default_box_name}*"]
+            }
+            if { $idx < 0 } {
+                set idx [lsearch -glob -nocase $t_list "*${default_box_name}*"]
+            }
+            if { $idx < 0 } {
+                set t_list [ns_imap list $conn_id $mailbox_host {*}]
+                set idx_list \
+                    [lsearch -glob -nocase $t_list "*${default_box_name}*"]
+                set i_pos_min 999
+                # find inbox closest to tree root
+                foreach mb_q_idx $idx_list {
+                    set mb_q [lindex $tv_list $mb_q_idx]
+                    set i_pos [string first ${default_box_name} \
+                                   [string tolower $mb_q]]
+                    if { $idx < 0 || $i_pos < $i_pos_min } {
+                        set i_pos_min $i_pos
+                        set idx $mb_q_idx
+                    }
+                }
+
+            }
+            # choose a box closest to tree root.
+            if { $idx > -1 } {
+                set mb_default [lindex $t_list $idx]
+                if { $default_conn_set_p } {
+                    ns_log Notice "acs_mail_lite::imap_conn_go.775 \
+ Setting default mailbox.name to '${mb_default}'"
+                    acs_mail_lite::imap_conn_set -name_mb $mb_default
+                }
+                set mb [acs_mail_lite::imap_mailbox_join \
+                            -host $host \
+                            -name $name_mb \
+                            -ssl_p $ssl_p]
+                if { "novalidatecert" in $fl_list } {
+                    set conn_id [ns_imap reopen \
+                                     -novalidatecert \
+                                     -mailbox "${mb}" \
+                                     -user $user \
+                                     -password $password]
+                } else {
+                    set conn_id [ns_imap open \
+                                     -mailbox "${mb}" \
+                                     -user $user \
+                                     -password $password] 
+                }
+            }
+        }
+                
     }
     return $conn_id
 }
