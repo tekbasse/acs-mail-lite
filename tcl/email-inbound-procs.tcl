@@ -893,7 +893,8 @@ ad_proc -public acs_mail_lite::email_type {
     {-check_subject_p "0"}
 } {
     Scans email's subject, from and headers for actionable type.
-    Returns actionable type: 'auto_reply', 'bounce', or 'in_reply_to'.
+    Returns actionable type: 'auto_reply', 'bounce', 'in_reply_to' or 
+    empty string indicating 'other' type.
     'auto_reply' may be a Delivery Status Notification for example.
     'bounce' is a specific kind of Delivery Status Notification.
     'in_reply_to' is an email reporting to originate from local email,
@@ -1090,7 +1091,8 @@ ad_proc -public acs_mail_lite::email_type {
     } elseif { $irt_idx > -1 } {
         set type "in_reply_to"
     } else {
-        set type "other"
+        # other
+        set type ""
     }
     
     return $type
