@@ -381,8 +381,11 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                incr i
                close $fid
            }
-           
+           aa_log "Test using full headers in text of default cases."
+           for {set ii 0} {$ii <= $i} {incr ii }} {
+               set type [acs_mail_lite::email_type -
 
+           }
 
            aa_true "acs_mail_lite::is_autoreply_q \
  -subject '${su}' -from '${fr}' -headers '${he} 
