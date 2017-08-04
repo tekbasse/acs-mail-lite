@@ -365,6 +365,25 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            aa_true "acs_mail_lite::imap_conn_close -conn_id '${sid5}'" $closed_p
 
            aa_log "Testing for auto replies"
+
+           # load example headers
+           set files_list [glob -directory [file join [acs_root_dir] \
+                                                packages \
+                                                acs-mail-lite \
+                                                www \
+                                                doc ] \
+                               -- {headers-example-[0-9]*.txt} ]
+           set i 0
+           foreach f $files_list {
+               set fid [open $f r ]
+               # headers-example = he
+               set he_arr(${i}) [read $fid ]
+               incr i
+               close $fid
+           }
+           
+
+
            aa_true "acs_mail_lite::is_autoreply_q \
  -subject '${su}' -from '${fr}' -headers '${he} 
 
