@@ -1,18 +1,26 @@
 Development notes and change log
 
 
-
 Documentation changes are too numerous to deliniate.
 General strategy is to separate into topics of:
 setup, inbound email configuration, outbound email configuration,
 and inbound email for package developers
 
-Portions of these sources have been added to ACS Mail Lite docs:
+Portions of the following sources have been added to ACS Mail Lite docs:
 
 http://openacs.org/xowiki/incoming_email
 http://openacs.org/forums/message-view?message_id=543694
 
 Some suggestions have been incorporated into new code.
+
+A collection of example email headers are included.
+Unit tests in acs-mail-lite/tcl/test/email-inbound-procs.tcl use these.
+Ones from other sources on web are compatible
+with OpenACS' distribution license and include attribution.
+Each set of example email headers is in a separate file in this package:
+ acs-mail-lite/www/doc/headers-example-N.txt
+where N is a natural number.
+
 
 Clarifications of nsimap API
 
