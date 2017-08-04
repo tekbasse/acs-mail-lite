@@ -890,6 +890,7 @@ ad_proc -public acs_mail_lite::email_type {
     {-headers ""}
     {-header_arr_name ""}
     {-reply_too_fast_s "10"}
+    {-check_subject_p "0"}
 } {
     Scans email's subject, from and headers for actionable type.
     Returns actionable type: 'auto_reply', 'bounce', or 'in_reply_to'.
@@ -907,11 +908,17 @@ ad_proc -public acs_mail_lite::email_type {
 
     If headers and header_arr_name provided, only header_arr_name will be used.
 
+    If check_subject_p is set 1, \
+    checks for common subjects identifying autoreplies. \
+        This is not recommended to rely on exclusively. \
+        This feature provides a framework for expaning classification of \
+        emails for deployment routing purposes.
+
     @param subject of email
     @param from of email
     @param headers of email, a block of text containing all headers and values
     @param header_arr_name, the name of an array containing headers.
-
+    @param check_subject_p Set to 1 to check email subject. 
 } {
     set ar_p 0
     set dsn_p 0
@@ -1056,7 +1063,7 @@ ad_proc -public acs_mail_lite::email_type {
 
     } 
 
-    if { !$ar_p && $subject ne "" } {
+    if { !$ar_p && $subject ne "" && $check_subject_p } {
         # catch nonstandard cases
         # subject flags
         set ps1 [string match -nocase {*out of*office*} $subject]
@@ -1070,12 +1077,13 @@ ad_proc -public acs_mail_lite::email_type {
         # from flags = pf
         set pf1 [string match -nocase {*mailer*daemon*} $from]
 
-        set ar_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 \
-                             || $pf1 || $or_idx } ]
+        set ar_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 || $pf1 } ]
     }
 
+
+
     # Return actionable type: 'auto_reply', 'bounce', 'in_reply_to' or 'other'
-    if { $dsn_p } {
+    if { $dsn_p || $or_idx } {
         set type "bounce"
     } elseif { $ar_p }  {
         set type "auto_reply"

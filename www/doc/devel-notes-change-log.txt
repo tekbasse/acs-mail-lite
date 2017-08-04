@@ -7,12 +7,20 @@ General strategy is to separate into topics of:
 setup, inbound email configuration, outbound email configuration,
 and inbound email for package developers
 
-Portions of these sources have been added to new docs:
+Portions of these sources have been added to ACS Mail Lite docs:
 
 http://openacs.org/xowiki/incoming_email
 http://openacs.org/forums/message-view?message_id=543694
 
 Some suggestions have been incorporated into new code.
+
+Clarifications of nsimap API
+
+command               comment
+ns_imap check #s      Requires a mailbox to be selected first.
+ns_imap list #s ref pattern ?substr?     (ditto)
+
+
 
 
 
