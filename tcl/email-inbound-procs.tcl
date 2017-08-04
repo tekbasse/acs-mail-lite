@@ -985,6 +985,7 @@ ad_proc -public acs_mail_lite::email_type {
         # Following checks according to rfc3834 section 3.1 Message header
         # https://tools.ietf.org/html/rfc3834
 
+
         # check for in-reply-to = irt
         set irt_idx [lsearch -glob -nocase $hn_list {in-reply-to}]
         # check for message_id = mi
@@ -1062,25 +1063,41 @@ ad_proc -public acs_mail_lite::email_type {
             }
         }
 
-    } 
+        # if h_arr exists and..
+        if { !$ar_p && $check_subject_p } {
+            # catch nonstandard cases
+            # subject flags
+            
+            # If 'from' not set. Set here.
+            if { $from eq "" } {
+                set fr_idx [lsearch -glob -nocase $hn_list {from}]
+                if { $fr_idx > -1 } {
+                    set from $h_arr(${from})
+                }
+            }
+            # If 'subject' not set. Set here.
+            if { $subject eq "" } {
+                set fr_idx [lsearch -glob -nocase $hn_list {subject}]
+                if { $fr_idx > -1 } {
+                    set subject $h_arr(${subject})
+                }
+            }
+            
+            set ps1 [string match -nocase {*out of*office*} $subject]
+            set ps2 [string match -nocase {*automated response*} $subject]
+            set ps3 [string match -nocase {*autoreply*} $subject]
+            set ps4 [string match {*NDN*} $subject]
+            set ps5 [string match {*\[QuickML\] Error*} $subject]
+            # rfc3834 states to NOT rely on 'Auto: ' in subject for detection. 
+            #set ps6 \[string match {Auto: *} $subject\]
+            
+            # from flags = pf
+            set pf1 [string match -nocase {*mailer*daemon*} $from]
+                
+            set ar_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 || $pf1 } ]
+        }
 
-    if { !$ar_p && $subject ne "" && $check_subject_p } {
-        # catch nonstandard cases
-        # subject flags
-        set ps1 [string match -nocase {*out of*office*} $subject]
-        set ps2 [string match -nocase {*automated response*} $subject]
-        set ps3 [string match -nocase {*autoreply*} $subject]
-        set ps4 [string match {*NDN*} $subject]
-        set ps5 [string match {*\[QuickML\] Error*} $subject]
-        # rfc3834 states to NOT rely on 'Auto: ' in subject for detection. 
-        #set ps6 \[string match {Auto: *} $subject\]
-
-        # from flags = pf
-        set pf1 [string match -nocase {*mailer*daemon*} $from]
-
-        set ar_p [expr { $ps1 || $ps2 || $ps3 || $ps4 || $ps5 || $pf1 } ]
     }
-
 
 
     # Return actionable type: 'auto_reply', 'bounce', 'in_reply_to' or 'other'
