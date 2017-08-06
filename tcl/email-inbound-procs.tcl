@@ -893,13 +893,14 @@ ad_proc -public acs_mail_lite::email_type {
     {-check_subject_p "0"}
 } {
     Scans email's subject, from and headers for actionable type.
-    Returns actionable type: 'auto_reply', 'bounce', 'in_reply_to' or 
+    Returns actionable type: 'auto_gen' 'auto_reply', 'bounce', 'in_reply_to' or 
     empty string indicating 'other' type.
     'auto_reply' may be a Delivery Status Notification for example.
     'bounce' is a specific kind of Delivery Status Notification.
     'in_reply_to' is an email reporting to originate from local email,
     which needs to be tested further to see if OpenACS needs to act on
     it versus a reply to a system administrator email for example.
+    'auto_gen' is an auto-generated email that does not qualify as 'auto_reply', 'bounce', or 'in_reply_to'
     'other' refers to email that the system does not recognize as a reply
     of any kind.
 
@@ -922,6 +923,7 @@ ad_proc -public acs_mail_lite::email_type {
     @param check_subject_p Set to 1 to check email subject. 
 } {
     set ar_p 0
+    set ag_p 0
     set dsn_p 0
     # header cases:  {*auto-generated*} {*auto-replied*} {*auto-notified*}
     # from:
@@ -998,8 +1000,13 @@ ad_proc -public acs_mail_lite::email_type {
         if { $as_idx > 1 } {
             set as_h [lindex $hn_list $as_idx]
             set as_p [string match -nocase $h_arr(${as_h}) {auto-notified}]
+            # also check for auto-generated
+            set ag_p [string match -nocase $h_arr(${as_h}) {auto-generated}]
         }
         
+
+
+
         # If one of the headers contains {list-id} then email
         # is from a mailing list.
 
@@ -1107,6 +1114,8 @@ ad_proc -public acs_mail_lite::email_type {
         set type "auto_reply"
     } elseif { $irt_idx > -1 } {
         set type "in_reply_to"
+    } elseif { $ag_p } {
+        set type "auto_gen"
     } else {
         # other
         set type ""

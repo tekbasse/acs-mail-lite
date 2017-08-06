@@ -373,6 +373,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                                 www \
                                                 doc ] \
                                -- {headers-example-[0-9]*.txt} ]
+
+           #NOTE: number 24 is example of auto-generated
            set i 0
            foreach f $files_list {
                set fid [open $f r ]
