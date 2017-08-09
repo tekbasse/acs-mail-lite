@@ -944,7 +944,7 @@ ad_proc -public acs_mail_lite::email_type {
                      {auto-generated} \
                      {auto-notified} \
                      {auto-replied} \
-                     {auto_reply} \
+                     {auto-reply} \
                      {autoreply} \
                      {autoresponder} \
                      {x-autorespond} \
@@ -964,18 +964,27 @@ ad_proc -public acs_mail_lite::email_type {
             set c_idx [string first ":" $row]
             if { $c_idx > -1 } {
                 set header [string trim [string range $row 0 $c_idx-1]]
-                # list of email headers at:
-                # https://www.cs.tut.fi/~jkorpela/headers.html
-                # Suggests this filter for untrusted input:
-                if { [regsub -all -- {[^a-zA-Z0-9\-]+} $header {} h2 ] } {
-                    ns_log Warning "acs_mail_lite:email_type.864: \
+                # following identifies multiline header content to ignore
+                if { ![string match {*[;=,]*} $header] } {
+                    # list of email headers at:
+                    # https://www.cs.tut.fi/~jkorpela/headers.html
+                    # Suggests this filter for untrusted input:
+                    if { [regsub -all -- {[^a-zA-Z0-9\-]+} $header {} h2 ] } {
+                        ns_log Warning "acs_mail_lite:email_type.864: \
  Unexpected header '${header}' changed to '${h2}'"
-                    set header $h2
-                }
-                set value [string trim [string range $row $c_idx+1 end]]
-                # string match from proc safe_eval
-                if { [string match {*[\[;]*} $row ] } {
-                    set h_arr(${header}) "${value}"
+                        set header $h2
+                    }
+                    set value [string trim [string range $row $c_idx+1 end]]
+                    # string match from proc safe_eval
+                    if { ![string match {*[\[;]*} $value ] } {
+                        # 'append' is used instead of 'set' in
+                        # the rare case that there's a glitch
+                        # and there are two or more headers with same name.
+                        # We want to examine all values of specific header.
+                        append h_arr(${header}) "${value} "
+                        ns_log Dev "acs_mail_lite::email_type.984 \
+ header '${header}' value '${value}' from text header '${row}'"
+                    }
                 }
             }
         }
@@ -1021,7 +1030,7 @@ ad_proc -public acs_mail_lite::email_type {
             }
 
             incr i
-            set h [lindex $kw_list $i]
+            set h [lindex $ar_list $i]
         }
         if { !$ar_p } {
             # Does response time indicate more likely by a machine?
@@ -1029,10 +1038,11 @@ ad_proc -public acs_mail_lite::email_type {
             # Need to check received timestamp vs. when OpenACS sent it.
             # This is a more general case of bounce detection, 
             # intended to prevent flooding server and avoiding looping
-            # that is not caught by standard smtp servers.
+            # that is not caught by standard MTA / smtp servers.
             # As well as provide a place to intervene in uniquely
             # crafted attacks.
-            ##code
+            ##code if possible. MTA likely checks already for floods.
+
 
         }
         
