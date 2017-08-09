@@ -375,22 +375,72 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                -- {headers-example-[0-9]*.txt} ]
 
            #NOTE: number 24 is example of auto-generated
+
            set i 0
            foreach f $files_list {
                set fid [open $f r ]
                # headers-example = he
                set he_arr(${i}) [read $fid ]
+               set type_arr(${i}) ""
                incr i
                close $fid
            }
-           aa_log "Test using full headers in text of default cases."
-           for {set ii 0} {$ii <= $i} {incr ii }} {
-               set type [acs_mail_lite::email_type -
+           # Set actual type in type_arr. 
+           set type_arr(24) "auto_gen"
+           
 
+           aa_log "Test using full headers in text of default cases."
+           set csp 0
+           set su ""
+           set from ""
+           for {set ii 0} {$ii <= $i} {incr ii } {
+               set type [acs_mail_lite::email_type \
+                             -subject $su \
+                             -from $from \
+                             -headers $he_arr(${ii}) \
+                             -check_subject_p $csp ]
+               aa_equals "unmodified header-example-${ii} of \
+ type '$type_arr(${ii})' and type from acs_mail_lite::email_type" \
+                   $type $type_arr(${ii})
+           }
+           
+           aa_log "Test using full headers in modified cases, including
+ false flags for subject and from fields that should be ignored."
+           set csp 0
+           set su "out of office"
+           set from "mailer daemon"
+           set t_list [list bounce auto_reply in_reply_to auto_gen ""]
+           set s_list [list failed delayed relayed expanded]
+           for {set ii 0} {$ii <= $i} {incr ii } {
+               set type_test [lindex $t_list [randomRange 4]]
+               switch -exact -- $type_test {
+                   bounce {
+                       set he $he_arr(${ii})
+                       set h action
+                       append h " : " [lindex $s_list [randomRange 3]]
+                       append h "\n" status " : " 
+                       append h [expr { 99 + [randomRange 900] } ] " "
+                       append h [ad_generate_random_string [randomRange 9]]
+                       append he "\n" $h
+                   }
+                   auto_reply { }
+                   in_reply_to { }
+                   auto_gen { }
+                   default { }
+               }
+               set type [acs_mail_lite::email_type \
+                             -subject $su \
+                             -from $from \
+                             -headers $he \
+                             -check_subject_p $csp ]
+               aa_equals "header-example-${ii} as type of \
+ type '$type_arr(${ii})' and type from acs_mail_lite::email_type"
+               $type $type_test
            }
 
-           aa_true "acs_mail_lite::is_autoreply_q \
- -subject '${su}' -from '${fr}' -headers '${he} 
+
+           aa_true "acs_mail_lite::email_type \
+ -subject '${su}' -from '${fr}' -headers '${he}' -check_subject_p '${csp}'" 
 
 
 # see Example of an IMAP LIST in rfc6154: 
