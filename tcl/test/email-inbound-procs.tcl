@@ -376,7 +376,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
 
            #NOTE: number 24 is example of auto-generated
 
-           set i 0
+           set i 1
            foreach f $files_list {
                set fid [open $f r ]
                # headers-example = he
@@ -399,7 +399,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                              -from $from \
                              -headers $he_arr(${ii}) \
                              -check_subject_p $csp ]
-               aa_equals "unmodified header-example-${ii} of \
+               aa_equals "unmodified headers-example-${ii}.txt of \
  type '$type_arr(${ii})' and type from acs_mail_lite::email_type" \
                    $type $type_arr(${ii})
            }
@@ -409,25 +409,88 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            set csp 0
            set su "out of office"
            set from "mailer daemon"
-           set t_list [list bounce auto_reply in_reply_to auto_gen ""]
+           # ordered list, highest priority first.
+           # See last if in acs_mail_lite::email_type
+           set t_olist [list bounce auto_reply in_reply_to auto_gen ""]
            set s_list [list failed delayed relayed expanded]
+           set ar_list [list auto-notififed \
+                            auto-replied \
+                            auto-reply \
+                            autoreply \
+                            autoresponder \
+                            x-autorespond ]
            for {set ii 0} {$ii <= $i} {incr ii } {
-               set type_test [lindex $t_list [randomRange 4]]
-               switch -exact -- $type_test {
-                   bounce {
-                       set he $he_arr(${ii})
-                       set h action
+               # send garbage to try to confuse proc
+               set t [randomRange 4]
+               set h ""
+               if { $ii eq 24 && $t > 3 } {
+                   set t [randomRange 2]
+               }
+               set type_test [lindex $t_olist $t]
+               if { $t < 4 } {
+                   # add auto_gen headers
+                   append h "auto-submitted : " [ad_generate_random_string]
+                   append h "\n"
+                   append h "auto-generated : " [ad_generate_random_string]
+                   append h "\n"
+               }
+               if { $t < 3 } {
+                   # add in_reply_to headers
+                   append h "in-reply-to : " [ad_generate_random_string 30]
+                   append h "\n"
+               }
+               if { $t < 2 } {
+                   # add auto_reply headers
+                   switch [randomRange 2] {
+                       0 { 
+                           append h [lindex $ar_list [randomRange 5]]
+                           append h " : " [ad_generate_random_string]
+                       }
+                       1 {
+                           append h "action : delivered"
+                       }
+                       2 {
+                           set h2 [lindex $s_list [randomRange 3]]
+                           append h "action : " $h2
+                           append h "status : thisis a test" 
+                       }
+                   }                       
+                   append h "\n"
+               }
+               if { $t < 1 } {
+                   # add bounce headers
+                   if { [randomRange 1] } {
+                       # test original-recipient (diverted, reply)
+                       append h "original-recipient : "
+                       append h [ad_system_owner] "\n"
+                   } else {
+                       # test delivery status notification
+                       append h action
                        append h " : " [lindex $s_list [randomRange 3]]
                        append h "\n" status " : " 
                        append h [expr { 99 + [randomRange 900] } ] " "
                        append h [ad_generate_random_string [randomRange 9]]
-                       append he "\n" $h
+                       append h "\n"
                    }
-                   auto_reply { }
-                   in_reply_to { }
-                   auto_gen { }
-                   default { }
                }
+               set he $he_arr(${ii})
+               # maybe mess up capitalization
+               set c [randomRange 3]
+               switch -exact -- $c {
+                   0 {
+                       set h [string tolower $h]
+                   }
+                   1 {
+                       set h [string toupper $h]
+                   }
+                   2 {
+                       set h [string totitle $h]
+                   }
+                   default {
+                       # do nothing
+                   }
+               }
+               append he "\n" $h
                set type [acs_mail_lite::email_type \
                              -subject $su \
                              -from $from \
