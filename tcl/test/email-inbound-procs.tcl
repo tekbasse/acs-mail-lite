@@ -376,30 +376,47 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
 
            #NOTE: number 24 is example of auto-generated
 
-           set i 1
+           set i ""
            foreach f $files_list {
-               set fid [open $f r ]
-               # headers-example = he
-               set he_arr(${i}) [read $fid ]
-               set type_arr(${i}) ""
-               incr i
-               close $fid
+               
+               if { [regexp {([0-9]+)} [file tail $f] i ] } {
+                   set fid [open $f r ]
+                   # headers-example = he
+                   set he_arr(${i}) [read $fid ]
+                   
+                   switch -exact -- $i {
+                       24 {
+                           set type_arr(${i}) "auto_gen"
+                       }
+                       default {
+                           set type_arr(${i}) ""
+                       }
+                   }
+
+
+                   ns_log Notice "test/email-inbound-procs.tcl.394 i $i f $f"
+                   
+                   close $fid
+               } else {
+                   ns_log Warning "test/email-inbound-procs.tcl.401 f ${f} not processed"
+               }
            }
-           # Set actual type in type_arr. 
-           set type_arr(24) "auto_gen"
+
            
 
            aa_log "Test using full headers in text of default cases."
            set csp 0
            set su ""
            set from ""
-           for {set ii 0} {$ii <= $i} {incr ii } {
+           set i [llength $files_list]
+           for {set ii 1} {$ii <= $i} {incr ii } {
                set type [acs_mail_lite::email_type \
                              -subject $su \
                              -from $from \
                              -headers $he_arr(${ii}) \
                              -check_subject_p $csp ]
-               aa_equals "unmodified headers-example-${ii}.txt of \
+               #aa_log "r401. headers '$he_arr(${ii})'"
+               aa_equals "r402. unmodified headers-example-${ii}.txt of \
  type '$type_arr(${ii})' and type from acs_mail_lite::email_type" \
                    $type $type_arr(${ii})
            }
@@ -419,7 +436,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                             autoreply \
                             autoresponder \
                             x-autorespond ]
-           for {set ii 0} {$ii <= $i} {incr ii } {
+           for {set ii 1} {$ii <= $i} {incr ii } {
                # send garbage to try to confuse proc
                set t [randomRange 4]
                set h ""
@@ -427,6 +444,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                    set t [randomRange 2]
                }
                set type_test [lindex $t_olist $t]
+               
                if { $t < 4 } {
                    # add auto_gen headers
                    append h "auto-submitted : " [ad_generate_random_string]
@@ -473,7 +491,6 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                        append h "\n"
                    }
                }
-               set he $he_arr(${ii})
                # maybe mess up capitalization
                set c [randomRange 3]
                switch -exact -- $c {
@@ -490,38 +507,40 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                        # do nothing
                    }
                }
+               aa_log "t ${t} type_test '${type_test}' h '${h}'"
+               set he $he_arr(${ii})
                append he "\n" $h
                set type [acs_mail_lite::email_type \
                              -subject $su \
                              -from $from \
                              -headers $he \
                              -check_subject_p $csp ]
-               aa_equals "header-example-${ii} as type of \
- type '$type_arr(${ii})' and type from acs_mail_lite::email_type"
-               $type $type_test
+               aa_equals "r501 headers-example-${ii}.txt as type of \
+ type '$type_arr(${ii})' and type from acs_mail_lite::email_type" \
+                   $type $type_test
            }
 
 
            aa_true "acs_mail_lite::email_type \
- -subject '${su}' -from '${fr}' -headers '${he}' -check_subject_p '${csp}'" 
+ -subject '${su}' -from '${from}' -headers '${he}' -check_subject_p '${csp}'" 
 
 
-# see Example of an IMAP LIST in rfc6154: 
-# https://tools.ietf.org/html/rfc6154#page-7
-# ns_imap list $conn_id $mailbox pattern(* or %) substr
+           # see Example of an IMAP LIST in rfc6154: 
+           # https://tools.ietf.org/html/rfc6154#page-7
+           # ns_imap list $conn_id $mailbox pattern(* or %) substr
 
 
-#set list [ns_imap list $conn_id $mailbox_host {}]
-# returns: '{} noselect'  When logged in is not successful..
-# set list [ns_imap list $conn_id $mailbox_host {*}]
-# returns 'INBOX {} INBOX.Trash {} INBOX.sent-mail {}' when really logged in
-# and mailbox_name part of mailbox is "", and mailbox is in form {{mailbox_host}}
-# set list [ns_imap list $conn_id $mailbox_host {%}]
-# returns 'INBOX {}' when really logged in
-# and mailbox_name part of mailbox is ""
-# If mailbox_name exists and is included in mailbox_host, returns '' 
-# If mailbox_name separate from mailbox_host, and exists and in place of %, returns 'mailbox {}'
-# for example 'INBOX.Trash {}'
+           #set list [ns_imap list $conn_id $mailbox_host {}]
+           # returns: '{} noselect'  When logged in is not successful..
+           # set list [ns_imap list $conn_id $mailbox_host {*}]
+           # returns 'INBOX {} INBOX.Trash {} INBOX.sent-mail {}' when really logged in
+           # and mailbox_name part of mailbox is "", and mailbox is in form {{mailbox_host}}
+           # set list [ns_imap list $conn_id $mailbox_host {%}]
+           # returns 'INBOX {}' when really logged in
+           # and mailbox_name part of mailbox is ""
+           # If mailbox_name exists and is included in mailbox_host, returns '' 
+           # If mailbox_name separate from mailbox_host, and exists and in place of %, returns 'mailbox {}'
+           # for example 'INBOX.Trash {}'
 
 
 
