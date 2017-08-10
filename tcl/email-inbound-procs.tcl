@@ -923,6 +923,8 @@ ad_proc -public acs_mail_lite::email_type {
     @param check_subject_p Set to 1 to check email subject. 
 } {
     set ar_p 0
+    set as_p 0
+    set an_p 0
     set ag_p 0
     set dsn_p 0
     # header cases:  {*auto-generated*} {*auto-replied*} {*auto-notified*}
@@ -993,6 +995,7 @@ ad_proc -public acs_mail_lite::email_type {
     if { [array exists h_arr] } {
 
         set hn_list [array names h_arr]
+        ns_log Dev "acs_mail_lite::email_type.996 hn_list '${hn_list}'"
         # Following checks according to rfc3834 section 3.1 Message header
         # https://tools.ietf.org/html/rfc3834
 
@@ -1007,14 +1010,16 @@ ad_proc -public acs_mail_lite::email_type {
         # auto-submitted = as
         set as_idx [lsearch -glob -nocase $hn_list {auto-submitted}]
         if { $as_idx > 1 } {
+            set as_p 1
             set as_h [lindex $hn_list $as_idx]
-            set as_p [string match -nocase $h_arr(${as_h}) {auto-notified}]
+            set an_p [string match -nocase $h_arr(${as_h}) {auto-notified}]
             # also check for auto-generated
             set ag_p [string match -nocase $h_arr(${as_h}) {auto-generated}]
         }
         
 
 
+        ns_log Dev "acs_mail_lite::email_type.1017 as_p ${as_p} an_p ${an_p} ag_p ${ag_p}"
 
         # If one of the headers contains {list-id} then email
         # is from a mailing list.
@@ -1032,6 +1037,9 @@ ad_proc -public acs_mail_lite::email_type {
             incr i
             set h [lindex $ar_list $i]
         }
+
+        ns_log Dev "acs_mail_lite::email_type.1039 ar_p ${ar_p}"
+
         if { !$ar_p } {
             # Does response time indicate more likely by a machine?
             # RFC 822 header required: DATE
@@ -1073,12 +1081,15 @@ ad_proc -public acs_mail_lite::email_type {
                     set st_h [lindex $hn_list $st_idx]
                     set dsn_p [string match {*[0-9][0-9][0-9]*} \
                                    $h_arr(${st_h}) ]
-                    if { $st_idx eq 2 || !$dns_p } {
+                    if { $st_idx eq 2 || !$dsn_p } {
                        set ar_p 1
                     }
                 }
             }
         }
+
+        ns_log Dev "acs_mail_lite::email_type.1089 \
+ ar_p ${ar_p} dsn_p ${dsn_p}"
 
         # if h_arr exists and..
         if { !$ar_p && $check_subject_p } {
@@ -1115,16 +1126,17 @@ ad_proc -public acs_mail_lite::email_type {
         }
 
     }
+    ns_log Dev "acs_mail_lite::email_type.1127 ar_p ${ar_p}"
 
 
     # Return actionable type: 'auto_reply', 'bounce', 'in_reply_to' or 'other'
-    if { $dsn_p || $or_idx } {
+    if { $dsn_p || $or_idx > -1 } {
         set type "bounce"
-    } elseif { $ar_p }  {
+    } elseif { $ar_p || $an_p }  {
         set type "auto_reply"
     } elseif { $irt_idx > -1 } {
         set type "in_reply_to"
-    } elseif { $ag_p } {
+    } elseif { $ag_p || $as_p } {
         set type "auto_gen"
     } else {
         # other
