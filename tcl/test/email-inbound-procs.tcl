@@ -467,7 +467,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                if { $type_arr(${ii}) eq "auto_gen" && $t > 3 } {
                    set t [randomRange 2]
                }
-               if { $type_arr(${ii}) eq "in_reply_to" && $t == 2 } {
+               if { $type_arr(${ii}) eq "in_reply_to" && $t > 1 } {
                    set t [randomRange 1]
                }
                set type_test [lindex $t_olist $t]
