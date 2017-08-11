@@ -943,14 +943,16 @@ ad_proc -public acs_mail_lite::email_type {
     # redundant cases are removed from list.
     # auto reply = ar
     set ar_list [list \
-                     {auto-generated} \
-                     {auto-notified} \
                      {auto-replied} \
                      {auto-reply} \
                      {autoreply} \
                      {autoresponder} \
                      {x-autorespond} \
                     ]
+    # Theses were in auto_reply, but are not specific to replies:
+    #                     {auto-generated} 
+    #             {auto-notified} 
+    # See section on auto_gen types. (auto-submitted and the like)
 
     
     if { $header_arr_name ne "" } {
@@ -1008,6 +1010,7 @@ ad_proc -public acs_mail_lite::email_type {
 
         # Also per rfc5436 seciton 2.7.1 consider:
         # auto-submitted = as
+        
         set as_idx [lsearch -glob -nocase $hn_list {auto-submitted}]
         if { $as_idx > 1 } {
             set as_p 1
@@ -1072,8 +1075,19 @@ ad_proc -public acs_mail_lite::email_type {
             # Should 'delivered' be removed from status_list?
             # No, just set ar_p 1 instead of dsn_p 1
 
-            set acv_idx [lsearch -glob -nocase $status_list $ac_h]
-            if { $acv_idx > -1 } {
+            set s_i 0
+            set status_p 0
+            set stat [lindex $status_list $s_i]
+            while { $stat ne "" && !$status_p } {
+                # What if there are duplicate status values or added junk?
+                # Catch it anyway by wrapping glob with asterisks
+                if { [string match "*${stat}*" $h_arr(${ac_h})] } {
+                    set status_p 1
+                }
+                incr s_i
+                set stat [lindex $status_list $s_i]
+            }
+            if { $status_p } {
                 # status = st (required for DSN)
                 # per fc3464 s2.3.4
                 set st_idx [lsearch -glob -nocase $hn_list {status}]
@@ -1129,10 +1143,16 @@ ad_proc -public acs_mail_lite::email_type {
     ns_log Dev "acs_mail_lite::email_type.1127 ar_p ${ar_p}"
 
 
-    # Return actionable type: 'auto_reply', 'bounce', 'in_reply_to' or 'other'
+    # Return actionable types:
+    # 'auto_gen', 'auto_reply', 'bounce', 'in_reply_to' or '' (other)
+
+    #  a bounce also flags maybe auto_reply, in_reply_to, auto_gen
+    # an auto_reply also flags maybe auto_reply, auto_gen, in_reply_to
+    # an auto_gen does NOT include an 'in_reply_to'
+    # an in_reply_to does NOT include 'auto_gen'. 
     if { $dsn_p || $or_idx > -1 } {
         set type "bounce"
-    } elseif { $ar_p }  {
+    } elseif { $ar_p || ( $irt_idx > -1 && ( $ag_p || $as_p || $an_p ) ) } {
         set type "auto_reply"
     } elseif { $ag_p || $as_p || $an_p } {
         set type "auto_gen"

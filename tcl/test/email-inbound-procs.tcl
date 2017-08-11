@@ -387,6 +387,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                    switch -exact -- $i {
                        3 {
                            set type_arr(${i}) "in_reply_to"
+                       }
                        24 {
                            set type_arr(${i}) "auto_gen"
                        }
@@ -419,7 +420,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                              -check_subject_p $csp ]
                #aa_log "r401. headers '$he_arr(${ii})'"
                aa_equals "r402. unmodified headers-example-${ii}.txt of \
- type '$type_arr(${ii})' and type from acs_mail_lite::email_type" \
+ type '$type_arr(${ii})'. type from acs_mail_lite::email_type" \
                    $type $type_arr(${ii})
            }
            
@@ -442,15 +443,17 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                # send garbage to try to confuse proc
                set t [randomRange 4]
                set h ""
+               # Some examples already have header types that limit 
+               # test type.
                if { $type_arr(${ii}) eq "auto_gen" && $t > 3 } {
                    set t [randomRange 2]
                }
-               if { $type_arr(${ii}) eq "in_reply_to" && $t > 2 } {
+               if { $type_arr(${ii}) eq "in_reply_to" && $t == 2 } {
                    set t [randomRange 1]
                }
                set type_test [lindex $t_olist $t]
                
-               if { $t < 4 && $t  } {
+               if { $t == 3 || $t < 2  } {
                    # add in_reply_to headers
                    append h "in-reply-to : " [ad_generate_random_string 30]
                    append h "\n"
@@ -474,7 +477,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                        }
                        2 {
                            set h2 [lindex $s_list [randomRange 3]]
-                           append h "action : " $h2
+                           append h "action : " $h2 "\n"
                            append h "status : thisis a test" 
                        }
                    }                       
@@ -513,6 +516,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                    }
                }
                aa_log "t ${t} type_test '${type_test}' h '${h}'"
+               ns_log Dev "t ${t} type_test '${type_test}' h '${h}'"
                set he $he_arr(${ii})
                append he "\n" $h
                set type [acs_mail_lite::email_type \
@@ -520,9 +524,11 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                              -from $from \
                              -headers $he \
                              -check_subject_p $csp ]
-               aa_equals "r501 headers-example-${ii}.txt as type of \
- type '$type_arr(${ii})' and type from acs_mail_lite::email_type" \
+               aa_equals "r501 headers-example-${ii}.txt \
+ ($type_arr(${ii})) to '${type_test}'. Matches acs_mail_lite::email_type" \
                    $type $type_test
+               ns_log Dev "r501n headers-example-${ii}.txt \
+ ($type_arr(${ii})) to '${type_test}'. acs_mail_lite::email_type '${type}'"
            }
 
 
