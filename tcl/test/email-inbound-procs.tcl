@@ -385,6 +385,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                    set he_arr(${i}) [read $fid ]
                    
                    switch -exact -- $i {
+                       3 {
+                           set type_arr(${i}) "in_reply_to"
                        24 {
                            set type_arr(${i}) "auto_gen"
                        }
@@ -428,9 +430,9 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            set from "mailer daemon"
            # ordered list, highest priority first.
            # See last if in acs_mail_lite::email_type
-           set t_olist [list bounce auto_reply in_reply_to auto_gen ""]
+           set t_olist [list bounce auto_reply auto_gen in_reply_to ""]
            set s_list [list failed delayed relayed expanded]
-           set ar_list [list auto-notififed \
+           set ar_list [list auto-notified \
                             auto-replied \
                             auto-reply \
                             autoreply \
@@ -440,21 +442,24 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                # send garbage to try to confuse proc
                set t [randomRange 4]
                set h ""
-               if { $ii eq 24 && $t > 3 } {
+               if { $type_arr(${ii}) eq "auto_gen" && $t > 3 } {
                    set t [randomRange 2]
+               }
+               if { $type_arr(${ii}) eq "in_reply_to" && $t > 2 } {
+                   set t [randomRange 1]
                }
                set type_test [lindex $t_olist $t]
                
-               if { $t < 4 } {
+               if { $t < 4 && $t  } {
+                   # add in_reply_to headers
+                   append h "in-reply-to : " [ad_generate_random_string 30]
+                   append h "\n"
+               }
+               if { $t < 3 } {
                    # add auto_gen headers
                    append h "auto-submitted : " [ad_generate_random_string]
                    append h "\n"
                    append h "auto-generated : " [ad_generate_random_string]
-                   append h "\n"
-               }
-               if { $t < 3 } {
-                   # add in_reply_to headers
-                   append h "in-reply-to : " [ad_generate_random_string 30]
                    append h "\n"
                }
                if { $t < 2 } {

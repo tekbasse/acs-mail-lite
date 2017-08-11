@@ -1132,12 +1132,12 @@ ad_proc -public acs_mail_lite::email_type {
     # Return actionable type: 'auto_reply', 'bounce', 'in_reply_to' or 'other'
     if { $dsn_p || $or_idx > -1 } {
         set type "bounce"
-    } elseif { $ar_p || $an_p }  {
+    } elseif { $ar_p }  {
         set type "auto_reply"
+    } elseif { $ag_p || $as_p || $an_p } {
+        set type "auto_gen"
     } elseif { $irt_idx > -1 } {
         set type "in_reply_to"
-    } elseif { $ag_p || $as_p } {
-        set type "auto_gen"
     } else {
         # other
         set type ""
