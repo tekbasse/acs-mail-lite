@@ -35,7 +35,10 @@ nsv_set acs_mail_lite check_bounce_p 0
 nsv_set acs_mail_lite scan_in_start_t_cs $scan_in_start_time_cs
 nsv_set acs_mail_lite scan_in_est_dur_p_cycle_s $scan_in_est_dur_per_cycle_s
 
-##code  acs_mail_lite::check_bounces should quit if not configured.
+
+ad_schedule_proc -thread t \
+    $scan_in_est_dur_per_cycle_s acs_mail_lite::imap_check_incoming
+# acs_mail_lite::imap_check_incoming was acs_mail_lite::check_bounces:
 # ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces
 
 if { [db_table_exists acs_mail_lite_ui] } {

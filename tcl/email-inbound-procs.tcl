@@ -1171,6 +1171,22 @@ ad_proc -public acs_mail_lite::email_type {
     return $type
 }
 
+ad_proc -private acs_mail_lite::imap_check_incoming {
+} {
+    Checks for new, actionable incoming email via imap connection.
+    Email is actionable if it is identified by acs_mail_lite::email_type.
+
+    @see acs_mail_lite::email_type
+
+} {
+
+    ##code
+    #called by ad_schedule_proc
+    # This should quit gracefully if not configured or error on connect.
+
+}
+
+
 #
 # Local variables:
 #    mode: tcl
