@@ -1081,9 +1081,12 @@ ad_proc -public acs_mail_lite::email_type {
             while { $stat ne "" && !$status_p } {
                 # What if there are duplicate status values or added junk?
                 # Catch it anyway by wrapping glob with asterisks
-                if { [string match "*${stat}*" $h_arr(${ac_h})] } {
+                if { [string match -nocase "*${stat}*" $h_arr(${ac_h})] } {
                     set status_p 1
                 }
+                ns_log Dev "acs_mail_lite::email_type.1070 \
+ status_p $status_p stat '${stat}' ac_h ${ac_h} h_arr(ac_h) '$h_arr(${ac_h})'"
+
                 incr s_i
                 set stat [lindex $status_list $s_i]
             }
@@ -1095,6 +1098,8 @@ ad_proc -public acs_mail_lite::email_type {
                     set st_h [lindex $hn_list $st_idx]
                     set dsn_p [string match {*[0-9][0-9][0-9]*} \
                                    $h_arr(${st_h}) ]
+                    ns_log Dev "acs_mail_lite::email_type.1080 \
+ dsn_p ${dsn_p} st_h ${st_h} h_arr(st_h) '$h_arr(${st_h})'"
                     if { $st_idx eq 2 || !$dsn_p } {
                        set ar_p 1
                     }
