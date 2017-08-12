@@ -1176,14 +1176,60 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
     Checks for new, actionable incoming email via imap connection.
     Email is actionable if it is identified by acs_mail_lite::email_type.
 
+    When actionable, email is buffered in table acs_mail_lite_from_external
+    and callbacks are triggered.
+
     @see acs_mail_lite::email_type
+
+} {
+    # This proc is called by ad_schedule_proc regularly
+    ##code
+    #called by ad_schedule_proc
+
+    #acs_mail_lite::imap_conn_go
+    # This should quit gracefully if not configured or error on connect.
+
+    # for each new imap email
+    # set type \[acs_mail_lite::email_type\]
+    
+    # if actionable, type ne ""
+    # set priority \[acs_mail_lite::prioritize_in \]
+    # acs_mail_lite::queue_inbound_insert to insert email to queue
+    # repeat
+    # if there is more than 60 secons to next cycle, close connection
+}
+
+ad_proc -private acs_mail_lite::queue_inbound_insert {
+} {
+    Adds a new, actionable incoming email to the queue for
+    prioritized processing.
+
+} {
+    ##code
+
+}
+
+
+ad_proc -private acs_mail_lite::queue_inbound_batch_pull {
+} {
+    Identifies and processes highest priority inbound email.
+} {
+
+    # calls acs_mail_lite::queue_inbound_pull once per email
+
+}
+
+
+
+ad_proc -private acs_mail_lite::queue_inbound_pull {
+} {
+    
+    Reads an email from the inbound queue, 
+    removes the email from the queue.
 
 } {
 
     ##code
-    #called by ad_schedule_proc
-    # This should quit gracefully if not configured or error on connect.
-
 }
 
 
