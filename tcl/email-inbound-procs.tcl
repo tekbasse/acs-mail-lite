@@ -1240,7 +1240,7 @@ ad_proc -private acs_mail_lite::queue_inbound_pull {
     removes the email from the queue.
 
 } {
-
+    
     ##code
     # an email is pulled from these tables
     # aml_id may not be unique for *_parts or *_files
@@ -1249,8 +1249,24 @@ ad_proc -private acs_mail_lite::queue_inbound_pull {
     # acs_mail_lite_ie_parts
     # acs_mail_lite_ie_files
 
+    # email is removed from queue when
+    # set acs_mail_lite_from_external.processed_p 1
+
+    # When all the callbacks are processed, 
+    # set acs_mail_lite_from_external.release_p 1
 }
 
+ad_proc -private acs_mail_lite::queue_release {
+} {
+    Delete email from queue that have been flagged 'release'.
+
+    This does not affect email via imap.
+    
+} {
+    # To flag 'release', set acs_mail_lite_from_external.release_p 1
+    ##code
+
+}
 
 #
 # Local variables:
