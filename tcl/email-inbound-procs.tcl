@@ -1190,8 +1190,15 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
     # This should quit gracefully if not configured or error on connect.
 
     # for each new imap email
+    # check email unique id against history in table:
+    # acs_mail_lite_email_uid_id_map
+
     # set type \[acs_mail_lite::email_type\]
-    
+
+    # save unique message id in table acs_mail_lite_email_uid_id_map
+    # so email doesn't get processed again.
+    #
+
     # if actionable, type ne ""
     # set priority \[acs_mail_lite::prioritize_in \]
     # acs_mail_lite::queue_inbound_insert to insert email to queue
@@ -1206,6 +1213,11 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
 
 } {
     ##code
+    # email goes into tables:
+    # acs_mail_lite_from_external
+    # acs_mail_lite_ie_headers
+    # acs_mail_lite_ie_parts
+    # acs_mail_lite_ie_files
 
 }
 
@@ -1230,6 +1242,13 @@ ad_proc -private acs_mail_lite::queue_inbound_pull {
 } {
 
     ##code
+    # an email is pulled from these tables
+    # aml_id may not be unique for *_parts or *_files
+    # acs_mail_lite_from_external
+    # acs_mail_lite_ie_headers
+    # acs_mail_lite_ie_parts
+    # acs_mail_lite_ie_files
+
 }
 
 
