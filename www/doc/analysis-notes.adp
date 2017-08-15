@@ -260,11 +260,11 @@
   </p>
   <h4>nsv inter-procedure array acs_mail_lite indexes</h4>
   <pre>example usage:
-    nsv_set acs_mail_lite scan_in_active_p 0
+    nsv_set acs_mail_lite scan_incoming_active_p 0
   </pre>
 <h3>variables useful while exploring new processes like forecasting and scheduling</h3>
   <dl>
-    <dt>scan_in_active_p</dt>
+    <dt>scan_incoming_active_p</dt>
     <dd>Answers question. Is a proc currently scanning replies?</dd>
 
     <dt>replies_est_next_start</dt>
@@ -301,7 +301,7 @@
     
   </dl>
   <p>
-    Check <code>scan_in_active_p</code> when running new cycle.
+    Check <code>scan_incoming_active_p</code> when running new cycle.
     Also set <code>replies_est_next_start</code> to clock seconds for use with time calcs later in cycle.
     If already running, wait a second, check again.. until 90% of duration has elapsed.
     If still running, log a message and quit in time for next event.

@@ -1185,9 +1185,30 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
     # This proc is called by ad_schedule_proc regularly
     ##code
     #called by ad_schedule_proc
+    set si_active_p [nsv_get acs_mail_lite scan_incoming_active_p]
+    set cycle_start_time_cs [clock seconds]
+    set scan_in_est_dur_per_cycle_s \
+        [nsv_get acs_mail_lite scan_in_est_dur_per_cycle_s]
+    set scan_in_est_quit_time_cs \
+        [expr { $cycle_start_time_cs + int( $scan_in_est_dur_per_cycle_s \
+                                                * .8 ) } ]
+    # timeout is in seconds
+    set timeout_s 10
+    set timeout_ms [expr { $timeout * 1000 } ]
+    while { $si_active_p && [clock seconds] < $scan_in_est_quit_time_cs } {
+        ##
+        # Need to also query other process to let it know
+        # another process is waiting, and to get confirmation
+        # that the other process didn't quit unexpectedly.
+        # wait for at least timeout
+        ns_log Notice "acs_mail_lite::imap_check_incoming.1198. \
+ pausing ${timeout_s} seconds for prior invocation of process to stop."
+        after $timeout_ms
 
-    #acs_mail_lite::imap_conn_go
-    # This should quit gracefully if not configured or error on connect.
+    }
+    [acs_mail_lite::imap_conn_go ]
+    # acs_mail_lite::imap_check_incoming should quit gracefully 
+    # when not configured or there is error on connect.
 
     # for each new imap email
     # check email unique id against history in table:

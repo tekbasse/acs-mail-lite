@@ -12,38 +12,38 @@ ad_library {
 ad_schedule_proc -thread t 61 acs_mail_lite::sweeper
 
 set queue_dir [parameter::get_from_package_key -parameter "BounceMailDir" -package_key "acs-mail-lite"]
-
 if {$queue_dir ne ""} {
     # if BounceMailDir is set then handle incoming mail
     ad_schedule_proc -thread t 120 acs_mail_lite::load_mails -queue_dir $queue_dir
 }
+nsv_set acs_mail_lite send_mails_p 0
+nsv_set acs_mail_lite check_bounce_p 0
 
-# check every few minutes for new email to filter and maybe flag for parsing.
-#ad_schedule_proc -thread t [acs_mail_lite::get_parameter -name IncomingScanQueue -default 120] acs_mail_lite::scan_replies
 
 # Scan incoming start time in clock seconds.
 set scan_in_start_time_cs [clock seconds]
 # Scan incoming estimated duration pur cycle in seconds
 set scan_in_est_dur_per_cycle_s 120
-# check every few minutes for new email to filter and maybe flag for parsing.
-##code ad_schedule_proc -thread t [acs_mail_lite::get_parameter -name IncomingScanQueue -default 120] acs_mail_lite::scan_incoming
 
 
-nsv_set acs_mail_lite send_mails_p 0
-nsv_set acs_mail_lite check_bounce_p 0
+
+
 # Used by incoming email system
 nsv_set acs_mail_lite scan_in_start_t_cs $scan_in_start_time_cs
 nsv_set acs_mail_lite scan_in_est_dur_p_cycle_s $scan_in_est_dur_per_cycle_s
-
-
-ad_schedule_proc -thread t \
-    $scan_in_est_dur_per_cycle_s acs_mail_lite::imap_check_incoming
-# acs_mail_lite::imap_check_incoming was acs_mail_lite::check_bounces:
-# ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces
-
 if { [db_table_exists acs_mail_lite_ui] } {
     acs_mail_lite::sched_parameters
 }
+ad_schedule_proc -thread t \
+    $scan_in_est_dur_per_cycle_s acs_mail_lite::imap_check_incoming
+ad_schedule_proc -thread t \
+    $scan_in_est_dur_per_cycle_s acs_mail_lite::queue_inbound_batch_pull
+
+ad_schedule_proc -thread t -schedule_proc ns_schedule_daily acs_mail_lite::queue_release
+# above was
+# acs_mail_lite::imap_check_incoming was acs_mail_lite::check_bounces:
+# ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces
+
 
 
 # Redefine ns_sendmail as a wrapper for acs_mail_lite::send
