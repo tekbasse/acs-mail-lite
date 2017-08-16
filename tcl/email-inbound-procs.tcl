@@ -261,6 +261,9 @@ ad_proc -public acs_mail_lite::sched_parameters {
                      :lpri_object_ids
                      )
                 }
+
+                # See acs_mail_lite::imap_check_incoming for usage of:
+                nsv_set acs_mail_lite scan_in_configured_p 1
             }
         }
                 
@@ -927,6 +930,8 @@ ad_proc -public acs_mail_lite::email_type {
     set an_p 0
     set ag_p 0
     set dsn_p 0
+    set or_idx -1
+    set irt_idx -1
     # header cases:  {*auto-generated*} {*auto-replied*} {*auto-notified*}
     # from:
     # https://www.iana.org/assignments/auto-submitted-keywords/auto-submitted-keywords.xhtml
@@ -1182,15 +1187,15 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
     @see acs_mail_lite::email_type
 
 } {
-
+    set error_p 0
     if { [nsv_exists acs_mail_lite scan_in_configured_p ] } {
         set scan_in_configured_p [nsv_get acs_mail_lite scan_in_configured_p]
     } else {
         set scan_in_configured_p 1
+        # Try to connect at least once
     }
     # This proc is called by ad_schedule_proc regularly
-    ##code
-    #called by ad_schedule_proc
+
     # scan_in_ = scan_in_est_ = scan_in_estimate = si_
     if { $scan_in_configured_p } {
         set cycle_start_cs [clock seconds]
@@ -1215,8 +1220,8 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
         set pause_s 10
         set pause_ms [expr { $pause * 1000 } ]
         while { $active_cs eq $cycle_start_cs \
-                    && $concurrent_ct > 1
-                && [clock seconds] < $si_quit_cs } {
+                    && [clock seconds] < $si_quit_cs \
+                    && $concurrent_ct > 1  } {
             incr per_cycle_s_override $pause_s
             nsv_set acs_mail_lite si_dur_per_cycle_s_override \
                 $per_cycle_s_override
@@ -1224,19 +1229,40 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
             set active_cs [lindex $si_actives_list end]
             set concurrent_ct [llength $si_actives_list]
             ns_log Notice "acs_mail_lite::imap_check_incoming.1198. \
- pausing ${pause_s} seconds for prior invocation of process to stop."
+ pausing ${pause_s} seconds for prior invoked processes to stop. \
+ si_actives_list '${si_actives_list}'"
             after $pause_ms
         }
-        
+
         if { [clock seconds < $si_quit_cs ] \
-                 && $concurrent_ct eq 1 \
                  && $active_cs eq $cycle_start_cs } {
-            
+           
             set cid [acs_mail_lite::imap_conn_go ]
-            if { $cid ne "" } {
+            if { $cid eq "" } {
+                set error_p 1
+            }
+
+            if { !$error_p } {
+
+                set status_list [ns_imap status $cid]
+                if { ![f::even_p [llength $status_list]] } {
+                    lappend status_list ""
+                }
+                array set status_arr $status_list
+                if { [info exists status_arr(Uidnext) ] \
+                         && [info exists status_arr(Messages) ] } {
+                    set m_last [expr { $status_arr(Uidnext) - 1 }]
+                    set m_first [expr { $m_last - $status_arr(Messages) + 1 } ]
+                    set m_range $m_first
+                    append range ":" $m_last
+                                 
+
+
+
+                set uid [ns_imap uid $cid $msgno]
+
                 
-
-
+    ##code
     # for each new imap email
     # check email unique id against history in table:
     # acs_mail_lite_email_uid_id_map
@@ -1253,7 +1279,11 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
     # repeat
     # if there is more than 60 secons to next cycle, close connection
 
-
+            } else {
+                ns_log Warning "acs_mail_lite::imap_check_incoming.1274. \
+ Unable to process email. \
+ Either Uidnext or Messages not in status_list: '${status_list}'"
+            }
                 
                 
             } else {
