@@ -264,8 +264,14 @@
   </pre>
 <h3>variables useful while exploring new processes like forecasting and scheduling</h3>
   <dl>
-    <dt>scan_incoming_active_p</dt>
-    <dd>Answers question. Is a proc currently scanning replies?</dd>
+    <dt>scan_in_active_p</dt>
+    <dd>(don't use. See si_active_cs). Answers question. Is a proc currently scanning replies?</dd>
+    <dt>si_active_cs</dt>
+    <dd>(don't use. See si_actives_list.) The clock scan of the most recently started cycle. If a cycle's poll doesn't match, it should not process any more email.</dd>
+    <dt>si_actives_list</dt>
+    <dd>A list of start clock seconds of active imap_checking_incoming procs</dd>
+    <dt>scan_incoming_configured_p</dt>
+    <dd>Is set to 0 if there is an error trying to connect. OTherwise is set to 1 by acs_mail_lite::imap_check_incoming</dd>
 
     <dt>replies_est_next_start</dt>
     <dd>Approx value of [clock seconds] next scan is expected to begin</dd>
@@ -277,16 +283,16 @@
     <dt>scan_in_est_dur_per_cycle_s</dt>
     <dd>Estimate of duration of current cycle</dd>
 
-    <dt>scan_in_est_quit_time_cs</dt>
+    <dt>scan_in_est_quit_cs</dt>
     <dd>When the current cycle should quit based on [clock seconds]</dd>
 
-    <dt>scan_in_start_time_cs</dt>
+    <dt>scan_in_start_cs</dt>
     <dd>When the current cycle started scanning based on [clock seconds]</dd>
 
-    <dt>cycle_start_time_cs</dt>
+    <dt>cycle_start_cs</dt>
     <dd>When the current cycle started (pre IMAP authorization etc) based on [clock seconds]</dd>
 
-    <dt>cycle_est_next_start_time_cs</dt>
+    <dt>cycle_est_next_start_cs</dt>
     <dd>When the next cycle is to start (pre IMAP authorization etc) based on [clock seconds]</dd>
 
     <dt>parameter_val_changed_p</dt>
@@ -313,7 +319,7 @@
   <p>
     Use <code>duration_ms_list</code> to determine a time adjustment for quiting before next cycle:
     <code>scan_in_est_dur_per_cycle_s</code> + <code>scan_repies_start_time</code> =
-    <code>scan_in_est_quit_time_cs</code>
+    <code>scan_in_est_quit_cs</code>
   </p>
   <p>
     And yet, predicting the duration of the future process is difficult.
@@ -343,7 +349,7 @@
 set range priority_max - priority_min
 set deviation_max { ($range / 2 }
 set midpoint { priority_min + $deviation_max }
-time_priority =  $deviation_max (  clock seconds of received datetime - scan_in_start_time_cs ) / 
+time_priority =  $deviation_max (  clock seconds of received datetime - scan_in_start_cs ) / 
             ( 2 * scan_in_est_dur_per_cycle_s )
 
 size_priority = 
@@ -385,7 +391,7 @@ set equation = int( $midpoint + ($time_priority + size_priority) / 2)
   </p>
   <p>
     When quitting current scheduled event, don't log out if all processes are not done.
-    Also, don't logout if <code>imaptimeout</code> is greater than duration to <code>cycle_est_next_start_time_cs</code>.
+    Also, don't logout if <code>imaptimeout</code> is greater than duration to <code>cycle_est_next_start_cs</code>.
    
     Stay logged in for next cycle.
   </p>

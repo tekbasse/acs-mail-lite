@@ -1182,33 +1182,60 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
     @see acs_mail_lite::email_type
 
 } {
+
+    if { [nsv_exists acs_mail_lite scan_in_configured_p ] } {
+        set scan_in_configured_p [nsv_get acs_mail_lite scan_in_configured_p]
+    } else {
+        set scan_in_configured_p 1
+    }
     # This proc is called by ad_schedule_proc regularly
     ##code
     #called by ad_schedule_proc
-    set si_active_p [nsv_get acs_mail_lite scan_incoming_active_p]
-    set cycle_start_time_cs [clock seconds]
-    set scan_in_est_dur_per_cycle_s \
-        [nsv_get acs_mail_lite scan_in_est_dur_per_cycle_s]
-    set scan_in_est_quit_time_cs \
-        [expr { $cycle_start_time_cs + int( $scan_in_est_dur_per_cycle_s \
-                                                * .8 ) } ]
-    # timeout is in seconds
-    set timeout_s 10
-    set timeout_ms [expr { $timeout * 1000 } ]
-    while { $si_active_p && [clock seconds] < $scan_in_est_quit_time_cs } {
-        ##
-        # Need to also query other process to let it know
-        # another process is waiting, and to get confirmation
-        # that the other process didn't quit unexpectedly.
-        # wait for at least timeout
-        ns_log Notice "acs_mail_lite::imap_check_incoming.1198. \
- pausing ${timeout_s} seconds for prior invocation of process to stop."
-        after $timeout_ms
+    # scan_in_ = scan_in_est_ = scan_in_estimate = si_
+    if { $scan_in_configured_p } {
+        set cycle_start_cs [clock seconds]
+        nsv_lappend acs_mail_lite si_actives_list $cycle_start_cs
+        set si_actives_list [nsv_get acs_mail_lite si_actives_list]
+        
+        set si_dur_per_cycle_s \
+            [nsv_get acs_mail_lite si_dur_per_cycle_s]
+        set per_cycle_s_override [nsv_get acs_mail_lite \
+                                      si_dur_per_cycle_s_override]
+        set si_quit_cs \
+            [expr { $cycle_start_cs + int( $si_dur_per_cycle_s \
+                                               * .8 ) } ]
+        if { $per_cycle_s_override ne "" } {
+            set si_quit_cs [expr { $si_quit_cs - $per_cycle_s_override } ]
+        }
+        
+        
+        set active_cs [lindex $si_actives_list end]
+        set concurrent_ct [llength $si_actives_list]
+        # pause is in seconds
+        set pause_s 10
+        set pause_ms [expr { $pause * 1000 } ]
+        while { $active_cs eq $cycle_start_cs \
+                    && $concurrent_ct > 1
+                && [clock seconds] < $si_quit_cs } {
+            incr per_cycle_s_override $pause_s
+            nsv_set acs_mail_lite si_dur_per_cycle_s_override \
+                $per_cycle_s_override
+            set si_actives_list [nsv_get ns_get_acs_mail_lite si_actives_list]
+            set active_cs [lindex $si_actives_list end]
+            set concurrent_ct [llength $si_actives_list]
+            ns_log Notice "acs_mail_lite::imap_check_incoming.1198. \
+ pausing ${pause_s} seconds for prior invocation of process to stop."
+            after $pause_ms
+        }
+        
+        if { [clock seconds < $si_quit_cs ] \
+                 && $concurrent_ct eq 1 \
+                 && $active_cs eq $cycle_start_cs } {
+            
+            set cid [acs_mail_lite::imap_conn_go ]
+            if { $cid ne "" } {
+                
 
-    }
-    [acs_mail_lite::imap_conn_go ]
-    # acs_mail_lite::imap_check_incoming should quit gracefully 
-    # when not configured or there is error on connect.
 
     # for each new imap email
     # check email unique id against history in table:
@@ -1225,6 +1252,19 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
     # acs_mail_lite::queue_inbound_insert to insert email to queue
     # repeat
     # if there is more than 60 secons to next cycle, close connection
+
+
+                
+                
+            } else {
+                nsv_set acs_mail_lite scan_in_configured_p 0
+            }
+            # acs_mail_lite::imap_check_incoming should quit gracefully 
+            # when not configured or there is error on connect.
+
+        }
+    }
+    return $scan_in_configured_p
 }
 
 ad_proc -private acs_mail_lite::queue_inbound_insert {
