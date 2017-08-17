@@ -67,7 +67,8 @@ Complete list of nsimap API:
 
 #email specific
 # ns_imap uid #s msgno   (gets UID of msgno)
-# ns_imap struct #s msgno  Returns UID of msgno, internal time info etc
+# ns_imap struct #s msgno  Returns UID of msgno, internal time info etc. For example:
+'uid 4 flags {} size 1634 internaldate.day 16 internaldate.month 8 internaldate.year 2017 internaldate.hours 21 internaldate.minutes 3 internaldate.seconds 45 internaldate.zoccident 0 internaldate.zhours 0 internaldate.zminutes 0 type text encoding 7bit subtype PLAIN lines 10 bytes 169 body.charset utf-8 body.format flowed msgno 3'
 # ns_imap headers #s msgno ?-array arr_name
 # ns_imap header #s msgno hdrname
 # ns_imap text #s msgno -flags UID/PEEK/INTERNAL (peek doesn't set \Seen flag)

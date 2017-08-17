@@ -919,6 +919,10 @@ ad_proc -public acs_mail_lite::email_type {
         This feature provides a framework for expaning classification of \
         emails for deployment routing purposes.
 
+    If array includes keys from 'ns_imap struct', such as internaldate.*, \
+        then type will also classify quick re-sends (reply or forward) \
+        with large content as 'auto_gen'.
+
     @param subject of email
     @param from of email
     @param headers of email, a block of text containing all headers and values
@@ -932,6 +936,7 @@ ad_proc -public acs_mail_lite::email_type {
     set dsn_p 0
     set or_idx -1
     set irt_idx -1
+    set ts_p 0
     # header cases:  {*auto-generated*} {*auto-replied*} {*auto-notified*}
     # from:
     # https://www.iana.org/assignments/auto-submitted-keywords/auto-submitted-keywords.xhtml
@@ -1050,16 +1055,27 @@ ad_proc -public acs_mail_lite::email_type {
 
         if { !$ar_p } {
             # Does response time indicate more likely by a machine?
+            # Not by itself. Only if it is a reply of some kind.
+
             # RFC 822 header required: DATE
             # Need to check received timestamp vs. when OpenACS sent it.
-            # This is a more general case of bounce detection, 
+
+            # From: header must show  same OpenACS domain for bounce
+            # and subsequently verified not a user or system recognized
+            # user/admin address. For example  as mailer-daemon@..
+            # This might be from a bounced outbound form.
+            # OR from is verified as a user or system recognized address
+            # and yet reply is within 10 seconds.??
+
+            # This is a more general case of bounce/auto_reply detection, 
             # intended to prevent flooding server and avoiding looping
             # that is not caught by standard MTA / smtp servers.
             # As well as provide a place to intervene in uniquely
             # crafted attacks.
             ##code if possible. MTA likely checks already for floods.
-
-
+            # too fast, if diff between date and local time is less than 10s
+            # and either from is "" or subject matches "return*to*sender"
+            # if too fast, set ts_p 1
         }
         
         # Delivery Status Notifications, see rfc3464
@@ -1162,9 +1178,10 @@ ad_proc -public acs_mail_lite::email_type {
     # an in_reply_to does NOT include 'auto_gen'. 
     if { $dsn_p || $or_idx > -1 } {
         set type "bounce"
-    } elseif { $ar_p || ( $irt_idx > -1 && ( $ag_p || $as_p || $an_p ) ) } {
+    } elseif { $ar_p || ( $irt_idx > -1 && \
+                              ( $ag_p || $as_p || $an_p || $ts_p ) ) } {
         set type "auto_reply"
-    } elseif { $ag_p || $as_p || $an_p } {
+    } elseif { $ag_p || $as_p || $an_p || $ts_p } {
         set type "auto_gen"
     } elseif { $irt_idx > -1 } {
         set type "in_reply_to"
