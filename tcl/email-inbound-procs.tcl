@@ -1053,29 +1053,83 @@ ad_proc -public acs_mail_lite::email_type {
 
         ns_log Dev "acs_mail_lite::email_type.1039 ar_p ${ar_p}"
 
-        if { !$ar_p } {
+        if { !$ar_p && [info exists h_arr(internaldate.year)] } {
             # Does response time indicate more likely by a machine?
             # Not by itself. Only if it is a reply of some kind.
 
-            # RFC 822 header required: DATE
-            # Need to check received timestamp vs. when OpenACS sent it.
+            # Response is likely machine if it is fast.
+            # If the difference between date and local time is less than 10s
+            # and either from is "" or subject matches "return*to*sender"
 
-            # From: header must show  same OpenACS domain for bounce
-            # and subsequently verified not a user or system recognized
-            # user/admin address. For example  as mailer-daemon@..
-            # This might be from a bounced outbound form.
-            # OR from is verified as a user or system recognized address
-            # and yet reply is within 10 seconds.??
+            # More likely also from machine 
+            # if size is more than a few thousand characters in a short time.
 
-            # This is a more general case of bounce/auto_reply detection, 
+            # This is meant to detect more general cases
+            # of bounce/auto_reply detection related to misconfiguration
+            # of a system.
+            # This check is
             # intended to prevent flooding server and avoiding looping
             # that is not caught by standard MTA / smtp servers.
-            # As well as provide a place to intervene in uniquely
-            # crafted attacks.
-            ##code if possible. MTA likely checks already for floods.
-            # too fast, if diff between date and local time is less than 10s
-            # and either from is "" or subject matches "return*to*sender"
-            # if too fast, set ts_p 1
+            # An MTA likely checks already for most floods and loops.
+            # As well, this check providesy yet another
+            # indicator to intervene in uniquely crafted attacks.
+
+            # RFC 822 header required: DATE
+            set dt_idx [lsearch -glob -nocase $hn_list {date}]
+            # If there is no date. Flag it.
+            if { $dt_idx < 0 } {
+                set ts_p 1
+            } else {
+                # Need to check received timestamp vs. when OpenACS
+                # or a system hosted same as OpenACS sent it.
+
+                set dt_h [lindex $hn_list $dt_idx]
+                set dte_cs [ns_imap parsedate $h_arr(${dt_h})]
+                set dti $h_arr(internaldate.year)
+                append dti "-" [format "%02u" $h_arr(internaldate.month)]
+                append dti "-" [format "%02u" $h_arr(internaldate.day)]
+                append dti " " [format "%02u" $h_arr(internaldate.hours)]
+                append dti ":" [format "%02u" $h_arr(internaldate.minutes)]
+                append dti ":" [format "%02u" $h_arr(internaldate.seconds)] " "
+                if { $h_arr(internaldate.zoccident) eq "0" } {
+                    append dti "+"
+                } else {
+                    append dti $h_arr(internaldate.zoccident)
+                }
+                append dti [format "%02u" $h_arr(internaldate.zhours)]
+                append dti [format "%02u" $h_arr(internaldate.zminutes)] "00"
+                if { [catch {
+                    set dti_cs [clock scan "%Y-%m-%e %H:%M:%S %z" $dti] 
+                } err_txt ] } {
+                    set dti_cs ""
+                    ns_log Warning "acs_mail_lite::email_type.1102 \
+ clock scan %Y-%m-%d %H:%M:%S %z '${dti}' failed. Could not check ts_p case."
+                }
+                set diff 1000
+                if { $dte_cs ne "" && $dti_cs ne "" } {
+                    set diff [expr { abs( $dte_cs - $dti_cs ) } ]
+                } 
+                
+
+
+            # From: header must show same OpenACS domain for bounce
+            # and subsequently verified not a user or system recognized
+            # user/admin address. 
+            # Examples of unrecognized addresses include mailer-daemon@..
+            # Another possibility is return-path "<>"
+            # and Message ID unique-char-ref@bounce-domain
+
+            # Examples might be a bounced email from 
+            # a nonstandard web form on site
+            # or 
+            # a loop where 'from' is
+            # a verified user or system recognized address
+            # and reply is within 10 seconds
+            # and a non-standard acs-mail-lite reply-to address is generated.
+
+            # If too fast, set ts_p 1
+
+
         }
         
         # Delivery Status Notifications, see rfc3464
