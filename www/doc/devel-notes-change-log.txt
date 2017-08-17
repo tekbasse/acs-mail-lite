@@ -53,7 +53,7 @@ Complete list of nsimap API:
 # ns_imap move #s sequence mailbox
 # ns_imap m_create #s mailbox
 # ns_imap m_delete #s mailbox
-# ns_imap  m_rename #s mailbox newname
+# ns_imap m_rename #s mailbox newname
 # ns_imap search # searchCriteria (IMap2 criteria only)
 # ns_imap subscribe #s mailbox
 # ns_imap unsubscribe #s mailbox
@@ -66,8 +66,9 @@ Complete list of nsimap API:
 # ns_imap setacl #s mailbox user value
 
 #email specific
-#ns_imap uid #s msgno   (gets UID of msgno)
-# ns_imap headers #s msgno arr_name
+# ns_imap uid #s msgno   (gets UID of msgno)
+# ns_imap struct #s msgno  Returns UID of msgno, internal time info etc
+# ns_imap headers #s msgno ?-array arr_name
 # ns_imap header #s msgno hdrname
 # ns_imap text #s msgno -flags UID/PEEK/INTERNAL (peek doesn't set \Seen flag)
 # ns_imap body #s msgno part -flags UID/PEEK/INTERNAL

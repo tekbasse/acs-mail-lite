@@ -1236,7 +1236,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
 
         if { [clock seconds < $si_quit_cs ] \
                  && $active_cs eq $cycle_start_cs } {
-           
+            
             set cid [acs_mail_lite::imap_conn_go ]
             if { $cid eq "" } {
                 set error_p 1
@@ -1251,48 +1251,54 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                 array set status_arr $status_list
                 if { [info exists status_arr(Uidnext) ] \
                          && [info exists status_arr(Messages) ] } {
-                    set m_last [expr { $status_arr(Uidnext) - 1 }]
-                    set m_first [expr { $m_last - $status_arr(Messages) + 1 } ]
-                    set m_range $m_first
-                    append range ":" $m_last
-                                 
+                    # ns_imap search should be faster than ns_imap sort
+                    set m_list [ns_imap search $cid ""]
+                    foreach msgno $m_list {
+                        set struct_list [ns_imap struct $cid $msgno]
+                        ns_imap headers $cid $msgno -array headers_arr
+                        # add struct info to headers for extra typing
+                        array set headers_arr $struct_list
+                        set type [acs_mail_lite::email_type \
+                                      -header_arr_name headers_arr ]
+
+                    }
+                }
 
 
 
-                set uid [ns_imap uid $cid $msgno]
+
 
                 
-    ##code
-    # for each new imap email
-    # check email unique id against history in table:
-    # acs_mail_lite_email_uid_id_map
+                ##code
+                # for each new imap email
+                # check email unique id against history in table:
+                # acs_mail_lite_email_uid_id_map
 
-    # set type \[acs_mail_lite::email_type\]
+                # set type \[acs_mail_lite::email_type\]
 
-    # save unique message id in table acs_mail_lite_email_uid_id_map
-    # so email doesn't get processed again.
-    #
+                # save unique message id in table acs_mail_lite_email_uid_id_map
+                # so email doesn't get processed again.
+                #
 
-    # if actionable, type ne ""
-    # set priority \[acs_mail_lite::prioritize_in \]
-    # acs_mail_lite::queue_inbound_insert to insert email to queue
-    # repeat
-    # if there is more than 60 secons to next cycle, close connection
+                # if actionable, type ne ""
+                # set priority \[acs_mail_lite::prioritize_in \]
+                # acs_mail_lite::queue_inbound_insert to insert email to queue
+                # repeat
+                # if there is more than 60 secons to next cycle, close connection
 
             } else {
                 ns_log Warning "acs_mail_lite::imap_check_incoming.1274. \
  Unable to process email. \
  Either Uidnext or Messages not in status_list: '${status_list}'"
             }
-                
-                
-            } else {
-                nsv_set acs_mail_lite scan_in_configured_p 0
-            }
-            # acs_mail_lite::imap_check_incoming should quit gracefully 
-            # when not configured or there is error on connect.
-
+            
+            
+        } else {
+            nsv_set acs_mail_lite scan_in_configured_p 0
         }
+        # acs_mail_lite::imap_check_incoming should quit gracefully 
+        # when not configured or there is error on connect.
+
     }
     return $scan_in_configured_p
 }
@@ -1365,3 +1371,4 @@ ad_proc -private acs_mail_lite::queue_release {
 #    tcl-indent-level: 4
 #    indent-tabs-mode: nil
 # End:
+
