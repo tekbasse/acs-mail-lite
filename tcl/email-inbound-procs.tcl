@@ -1053,7 +1053,17 @@ ad_proc -public acs_mail_lite::email_type {
 
         ns_log Dev "acs_mail_lite::email_type.1039 ar_p ${ar_p}"
 
-        if { !$ar_p && [info exists h_arr(internaldate.year)] } {
+        # get 'from' header value possibly used in a couple checks
+        set fr_idx [lsearch -glob -nocase $hn_list {from}]
+        if { $fr_idx > -1 } {
+            set fr_h [lindex $hn_list $fr_idx]
+            set from $h_arr(${fr_h})
+        } else {
+            set from ""
+        }
+
+        if { !$ar_p && [info exists h_arr(internaldate.year)] \
+                 && $from ne "" } {
             # Does response time indicate more likely by a machine?
             # Not by itself. Only if it is a reply of some kind.
 
@@ -1092,9 +1102,15 @@ ad_proc -public acs_mail_lite::email_type {
                 append dti ":" [format "%02u" $h_arr(internaldate.minutes)]
                 append dti ":" [format "%02u" $h_arr(internaldate.seconds)] " "
                 if { $h_arr(internaldate.zoccident) eq "0" } {
+                    # This is essentially iso8601 timezone formatting.
                     append dti "+"
                 } else {
-                    append dti $h_arr(internaldate.zoccident)
+                    # Comment from panda-imap/src/c-client/mail.h:
+                    # /* non-zero if west of UTC */
+                    # See also discussion beginning with:
+                    # /* occidental *from Greenwich) timezones */
+                    # in panda-imap/src/c-client/mail.c
+                    append dti "-"
                 }
                 append dti [format "%02u" $h_arr(internaldate.zhours)]
                 append dti [format "%02u" $h_arr(internaldate.zminutes)] "00"
@@ -1110,25 +1126,31 @@ ad_proc -public acs_mail_lite::email_type {
                     set diff [expr { abs( $dte_cs - $dti_cs ) } ]
                 } 
                 
+                array set conn_arr [acs_mail_lite::imap_conn_set]
+                ##code
+                # check from host against conn_arr(host)
+                
+                # From: header must show same OpenACS domain for bounce
+                # and subsequently verified not a user or system recognized
+                # user/admin address. 
 
+                # Examples of unrecognized addresses include mailer-daemon@..
+                # Another possibility is return-path "<>"
+                # and Message ID unique-char-ref@bounce-domain
 
-            # From: header must show same OpenACS domain for bounce
-            # and subsequently verified not a user or system recognized
-            # user/admin address. 
-            # Examples of unrecognized addresses include mailer-daemon@..
-            # Another possibility is return-path "<>"
-            # and Message ID unique-char-ref@bounce-domain
+                # Examples might be a bounced email from 
+                # a nonstandard web form on site
+                # or 
+                # a loop where 'from' is
+                # a verified user or system recognized address
+                # and reply is within 10 seconds
+                # and a non-standard acs-mail-lite reply-to address
 
-            # Examples might be a bounced email from 
-            # a nonstandard web form on site
-            # or 
-            # a loop where 'from' is
-            # a verified user or system recognized address
-            # and reply is within 10 seconds
-            # and a non-standard acs-mail-lite reply-to address is generated.
+            
+                # If too fast, set ts_p 1
 
-            # If too fast, set ts_p 1
-
+                
+            }
 
         }
         
