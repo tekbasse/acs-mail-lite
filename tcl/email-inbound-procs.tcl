@@ -929,13 +929,14 @@ ad_proc -public acs_mail_lite::email_type {
     @param header_arr_name, the name of an array containing headers.
     @param check_subject_p Set to 1 to check email subject. 
 } {
+    set ag_p 0
+    set an_p 0
     set ar_p 0
     set as_p 0
-    set an_p 0
-    set ag_p 0
     set dsn_p 0
-    set or_idx -1
     set irt_idx -1
+    set or_idx -1
+    set pe_p 0
     set ts_p 0
     # header cases:  {*auto-generated*} {*auto-replied*} {*auto-notified*}
     # from:
@@ -1055,18 +1056,29 @@ ad_proc -public acs_mail_lite::email_type {
 
         # get 'from' header value possibly used in a couple checks
         set fr_idx [lsearch -glob -nocase $hn_list {from}]
+        set from_email ""
         if { $fr_idx > -1 } {
             set fr_h [lindex $hn_list $fr_idx]
             set from $h_arr(${fr_h})
+            set from_email [string tolower \
+                                [acs_mail_lite::parse_email_address \
+                                     -email $from]]
             set at_idx [string last "@" $from ]
         } else {
             set at_idx -1
         }
         if { $at_idx > -1 } {
+            # from_email is not empty string
             set from_host [string trim [string range $from $at_idx+1 end]]
+            set party_id [party::get_by_email -email $from_email]
+            if { $party_id ne "" } {
+                set pe_p 1
+            }
         } else {
             set from_host ""
+            set party_id ""
         }
+
 
         if { !$ar_p && [info exists h_arr(internaldate.year)] \
                  && $from ne "" } {
@@ -1131,8 +1143,11 @@ ad_proc -public acs_mail_lite::email_type {
                 if { $dte_cs ne "" && $dti_cs ne "" } {
                     set diff [expr { abs( $dte_cs - $dti_cs ) } ]
                 } 
-                
-                set host [dict get [acs_mail_lite::imap_conn_set] host]
+                # If too fast, set ts_p 1
+                if { $diff < 11 } {
+                    set ts_p 1
+                }
+
 
                 # check from host against acs_mail_lite's host
                 # From: header must show same OpenACS domain for bounce
@@ -1140,15 +1155,13 @@ ad_proc -public acs_mail_lite::email_type {
                 # user/admin address. 
 
                 # Examples of unrecognized addresses include mailer-daemon@..
-                if { [string -nocase "*${host}*" $from_host] } {
-                    set from_email [string tolower \
-                                        [acs_mail_lite::parse_email_address \
-                                             -email $from]]
-                    if { $from_email eq [ad_outgoing_sender] || \
-                             [party::get_by_email -email $from_email] eq "" } {
+                set host [dict get [acs_mail_lite::imap_conn_set] host]
+                if { $ts_p && [string -nocase "*${host}*" $from_host] } {
+                    if { $from_email eq [ad_outgoing_sender] || !$pe_p } {
                         # This is a stray one. 
-                        set ts_p 1
+                        set ag_p 1
                     }
+
                 }
                     
                 # Another possibility is return-path "<>"
@@ -1166,8 +1179,6 @@ ad_proc -public acs_mail_lite::email_type {
                 # but we can't check that from this context.
                 # Internal date info can be imported with email
                 # for futher filtering after import.
-            
-                # If too fast, set ts_p 1
                 
             }
 
