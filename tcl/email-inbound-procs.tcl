@@ -1058,8 +1058,14 @@ ad_proc -public acs_mail_lite::email_type {
         if { $fr_idx > -1 } {
             set fr_h [lindex $hn_list $fr_idx]
             set from $h_arr(${fr_h})
+            set at_idx [string last "@" $from ]
         } else {
-            set from ""
+            set at_idx -1
+        }
+        if { $at_idx > -1 } {
+            set from_host [string trim [string range $from $at_idx+1 end]]
+        } else {
+            set from_host ""
         }
 
         if { !$ar_p && [info exists h_arr(internaldate.year)] \
@@ -1126,15 +1132,25 @@ ad_proc -public acs_mail_lite::email_type {
                     set diff [expr { abs( $dte_cs - $dti_cs ) } ]
                 } 
                 
-                array set conn_arr [acs_mail_lite::imap_conn_set]
-                ##code
-                # check from host against conn_arr(host)
-                
+                set host [dict get [acs_mail_lite::imap_conn_set] host]
+
+                # check from host against acs_mail_lite's host
                 # From: header must show same OpenACS domain for bounce
                 # and subsequently verified not a user or system recognized
                 # user/admin address. 
 
                 # Examples of unrecognized addresses include mailer-daemon@..
+                if { [string -nocase "*${host}*" $from_host] } {
+                    set from_email [string tolower \
+                                        [acs_mail_lite::parse_email_address \
+                                             -email $from]]
+                    if { $from_email eq [ad_outgoing_sender] || \
+                             [party::get_by_email -email $from_email] eq "" } {
+                        # This is a stray one. 
+                        set ts_p 1
+                    }
+                }
+                    
                 # Another possibility is return-path "<>"
                 # and Message ID unique-char-ref@bounce-domain
 
@@ -1146,9 +1162,12 @@ ad_proc -public acs_mail_lite::email_type {
                 # and reply is within 10 seconds
                 # and a non-standard acs-mail-lite reply-to address
 
+                # Or multiple emails from same user under 10 seconds
+                # but we can't check that from this context.
+                # Internal date info can be imported with email
+                # for futher filtering after import.
             
                 # If too fast, set ts_p 1
-
                 
             }
 
