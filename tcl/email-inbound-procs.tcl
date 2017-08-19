@@ -28,8 +28,8 @@ ad_proc -private acs_mail_lite::imap_cache_clear {
     
 } {
     db_dml acs_mail_lite_email_uid_map_d {
-        update acs_mail_lite_email_uid_map {
-            delete from acs_mail_lite_email_uid_map
+        update acs_mail_lite_email_uid_id_map {
+            delete from acs_mail_lite_email_uid_id_map
             
         }
     }
@@ -1387,11 +1387,10 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                     }
                 }
 
-
-
-
-
-                
+                set processed_p [acs_mail_lite::imap_cache_hit_p \
+                                 $email_uid \
+                                 $imap_uidvalidity \
+                                 $mailbox_host_name   ]
                 ##code
                 # for each new imap email
                 # check email unique id against history in table:
@@ -1488,7 +1487,50 @@ ad_proc -private acs_mail_lite::queue_release {
 
 }
 
-#
+ad_proc -private acs_mail_lite::imap_cache_hit_p {
+    email_uid
+    imap_uidvalidity
+    mailbox_host_name
+} {
+    Check email unqiue id (UID) against history in table.
+    If already exists, returns 1 otherwise 0.
+    Adds checked case to cache if not already there.
+} {
+    set hit_p 0
+    set src_ext_id $mailbox_host_name
+    append src_ext_id "-" $imap_uidvalidity
+    set aml_src_id ""
+    db_0or1row acs_mail_lite_email_src_ext_id_map_r1 {
+        select aml_src_id from acs_mal_lite_email_src_ext_id_map
+        where src_ext=:src_ext_id }
+    if { $aml_src_id eq "" } {
+        set aml_src_id [db_nextval acs_mail_lite_in_id_seq]
+        db_dml acs_mail_lite_email_src_ext_id_map_c1 {
+            insert into acs_mail_lite_src_ext_id_map
+            (aml_src_id,src_ext)
+            values (:aml_src_id,:src_ext_id)
+        }
+    }
+    set aml_email_id ""
+    db_0or1row acs_mail_lite_email_uid_id_map_r1 {
+        select aml_email_id from acs_mail_lite_email_uid_id_map
+        where uid_ext=:email_uid
+        and src_ext_id=:src_ext_id
+    }
+    if { $aml_email_id eq "" } {
+        set aml_email_id [db_nextval acs_mail_lite_in_id_seq]
+        db_dml acs_mail_lite_email_uid_id_map_c1 {
+            insert into acs_mail_lite_uid_id_map
+            (aml_email_id,uid_ext,src_ext_id)
+            values (:aml_email_id,:email_uid,:aml_src_id)
+        }
+    } else {
+        set hit_p 1
+    }
+    return $hit_p
+}
+
+#            
 # Local variables:
 #    mode: tcl
 #    tcl-indent-level: 4

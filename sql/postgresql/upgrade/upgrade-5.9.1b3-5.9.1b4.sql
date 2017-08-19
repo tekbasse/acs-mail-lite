@@ -2,6 +2,7 @@
 --
 -- Add Incoming Mail Processing
 --
+create sequence acs_mail_lite_in_id_seq;
 
 -- New tables
 
@@ -119,7 +120,7 @@ create index acs_mail_lite_from_external_release_p_idx
 -- prior messages recognized as 'new' messages.
 
 create table acs_mail_lite_email_uid_id_map (
-       aml_id  integer not null,
+       aml_email_id  integer not null,
        --uisng varchar instead of text for indexing purposes
        -- Each UID externally defined such as from imap4 server
        uid_ext varchar(3000) not null,
@@ -135,7 +136,7 @@ create table acs_mail_lite_email_uid_id_map (
        -- where ExternalSource parameter is 
        -- either blank or maybe mailbox.host for example.
        -- external source reference id
-       -- see acs_mail_lite_email_src_ext_id_map.aml_id
+       -- see acs_mail_lite_email_src_ext_id_map.aml_src_id
        src_ext_id integer
 );
 
@@ -145,7 +146,7 @@ create index acs_mail_lite_email_uid_id_map_src_ext_id_idx
 	on acs_mail_lite_email_uid_id_map (src_ext_id);
 
 create table acs_mail_lite_email_src_ext_id_map (
-       aml_id integer not null,
+       aml_src_id integer not null,
        src_ext varchar(1000) not null
 );
 
