@@ -1366,31 +1366,45 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
             }
 
             if { !$error_p } {
+                array set conn_arr [acs_mail_lite::imap_conn_set]
+                unset conn_arr(password)
+                set mailbox_host_name "{{"
+                append mailbox_host_name $conn_arr(host) "}" \
+                    $conn_arr(name_mb) "}"
 
                 set status_list [ns_imap status $cid]
                 if { ![f::even_p [llength $status_list]] } {
                     lappend status_list ""
                 }
                 array set status_arr $status_list
+                set uidvalidity $status_arr(Uidvalidity)
                 if { [info exists status_arr(Uidnext) ] \
                          && [info exists status_arr(Messages) ] } {
+                    #
+                    # Iterate through emails
+                    #
                     # ns_imap search should be faster than ns_imap sort
                     set m_list [ns_imap search $cid ""]
+
                     foreach msgno $m_list {
                         set struct_list [ns_imap struct $cid $msgno]
-                        ns_imap headers $cid $msgno -array headers_arr
-                        # add struct info to headers for extra typing
                         array set headers_arr $struct_list
-                        set type [acs_mail_lite::email_type \
-                                      -header_arr_name headers_arr ]
+                        
+                        set processed_p [acs_mail_lite::imap_cache_hit_p \
+                                             $uid \
+                                             $uidvalidity \
+                                             $mailbox_host_name ]
+                        if { !$processed_p } {
+                            ns_imap headers $cid $msgno -array headers_arr
+                            # add struct info to headers for extra typing
+                            
+                            set type [acs_mail_lite::email_type \
+                                          -header_arr_name headers_arr ]
 
+                        }
                     }
                 }
 
-                set processed_p [acs_mail_lite::imap_cache_hit_p \
-                                 $email_uid \
-                                 $imap_uidvalidity \
-                                 $mailbox_host_name   ]
                 ##code
                 # for each new imap email
                 # check email unique id against history in table:
@@ -1500,9 +1514,10 @@ ad_proc -private acs_mail_lite::imap_cache_hit_p {
     set src_ext_id $mailbox_host_name
     append src_ext_id "-" $imap_uidvalidity
     set aml_src_id ""
-    db_0or1row acs_mail_lite_email_src_ext_id_map_r1 {
-        select aml_src_id from acs_mal_lite_email_src_ext_id_map
-        where src_ext=:src_ext_id }
+    db_0or1row acs_mail_lite_email_src_ext_id_map_r1 \
+        -cache_key $src_ext_id {
+            select aml_src_id from acs_mal_lite_email_src_ext_id_map
+            where src_ext=:src_ext_id }
     if { $aml_src_id eq "" } {
         set aml_src_id [db_nextval acs_mail_lite_in_id_seq]
         db_dml acs_mail_lite_email_src_ext_id_map_c1 {
