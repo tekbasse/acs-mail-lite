@@ -231,19 +231,19 @@ create table acs_mail_lite_imap_conn (
 -- incoming email headers
 create table acs_mail_lite_ie_headers (
        -- incoming email local id
-       aml_id integer,
+       aml_email_id integer,
        -- header name, one header per row
        -- For all headers together, see acs_mail_lite_ie_parts.c_type=headers
        h_hame text,
        h_value text
 );
 
-create index acs_mail_lite_ie_headers_aml_id_idx
-	on acs_mail_lite_ie_headers (aml_id);
+create index acs_mail_lite_ie_headers_aml_email_id_idx
+	on acs_mail_lite_ie_headers (aml_email_id);
 
 -- incoming email body parts
 create table acs_mail_lite_ie_parts (
-       aml_id integer,
+       aml_email_id integer,
        -- In addition to content_type, we have a special case:
        -- headers, which contains all headers for email in one field
        -- content_type
@@ -254,12 +254,12 @@ create table acs_mail_lite_ie_parts (
        c_filepathname text
 );
 
-create index acs_mail_lite_ie_parts_aml_id_idx
-	on acs_mail_lite_ie_parts (aml_id);
+create index acs_mail_lite_ie_parts_aml_email_id_idx
+	on acs_mail_lite_ie_parts (aml_email_id);
 
 -- incoming email files
 create table acs_mail_lite_ie_files (
-       aml_id integer,
+       aml_email_id integer,
        -- content_type
        c_type text,
        filename text,
@@ -267,6 +267,6 @@ create table acs_mail_lite_ie_files (
        c_filepathname text
 );
 
-create index acs_mail_lite_ie_files_aml_id_idx
-	on acs_mail_lite_ie_files (aml_id);
+create index acs_mail_lite_ie_files_aml_email_id_idx
+	on acs_mail_lite_ie_files (aml_email_id);
 
