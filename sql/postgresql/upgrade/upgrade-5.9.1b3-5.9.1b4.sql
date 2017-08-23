@@ -229,6 +229,9 @@ create table acs_mail_lite_imap_conn (
 -- defined in the rest of OpenACS
 
 -- incoming email headers
+-- There should be a size limit per unit time from each source
+-- to prevent DDOS attacks and such (at least to the imap system).
+-- 
 create table acs_mail_lite_ie_headers (
        -- incoming email local id
        aml_email_id integer,
@@ -244,10 +247,21 @@ create index acs_mail_lite_ie_headers_aml_email_id_idx
 -- incoming email body parts
 create table acs_mail_lite_ie_parts (
        aml_email_id integer,
+       -- email parts can contain multiple parts.
+       -- Each multiple part can contain multiple parts.
+       -- A hierarchical reference is needed.
+       -- Top level is 0.
+       ref_level integer,
+       -- Each part has a different number reference.
+       part_id integer,
+       -- Answers question: What is parent part_id? (if any)
+       part_of_id integer,
+
        -- In addition to content_type, we have a special case:
        -- headers, which contains all headers for email in one field
        -- content_type
        c_type text,
+       -- If c_type is multipart, content is blank. part_id is branched.
        content text,
        -- An alternate file for large blob
        -- A local absolute filepath location
