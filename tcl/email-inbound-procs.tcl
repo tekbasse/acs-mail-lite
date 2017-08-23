@@ -1133,11 +1133,11 @@ ad_proc -public acs_mail_lite::email_type {
                 append dti [format "%02u" $h_arr(internaldate.zhours)]
                 append dti [format "%02u" $h_arr(internaldate.zminutes)] "00"
                 if { [catch {
-                    set dti_cs [clock scan "%Y-%m-%e %H:%M:%S %z" $dti] 
+                    set dti_cs [clock scan $dti -format "%Y-%m-%e %H:%M:%S %z"]
                 } err_txt ] } {
                     set dti_cs ""
                     ns_log Warning "acs_mail_lite::email_type.1102 \
- clock scan %Y-%m-%d %H:%M:%S %z '${dti}' failed. Could not check ts_p case."
+ clock scan '${dti}' -format %Y-%m-%d %H:%M:%S %z failed. Could not check ts_p case."
                 }
                 set diff 1000
                 if { $dte_cs ne "" && $dti_cs ne "" } {
@@ -1366,6 +1366,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
             }
 
             if { !$error_p } {
+
                 array set conn_arr [acs_mail_lite::imap_conn_set]
                 unset conn_arr(password)
                 set mailbox_host_name "{{"
@@ -1388,19 +1389,34 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
 
                     foreach msgno $m_list {
                         set struct_list [ns_imap struct $cid $msgno]
+
+                        # add struct info to headers for use with ::email_type
                         array set headers_arr $struct_list
-                        
+                        set uid $headers_arr(uid)
+
                         set processed_p [acs_mail_lite::imap_cache_hit_p \
                                              $uid \
                                              $uidvalidity \
                                              $mailbox_host_name ]
                         if { !$processed_p } {
-                            ns_imap headers $cid $msgno -array headers_arr
-                            # add struct info to headers for extra typing
+                            set headers_list [ns_imap headers $cid $msgno]
+                            array set headers_arr $headers_list
                             
                             set type [acs_mail_lite::email_type \
                                           -header_arr_name headers_arr ]
+                            if { $type ne "" } {
+                                # add it to the queue for processing
+                                set headers_txt ""
+                                foreach k [array names headers_arr] {
+                                    lappend headers_txt $key " : " \
+                                        $headers_arr(${key})
+                                }
 
+                                acs_mail_lite::queue_inbound_insert \
+                                    -headers_txt $headers_txt \
+                                    -headers_arr headers_arr \
+                                    -text $msg_txt
+                            }
                         }
                     }
                 }
