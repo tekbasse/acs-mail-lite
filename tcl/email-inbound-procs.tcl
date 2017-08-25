@@ -1531,7 +1531,7 @@ ad_proc -private acs_mail_lite::imap_cache_hit_p {
     append src_ext_id "-" $imap_uidvalidity
     set aml_src_id ""
     db_0or1row acs_mail_lite_email_src_ext_id_map_r1 \
-        -cache_key $src_ext_id {
+        -cache_key aml_in_src_id_${src_ext_id} {
             select aml_src_id from acs_mal_lite_email_src_ext_id_map
             where src_ext=:src_ext_id }
     if { $aml_src_id eq "" } {
@@ -1564,22 +1564,32 @@ ad_proc -private acs_mail_lite::imap_cache_hit_p {
 ad_proc -private acs_mail_lite::imap_section_id_of {
     section_ref
 } {
-    Returns section_id used by imap inbound datamodel
+    Returns section_id representing a section_ref 
+    used by ns_imap body and imap inbound datamodel
 } {
     set section_id ""
     if { [regexp -- {^[0-9\.]*$} $section_ref ] } {
-        # Are dots okay in db cache keys? Assume not.
-        set ckey [join [split $section_ref "."] "-"]
-        db_0or1row -cache_key $ckey acs_mail_lite_ie_section_ref_map_r1 {
-            select section_id from acs_mail_lite_ie_section_ref_map
-            where section_ref=:section_ref
-        }
-        if { $section_id eq "" } {
-            set section_id [db_nextval acs_mail_lite_in_id_seq]
-            db_dml acs_mail_lite_ie_seciton_ref_map_c1 {
-                insert into acs_mail_lite_section_ref_map
-                (section_ref,section_id)
-                values (:section_ref,:section_id)
+        # Are dots okay in db cache keys? Assume not? Assume can. Test 2 know
+        
+        if { $section_ref eq "" } {
+            set section_id -1
+        } else {
+            set ckey aml_section_
+            append ckey $section_ref
+            set exists_p [db_0or1row -cache_key $ckey \
+                              acs_mail_lite_ie_section_ref_map_r1 {
+                                  select section_id 
+                                  from acs_mail_lite_ie_section_ref_map
+                                  where section_ref=:section_ref
+                              } ]
+            if { !$exists_p } {
+                db_flush_cache -cache_key_pattern $ckey
+                set section_id [db_nextval acs_mail_lite_in_id_seq]
+                db_dml acs_mail_lite_ie_section_ref_map_c1 {
+                    insert into acs_mail_lite_ie_section_ref_map
+                    (section_ref,section_id)
+                    values (:section_ref,:section_id)
+                }
             }
         }
     }
