@@ -1561,6 +1561,31 @@ ad_proc -private acs_mail_lite::imap_cache_hit_p {
     return $hit_p
 }
 
+ad_proc -private acs_mail_lite::imap_section_id_of {
+    section_ref
+} {
+    Returns section_id used by imap inbound datamodel
+} {
+    set section_id ""
+    if { [regexp -- {^[0-9\.]*$} $section_ref ] } {
+        # Are dots okay in db cache keys? Assume not.
+        set ckey [join [split $section_ref "."] "-"]
+        db_0or1row -cache_key $ckey acs_mail_lite_ie_section_ref_map_r1 {
+            select section_id from acs_mail_lite_ie_section_ref_map
+            where section_ref=:section_ref
+        }
+        if { $section_id eq "" } {
+            set section_id [db_nextval acs_mail_lite_in_id_seq]
+            db_dml acs_mail_lite_ie_seciton_ref_map_c1 {
+                insert into acs_mail_lite_section_ref_map
+                (section_ref,section_id)
+                values (:section_ref,:section_id)
+            }
+        }
+    }
+    return $section_id
+}
+
 #            
 # Local variables:
 #    mode: tcl
