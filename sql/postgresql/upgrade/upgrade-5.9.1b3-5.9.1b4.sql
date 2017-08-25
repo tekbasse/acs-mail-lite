@@ -8,7 +8,7 @@ create sequence acs_mail_lite_in_id_seq;
 
 -- table tracking incoming email
 create table acs_mail_lite_from_external (
-       aml_id               integer primary key 
+       aml_email_id               integer primary key 
                             not null 
                             DEFAULT nextval ('acs_mail_lite_id_seq'), 
        -- using varchar instead of text for indexing
@@ -35,15 +35,15 @@ create table acs_mail_lite_from_external (
        processed_p      boolean,
        -- Answers question: 
        -- Have all callbacks related to this email finished processing?
-       -- Upon release, delete  all components of aml_id also from
+       -- Upon release, delete  all components of aml_email_id also from
        -- tables acs_mail_lite_ie_headers, acs_mail_lite_ie_body_parts, and
        -- acs_mail_lite_ie_files.
        -- Release essentially means its available to be deleted.
        release_p boolean
 );
 
-create index acs_mail_lite_from_external_aml_id_idx 
-       on acs_mail_lite_from_external (aml_id);
+create index acs_mail_lite_from_external_aml_email_id_idx 
+       on acs_mail_lite_from_external (aml_email_id);
 create index acs_mail_lite_from_external_processed_p_idx 
        on acs_mail_lite_from_external (processed_p);
 create index acs_mail_lite_from_external_release_p_idx 
@@ -233,10 +233,17 @@ create table acs_mail_lite_imap_conn (
 -- to prevent DDOS attacks and such (at least to the imap system).
 -- 
 create table acs_mail_lite_ie_headers (
-       -- incoming email local id
+       -- incoming email
+       -- only includes headers useful in processing the queue
+       -- Such as
+       -- size
+       -- from
        aml_email_id integer,
        -- header name, one header per row
        -- For all headers together, see acs_mail_lite_ie_parts.c_type=headers
+       -- Special case: h_name = struct means
+       -- h_value contains entire value returned from ns_imap struct
+       -- as a tcl list
        h_hame text,
        h_value text
 );
@@ -247,23 +254,15 @@ create index acs_mail_lite_ie_headers_aml_email_id_idx
 -- incoming email body parts
 create table acs_mail_lite_ie_parts (
        aml_email_id integer,
-       -- email parts can contain multiple parts.
-       -- Each multiple part can contain multiple parts.
-       -- A hierarchical reference is needed.
-       -- Top level is 0.
-       ref_level integer,
-       -- Each part has a different number reference.
-       part_id integer,
-       -- Answers question: What is parent part_id? (if any)
-       part_of_id integer,
-
-       -- In addition to content_type, we have a special case:
-       -- headers, which contains all headers for email in one field
-       -- content_type
+       section_id integer,
+       
+       -- In addition to content_type, there is a special case:
+       -- headers, which contains all headers for email
+       -- content_type = c_type
        c_type text,
        -- If c_type is multipart, content is blank. part_id is branched.
        content text,
-       -- An alternate file for large blob
+       -- An alternate filepathname for large blob
        -- A local absolute filepath location
        c_filepathname text
 );
@@ -271,9 +270,11 @@ create table acs_mail_lite_ie_parts (
 create index acs_mail_lite_ie_parts_aml_email_id_idx
 	on acs_mail_lite_ie_parts (aml_email_id);
 
--- incoming email files
+-- incoming email file attachments and file content
 create table acs_mail_lite_ie_files (
        aml_email_id integer,
+       -- Usage is same as acs_mail_lite_ie_parts.section_ref
+       section_id integer,
        -- content_type
        c_type text,
        filename text,
@@ -284,3 +285,39 @@ create table acs_mail_lite_ie_files (
 create index acs_mail_lite_ie_files_aml_email_id_idx
 	on acs_mail_lite_ie_files (aml_email_id);
 
+
+-- incoming email parts, name value pairs of
+create table acs_mail_lite_ie_part_nv_pairs (
+       aml_email_id integer,
+       -- Usage is same as acs_mail_lite_ie_parts.section_ref
+       section_id integer,
+       -- name value pair
+       p_hame text,
+       p_value text
+);
+
+create index acs_mail_lite_ie_part_nv_pairs_aml_email_id_idx
+	on acs_mail_lite_ie_part_nv_pairs (aml_email_id);
+
+create table acs_mail_lite_ie_section_ref_map (
+       -- 'Section' refers to usage with 'part' reference in 'ns_imap body'
+
+       -- Mapping is constant for each case.
+       -- For example, '1.2.2.1' will always point to the same integer.
+       -- So do not alter values as they are likely used by
+       -- multiple emails.
+
+       -- email parts can contain multiple parts.
+       -- Each multiple part can contain multiple parts.
+       -- Section_ref is an absolute reference of a part
+       -- including the parts it is contained in, and
+       -- delimited by period.
+       -- As used by ns_imap body #s msgno part
+       -- Root tree reference is blank.
+
+       section_ref varchar(300),
+       section_id integer
+);
+
+create index acs_mail_lite_ie_section_ref_map_section_ref_idx
+	on acs_mail_lite_ie_section_ref_map (section_ref);
