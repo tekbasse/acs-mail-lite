@@ -120,6 +120,9 @@ create index acs_mail_lite_from_external_release_p_idx
 -- prior messages recognized as 'new' messages.
 
 create table acs_mail_lite_email_uid_id_map (
+       -- unqique internal inbound email id
+       -- src_ext_id identifies source, but is redundant
+       -- for identifying a unique email. 
        aml_email_id  integer not null,
        --uisng varchar instead of text for indexing purposes
        -- Each UID externally defined such as from imap4 server

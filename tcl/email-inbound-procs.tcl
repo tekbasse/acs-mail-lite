@@ -1434,9 +1434,10 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
 
                 # if actionable, type ne ""
                 # set priority \[acs_mail_lite::prioritize_in \]
+
                 # acs_mail_lite::queue_inbound_insert to insert email to queue
                 # repeat
-                # if there is more than 60 secons to next cycle, close connection
+                # if there is more than 60 seconds to next cycle, close connection
 
             } else {
                 ns_log Warning "acs_mail_lite::imap_check_incoming.1274. \
@@ -1455,19 +1456,70 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
     return $scan_in_configured_p
 }
 
+ad_proc -private acs_mail_lite::imap_parse_for_queue {
+    -array
+    {-conn_id ""}
+    {-msgno ""}
+    {-section_ref ""}
+    {-struct_list ""}
+    {-error_p "0"}
+} {
+    Parse an email from an imap connection into array array_name
+    for adding to queue via acs_mail_lite::queue_inbound_insert
+} {
+    # Due to the hierarchical nature of ns_imap struct 
+    # this proc is recursive.
+
+    if { !$error_p } {
+        
+        ##code
+        # email goes into queue tables:
+
+        # 
+        # acs_mail_lite_ie_headers
+        #
+        # acs_mail_lite_ie_parts
+        # acs_mail_lite_ie_files
+    }
+    return $error_p
+}
+
 ad_proc -private acs_mail_lite::queue_inbound_insert {
+    -array_name 
+    {-aml_email_id ""}
+    {-section_ref ""}
+    {-struct_list ""}
+    {-error_p "0"}
 } {
     Adds a new, actionable incoming email to the queue for
     prioritized processing.
 
+    Returns 1 if successful, otherwise 0.
 } {
-    ##code
-    # email goes into tables:
-    # acs_mail_lite_from_external
-    # acs_mail_lite_ie_headers
-    # acs_mail_lite_ie_parts
-    # acs_mail_lite_ie_files
+    upvar 1 $array_name email_arr
 
+    # This should remain general enough to import
+    # email regardless of its source.
+
+    # Email should already be parsed and in a transferable format
+    # in array array_name.
+
+    # array content should be formatted as follows:
+    # email_arr(aml_email_id)  aml_email_id reference
+
+    
+    if { !$error_p } {
+        
+        ##code
+        # email goes into queue tables:
+
+        # 
+        # acs_mail_lite_ie_headers
+        #
+        # acs_mail_lite_ie_parts
+        # acs_mail_lite_ie_files
+    }
+    return $error_p
 }
 
 
