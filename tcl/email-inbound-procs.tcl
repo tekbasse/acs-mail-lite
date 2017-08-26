@@ -839,7 +839,7 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
     # Email should already be parsed and in a transferable format
     # in passed arrays
 
-    # Array content should be formatted parallel to the tables:
+    # Array content corresponds to these tables:
     # h_arr acs_mail_lite_ie_headers
     # p_arr acs_mail_lite_ie_parts
     # p_arr($section_id,nv_list) acs_mail_lite_part_nv_pairs

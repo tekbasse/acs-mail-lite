@@ -552,37 +552,53 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            }
 
 
-           aa_log "r600 test acs_mail_lite::imap_section_id_of "
+           aa_log "r600 test acs_mail_lite::section_id_of "
            aa_log "r601 test empty case ''"
            set section ""
-           set section_id1 [acs_mail_lite::imap_section_id_of $section]
-           set section_id2 [acs_mail_lite::imap_section_id_of $section]
+           set sect_id1 [acs_mail_lite::section_id_of $section]
+           set sect_id2 [acs_mail_lite::section_id_of $section]
+           set sect_arr(${sect_id1}) $section
            aa_equals "r601 test empty case section '${section}'" \
-               $section_id2 $section_id1
+               $sect_id2 $sect_id1
            set section [ad_generate_random_string]
            # Some random strings are integers.
            append section A
-           set section_id1 [acs_mail_lite::imap_section_id_of $section]
-           set section_id2 [acs_mail_lite::imap_section_id_of $section]
+           set sect_id1 [acs_mail_lite::section_id_of $section]
+           set sect_id2 [acs_mail_lite::section_id_of $section]
            aa_equals "r602 test bad ref case section '${section}'" \
-               $section_id2 $section_id1
-
+               $sect_id2 $sect_id1
+           set sect_arr(${sect_id1}) $section
            aa_equals "r603 test bad ref case section '${section}' returns ''" \
-               $section_id1 ""
+               $sect_id1 ""
 
 
            set section [randomRange 100]
-           set section_id1 [acs_mail_lite::imap_section_id_of $section]
-           set section_id2 [acs_mail_lite::imap_section_id_of $section]
+           set sect_id1 [acs_mail_lite::section_id_of $section]
+           set sect_id2 [acs_mail_lite::section_id_of $section]
            aa_equals "r605 test case section '${section}'" \
-               $section_id2 $section_id1
-
+               $sect_id2 $sect_id1
+           set sect_arr(${sect_id1}) $section
            for {set i 0} {$i < 6} {incr i} {
                append section "." [randomRange 100]
-               set section_id1 [acs_mail_lite::imap_section_id_of $section]
-               set section_id2 [acs_mail_lite::imap_section_id_of $section]
+               set sect_id1 [acs_mail_lite::section_id_of $section]
+               set sect_id2 [acs_mail_lite::section_id_of $section]
                aa_equals "r606 test case section '${section}'" \
-                   $section_id2 $section_id1
+                   $sect_id2 $sect_id1
+               set sect_arr(${sect_id1}) $section
+           }
+
+           aa_log "r610 test acs_mail_lite::section_ref_of "
+           aa_log "r611 test empty case ''"
+           set sect_ref1 ""
+           set sect_ref2 [acs_mail_lite::section_ref_of ""]
+           aa_equals "r616 test case section '${sect_ref1}'" \
+               $sect_id2 $sect_id1
+           
+           foreach sect_id [array names sect_arr] {
+               set sect_ref1 $sect_arr(${sect_id})
+               set sect_ref2 [acs_mail_lite::section_ref_of $sect_id]
+               aa_equals "r616 test case section '${sect_ref1}'" \
+                   $sect_id2 $sect_id1
 
            }
 
