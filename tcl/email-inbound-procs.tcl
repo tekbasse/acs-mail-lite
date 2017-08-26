@@ -829,16 +829,32 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
 
     Returns aml_email_id if successful, otherwise empty string.
 } {
-    upvar 1 $array_name email_arr
+    upvar 1 $headers_arr_name h_arr
+    upvar 1 $parts_arr_name p_arr
+    upvar 1 $files_arr_name f_arr
 
     # This should remain general enough to import
     # email regardless of its source.
 
     # Email should already be parsed and in a transferable format
-    # in array array_name.
+    # in passed arrays
 
-    # array content should be formatted as follows:
-    # email_arr(aml_email_id)  aml_email_id reference
+    # Array content should be formatted parallel to the tables:
+    # h_arr acs_mail_lite_ie_headers
+    # p_arr acs_mail_lite_ie_parts
+    # p_arr($section_id,nv_list) acs_mail_lite_part_nv_pairs
+    # f_arr acs_mail_lite_ie_files
+    # 
+    # where index is section_id based on section_ref, and
+    # where top most section_ref is empty string.
+    # 
+    # Specifically,
+    # for p_arr, c_type is p_arr($section_id,c_type)
+    # for 
+    # for f_arr, filename is f_arr($section_id,filename)
+    #            c_filepathname is f_arr($section_id,c_filepathname)
+    # 
+
 
     
     if { !$error_p } {
@@ -946,6 +962,73 @@ ad_proc -private acs_mail_lite::imap_cache_hit_p {
     return $hit_p
 }
 
+ad_proc -private acs_mail_lite::section_ref_of {
+    section_id
+} {
+    Returns section_ref represented by section_id.
+    Section_id is an integer. 
+    Section_ref has format of counting numbers separated by dot.
+    First used here by ns_imap body and adopted for general email part refs.
+
+    Defaults to empty string (top level reference and a log warning) 
+    if not found.
+} {
+    set section_ref ""
+    set exists_p 0
+    if { [ad_var_type_check_integer_p $section_id] } {
+        if { $section_id eq "-1" } {
+            set exists_p 1
+        } else {
+            
+            set exists_p [db_0or1row acs_mail_lite_ie_section_rer_map_r_id1 {
+                select section_ref 
+                from acs_mail_lite_ie_section_ref_map
+                where section_id=:section_id
+            } ]
+        }
+    }
+    if { !$exists_p } {
+        ns_log Warning "acs_mail_lite::section_ref_of '${section_id}' not found."
+    }
+    return $section_ref
+}
+
+ad_proc -private acs_mail_lite::section_id_of {
+    section_ref
+} {
+    Returns section_id representing a section_ref.
+    Section_ref has format of counting numbers separated by dot.
+    Section_id is an integer. 
+    First used here by ns_imap body and adopted for general email part refs.
+} {
+    set section_id ""
+    if { [regexp -- {^[0-9\.]*$} $section_ref ] } {
+        # Are dots okay in db cache keys? Assume not? Assume can. Test 2 know
+        
+        if { $section_ref eq "" } {
+            set section_id -1
+        } else {
+            set ckey aml_section_ref_
+            append ckey $section_ref
+            set exists_p [db_0or1row -cache_key $ckey \
+                              acs_mail_lite_ie_section_ref_map_r1 {
+                                  select section_id 
+                                  from acs_mail_lite_ie_section_ref_map
+                                  where section_ref=:section_ref
+                              } ]
+            if { !$exists_p } {
+                db_flush_cache -cache_key_pattern $ckey
+                set section_id [db_nextval acs_mail_lite_in_id_seq]
+                db_dml acs_mail_lite_ie_section_ref_map_c1 {
+                    insert into acs_mail_lite_ie_section_ref_map
+                    (section_ref,section_id)
+                    values (:section_ref,:section_id)
+                }
+            }
+        }
+    }
+    return $section_id
+}
 
 #            
 # Local variables:

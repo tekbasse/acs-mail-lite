@@ -690,40 +690,7 @@ ad_proc -private acs_mail_lite::imap_parse_email {
     }
     return $error_p
 }
-ad_proc -private acs_mail_lite::imap_section_id_of {
-    section_ref
-} {
-    Returns section_id representing a section_ref 
-    used by ns_imap body and imap inbound datamodel
-} {
-    set section_id ""
-    if { [regexp -- {^[0-9\.]*$} $section_ref ] } {
-        # Are dots okay in db cache keys? Assume not? Assume can. Test 2 know
-        
-        if { $section_ref eq "" } {
-            set section_id -1
-        } else {
-            set ckey aml_section_
-            append ckey $section_ref
-            set exists_p [db_0or1row -cache_key $ckey \
-                              acs_mail_lite_ie_section_ref_map_r1 {
-                                  select section_id 
-                                  from acs_mail_lite_ie_section_ref_map
-                                  where section_ref=:section_ref
-                              } ]
-            if { !$exists_p } {
-                db_flush_cache -cache_key_pattern $ckey
-                set section_id [db_nextval acs_mail_lite_in_id_seq]
-                db_dml acs_mail_lite_ie_section_ref_map_c1 {
-                    insert into acs_mail_lite_ie_section_ref_map
-                    (section_ref,section_id)
-                    values (:section_ref,:section_id)
-                }
-            }
-        }
-    }
-    return $section_id
-}
+
 
 #            
 # Local variables:

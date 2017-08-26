@@ -14,6 +14,7 @@ drop table acs_mail_lite_bounce_notif;
 drop index acs_mail_lite_ie_part_nv_pairs_aml_email_id_idx;
 drop table acs_mail_lite_ie_part_nv_pairs;
 
+drop index acs_mail_lite_ie_section_ref_map_section_id_idx;
 drop index acs_mail_lite_ie_section_ref_map_section_ref_idx;
 drop table acs_mail_lite_ie_section_ref_map;
 

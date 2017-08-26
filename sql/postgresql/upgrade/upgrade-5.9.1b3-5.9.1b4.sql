@@ -304,19 +304,27 @@ create index acs_mail_lite_ie_part_nv_pairs_aml_email_id_idx
 
 create table acs_mail_lite_ie_section_ref_map (
        -- 'Section' refers to usage with 'part' reference in 'ns_imap body'
+       -- Email parts can contain multiple parts.
+       -- Each multiple part can contain multiple parts.
+
+       -- Section_ref is an absolute reference of a part
+       -- including the parts it is contained in, and
+       -- delimited by period.
+       -- It is defined by:
+       --  ns_imap body #s msgno part
+       -- And yet, this reference system holds for any email
+       -- storage, so is adopted for generic use as well.
+
+       -- Root tree reference is blank.
+       -- Part 2 of a 3 part email (2/3) has reference '2'
+       -- If part 2 is also multiple parts, then
+       -- part 1 of part 2 of email has reference '2.1' and so on.
 
        -- Mapping is constant for each case.
        -- For example, '1.2.2.1' will always point to the same integer.
        -- So do not alter values as they are likely used by
        -- multiple emails.
 
-       -- email parts can contain multiple parts.
-       -- Each multiple part can contain multiple parts.
-       -- Section_ref is an absolute reference of a part
-       -- including the parts it is contained in, and
-       -- delimited by period.
-       -- As used by ns_imap body #s msgno part
-       -- Root tree reference is blank.
 
        section_ref varchar(300),
        section_id integer
@@ -324,3 +332,5 @@ create table acs_mail_lite_ie_section_ref_map (
 
 create index acs_mail_lite_ie_section_ref_map_section_ref_idx
 	on acs_mail_lite_ie_section_ref_map (section_ref);
+create index acs_mail_lite_ie_section_ref_map_section_id_idx
+	on acs_mail_lite_ie_section_ref_map (section_id);
