@@ -595,11 +595,14 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                $sect_id2 $sect_id1
            
            foreach sect_id [array names sect_arr] {
-               set sect_ref1 $sect_arr(${sect_id})
-               set sect_ref2 [acs_mail_lite::section_ref_of $sect_id]
-               aa_equals "r616 test case section '${sect_ref1}'" \
-                   $sect_id2 $sect_id1
 
+               set sect_ref1 $sect_arr(${sect_id})
+               if { $sect_id ne "" } {
+
+                   set sect_ref2 [acs_mail_lite::section_ref_of $sect_id]
+                   aa_equals "r616 test case section '${sect_id}'" \
+                       $sect_ref2 $sect_ref1
+               }
            }
 
 
