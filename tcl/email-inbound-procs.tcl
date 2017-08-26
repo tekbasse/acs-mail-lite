@@ -840,10 +840,11 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
     # in passed arrays
 
     # Array content corresponds to these tables:
-    # h_arr acs_mail_lite_ie_headers
-    # p_arr acs_mail_lite_ie_parts
-    # p_arr($section_id,nv_list) acs_mail_lite_part_nv_pairs
-    # f_arr acs_mail_lite_ie_files
+
+    #   h_arr($name) $value         acs_mail_lite_ie_headers
+    #   p_arr($section_id,<field>)  acs_mail_lite_ie_parts
+    #   p_arr($section_id,nv_list)  acs_mail_lite_part_nv_pairs
+    #   f_arr($section_id,<field>)  acs_mail_lite_ie_files
     # 
     # where index is section_id based on section_ref, and
     # where top most section_ref is empty string.
