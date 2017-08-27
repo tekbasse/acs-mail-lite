@@ -12,15 +12,23 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
 
            ns_log Notice "aa_register_case:acs_mail_lite_inbound_procs_check"
 
-            set a_list [acs_mail_lite::sched_parameters]
-            array set params_def $a_list
+           set a_list [acs_mail_lite::sched_parameters]
+           array set params_def $a_list
+           
+           set bools_list [list reprocess_old_p]
+           set integer_list [list sredpcs_override max_concurrent \
+                                 max_blob_chars mpri_min mpri_max]
+           set ints_list [list hpri_package_ids lpri_package_idx hpri_party_ids lpri_party_ids hpri_object_ids lpri_object_ids]
+           set globs_list [list hpri_subject_glob lpri_subject_glob]
+           set lists_list [list reject_on_hit reject_on_miss]
 
-            set bools_list [list reprocess_old_p]
-            set integer_list [list sredpcs_override max_concurrent \
-                             max_blob_chars mpri_min mpri_max]
-            set ints_list [list hpri_package_ids lpri_package_idx hpri_party_ids lpri_party_ids hpri_object_ids lpri_object_ids]
-            set globs_list [list hpri_subject_glob lpri_subject_glob]
-            set bools_v_list [list 0 1 t f true false]
+           set bools_v_list [list 0 1 t f true false]
+           set nv_list_list [list \
+                                 [list name1 value1 name2 value2 ] \
+                                 [list a-dashed "a value in quotes" \
+                                      b_unscored "b nother value in quotes" ] \
+                                 [list a-dash {a val in parens} \
+                                      b_underscore {value in parens} ] ]
             foreach p [array names params_def] {
                 # test setting of each parameter separately
                 set param "-"
@@ -37,6 +45,9 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                         lappend nums_list [randomRange 32767]
                     }
                     set val [join $nums_list " "]
+                } elseif { $p in $lists_list } {
+                    set val_idx [randomRange 2]
+                    set val [lindex $nv_list_list $val_idx]
                 } 
                 aa_log "r41. Testing change of parameter '${p}' from \
  '$params_def(${p})' to '${val}'"
@@ -56,10 +67,12 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                             if { $params_new(${pp}) eq $params_def(${pp}) } {
                                 if { $pp eq "mpri_max" \
                                          && $val < $params_def(mpri_min) } {
-                                    aa_log "r54 mpri_max<mpri_min no change"
+                                    aa_log "r54a mpri_max<mpri_min no change"
                                 } elseif { $pp eq "mpri_min" \
                                                && $val > $params_def(mpri_max) } {
-                                    aa_log "r55 mpri_min>mpri_max no change."
+                                    aa_log "r54b mpri_min>mpri_max no change."
+                                } else {
+                                    aa_log "r55 '${pp}' no change."
                                 }
                             } else {
                                 aa_equals "r56 Changed sched_parameter \

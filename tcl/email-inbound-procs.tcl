@@ -91,7 +91,10 @@ ad_proc -public acs_mail_lite::sched_parameters {
                      hpri_subject_glob \
                      lpri_subject_glob \
                      hpri_object_ids \
-                     lpri_object_ids ]
+                     lpri_object_ids \
+                     reject_on_hit \
+                     reject_on_miss ]
+    
     foreach sp $sp_list {
         if { [info exists $sp] } {
             set new(${sp}) [set $sp]
@@ -112,7 +115,9 @@ ad_proc -public acs_mail_lite::sched_parameters {
         hpri_subject_glob,
         lpri_subject_glob,
         hpri_object_ids,
-        lpri_object_ids 
+        lpri_object_ids,
+        reject_on_hit,
+        reject_on_miss
         from acs_mail_lite_ui limit 1
     } ]
 
@@ -132,6 +137,8 @@ ad_proc -public acs_mail_lite::sched_parameters {
         set lpri_subject_glob ""
         set hpri_object_ids ""
         set lpri_object_ids ""
+        set reject_on_hit ""
+        set reject_on_miss ""
     }
 
 
@@ -192,6 +199,14 @@ ad_proc -public acs_mail_lite::sched_parameters {
                             }
                         }
                     }
+                    reject_on_hit -
+                    reject_on_miss {
+                        if { [f::even_p [llength $new(${spn}) ]] } {
+                            set v_p 1
+                        } else {
+                            set v_p 0
+                        }
+                    }
                     defaults {
                         ns_log Warning "acs_mail_lite::sched_parameters \
  No validation check made for parameter '${spn}'"
@@ -231,7 +246,9 @@ ad_proc -public acs_mail_lite::sched_parameters {
                      hpri_subject_glob,
                      lpri_subject_glob,
                      hpri_object_ids,
-                     lpri_object_ids)
+                     lpri_object_ids,
+                     reject_on_hit,
+                     reject_on_miss)
                     values 
                     (:sredpcs_override,
                      :reprocess_old_p,
@@ -246,7 +263,9 @@ ad_proc -public acs_mail_lite::sched_parameters {
                      :hpri_subject_glob,
                      :lpri_subject_glob,
                      :hpri_object_ids,
-                     :lpri_object_ids
+                     :lpri_object_ids,
+                     :reject_on_hit,
+                     :reject_on_miss
                      )
                 }
 
