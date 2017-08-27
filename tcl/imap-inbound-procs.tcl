@@ -606,7 +606,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                         if { !$processed_p } {
                             set headers_list [ns_imap headers $cid $msgno]
                             array set headers_arr $headers_list
-                            
+
                             set type [acs_mail_lite::email_type \
                                           -header_arr_name headers_arr ]
                             if { $type ne "" } {
@@ -674,13 +674,20 @@ ad_proc -private acs_mail_lite::imap_parse_email {
     Parse an email from an imap connection into array array_name
     for adding to queue via acs_mail_lite::queue_inbound_insert
 } {
+    # Put email in a format usable for
+    # acs_mail_lite::queue_inbound_insert to insert into queue
+
+    # for format this proc is to generate.
+
     # Due to the hierarchical nature of email and ns_imap struct 
     # this proc is recursive.
+    upvar 1 $headers_arr_name h_arr
+    upvar 1 $parts_arr_name p_arr
+    upvar 1 $files_arr_name f_arr
 
     if { !$error_p } {
         
         ##code
-        # email goes into queue tables:
 
         # 
         # acs_mail_lite_ie_headers

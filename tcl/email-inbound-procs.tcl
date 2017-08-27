@@ -33,6 +33,8 @@ ad_proc -public acs_mail_lite::sched_parameters {
     -lpri_subject_glob
     -hpri_object_ids
     -lpri_object_ids
+    -reject_on_hit
+    -reject_on_miss
 } {
     Returns a name value list of parameters 
     used by ACS Mail Lite scheduled procs.
@@ -67,6 +69,10 @@ ad_proc -public acs_mail_lite::sched_parameters {
     @param hpri_object_ids List of object_ids to process at fast/high priority.
 
     @param lpri_object_ids List of object_ids to process at low priority.
+
+    @param reject_on_hit Name/Value list. See acs_mail_lite::inbound_filters
+
+    @param reject_on_miss Name/Value list. See acs_mail_lite::inbound_filters
 
 } {
     # See one row table acs_mail_lite_ui
@@ -266,7 +272,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
     {-party_id ""}
     {-object_id ""}
 } {
-    Returns a prioritization number for assigning to an inbound email.
+    Returns a prioritization number for assigning priority to an inbound email.
     Another proc processes in order of lowest number first.
     Returns empty string if input values from email are not expected types.
 
@@ -453,6 +459,7 @@ ad_proc -public acs_mail_lite::email_type {
     set or_idx -1
     set pe_p 0
     set ts_p 0
+    set reject_p 0
     # header cases:  {*auto-generated*} {*auto-replied*} {*auto-notified*}
     # from:
     # https://www.iana.org/assignments/auto-submitted-keywords/auto-submitted-keywords.xhtml
@@ -519,8 +526,12 @@ ad_proc -public acs_mail_lite::email_type {
             }
         }
     }
-        
+
     if { [array exists h_arr] } {
+        set reject_p [acs_mail_lite::inbound_filters -headers_arr_name h_arr]
+    }
+
+    if { [array exists h_arr] && !$reject_p } {
 
         set hn_list [array names h_arr]
         ns_log Dev "acs_mail_lite::email_type.996 hn_list '${hn_list}'"
@@ -922,6 +933,82 @@ ad_proc -private acs_mail_lite::queue_release {
     # To flag 'release', set acs_mail_lite_from_external.release_p 1
     ##code
 
+}
+
+
+ad_proc -private acs_mail_lite::inbound_filters {
+    -headers_arr_name
+} {
+    Flags to ignore an inbound email that does not pass filters.
+    Returns 1 if email should be ignored, otherwise returns 0.
+
+    Headers and values are not alphanumeric case sensitive.
+
+    Inbound filters are dynamically updated via 
+    acs_mail_lite::sched_parameters.
+
+    Instead of rejecting, an email can be filtered to low priority
+    by using acs_mail_lite::prioritize_in parameters
+    
+    @see acs_mail_lite::sched_parameters
+    @see acs_mail_lite:;prioritize_in
+} {
+    upvar 1 $headers_arr_name h_arr
+    set reject_p 0
+    set headers_list [array names h_arr]
+
+    set p_lists [acs_mail_lite::sched_parameters]
+    
+    # For details on these filters, see tables:
+    #      acs_mail_lite_ui.reject_on_hit
+    #                      .reject_on_miss
+
+    # h = hit
+    set h_list [dict values $p_lists reject_on_hit]
+    set h_names_list [list ]
+    foreach {n v} $h_list {
+        set n_idx [lsearch -nocase -exact $headers_list $n]
+        if { $n_idx > -1 } {
+            set h [lindex $n_idx]
+            lappend h_names_list $h
+            set vh_arr(${h}) $v
+        }
+    }
+    set h_names_ct [llength $h_names_list]
+    set i 0
+    while { !$reject_p && $i < $h_names_ct } {
+        set h [lindex $h_names_list $i]
+        if { [string match -nocase $vh_arr(${h}) $h_arr(${h})] } {
+            set reject_p 1
+        }
+        
+        incr i
+    }
+
+
+    # m = miss
+    set m_list [dict values $p_lists reject_on_miss]
+    set m_names_list [list ]
+    foreach {n v} $m_list {
+        set n_idx [lsearch -nocase -exact $headers_list $n]
+        if { $n_idx > -1 } {
+            set h [lindex $n_idx]
+            lappend m_names_list $h
+            set vm_arr(${h}) $v
+        }
+    }
+    set m_names_ct [llength $m_names_list]
+    set i 0
+    while { !$reject_p && $i < $m_names_ct } {
+        set h [lindex $m_names_list $i]
+        if { ![string match -nocase $vm_arr(${h}) $h_arr(${h})] } {
+            set reject_p 1
+        }
+        
+        incr i
+    } 
+    
+    return $reject_p
 }
 
 ad_proc -private acs_mail_lite::imap_cache_hit_p {

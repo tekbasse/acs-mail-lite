@@ -199,7 +199,12 @@ create table acs_mail_lite_ui (
        --space delimited list of object_ids to process at fast/high priority
        hpri_object_ids text,
        --space delimited list of object_ids to process at low priority
-       lpri_object_ids text
+       lpri_object_ids text,
+       --filters to reject input as early as possible in processing inbound
+       --Each filter is a name value in standard tcl list format
+       --where name is a header name
+       reject_on_hit text,
+       reject_on_miss text
 );
 
 
