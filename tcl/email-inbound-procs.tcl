@@ -406,7 +406,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
     set varnum 2
     # Get most recent scan start time for reference to batch present time
     set start_cs [nsv_get acs_mail_lite si_start_t_cs]
-    set dur_s [nsv_get acs_mail_lite si_dur_p_cycle_s]
+    set dur_s [nsv_get acs_mail_lite si_dur_per_cycle_s]
     ns_log Dev "prioritize_in: start_cs '${start_cs}' dur_s '${dur_s}'"
 
     # Priority favors earlier reception, returns decimal -1. to 0.

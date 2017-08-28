@@ -539,6 +539,12 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                                * .8 ) } ]
         if { $per_cycle_s_override ne "" } {
             set si_quit_cs [expr { $si_quit_cs - $per_cycle_s_override } ]
+            ##code delayed_p might not be used. 
+            # deplayed_p takes over meaning for per_cycle_s_override == ""
+            set delayed_p 1
+        } else {
+            set per_cycle_s_override $si_dur_per_cycle_s
+            set delayed_p 0
         }
         
         
@@ -546,14 +552,15 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
         set concurrent_ct [llength $si_actives_list]
         # pause is in seconds
         set pause_s 10
-        set pause_ms [expr { $pause * 1000 } ]
+        set pause_ms [expr { $pause_s * 1000 } ]
         while { $active_cs eq $cycle_start_cs \
                     && [clock seconds] < $si_quit_cs \
                     && $concurrent_ct > 1  } {
+
             incr per_cycle_s_override $pause_s
             nsv_set acs_mail_lite si_dur_per_cycle_s_override \
                 $per_cycle_s_override
-            set si_actives_list [nsv_get ns_get_acs_mail_lite si_actives_list]
+            set si_actives_list [nsv_get acs_mail_lite si_actives_list]
             set active_cs [lindex $si_actives_list end]
             set concurrent_ct [llength $si_actives_list]
             ns_log Notice "acs_mail_lite::imap_check_incoming.1198. \
@@ -562,7 +569,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
             after $pause_ms
         }
 
-        if { [clock seconds < $si_quit_cs ] \
+        if { [clock seconds] < $si_quit_cs \
                  && $active_cs eq $cycle_start_cs } {
             
             set cid [acs_mail_lite::imap_conn_go ]
@@ -624,6 +631,10 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                             }
                         }
                     }
+                } else {
+                    ns_log Warning "acs_mail_lite::imap_check_incoming.1274. \
+ Unable to process email. \
+ Either Uidnext or Messages not in status_list: '${status_list}'"
                 }
 
                 ##code
@@ -643,13 +654,9 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                 # acs_mail_lite::queue_inbound_insert to insert email to queue
                 # repeat
                 # if there is more than 60 seconds to next cycle, close connection
-
-            } else {
-                ns_log Warning "acs_mail_lite::imap_check_incoming.1274. \
- Unable to process email. \
- Either Uidnext or Messages not in status_list: '${status_list}'"
+                
             }
-            
+            # end if !$error
             
         } else {
             nsv_set acs_mail_lite si_configured_p 0

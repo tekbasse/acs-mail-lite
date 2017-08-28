@@ -213,7 +213,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 # two vary in size, s1, s2
 
                 set t0 [nsv_get acs_mail_lite si_start_t_cs]
-                set dur_s [nsv_get acs_mail_lite si_dur_p_cycle_s]
+                set dur_s [nsv_get acs_mail_lite si_dur_per_cycle_s]
                 set s0 [ns_config -int -set -min $su_max nssock_v4 maxinput $su_max]
                 aa_log "r161 given: t0 '${t0}' dur_s '${dur_s}' s0 '${s0}'"
 

@@ -31,8 +31,9 @@ set si_mirps .5
 # Used by incoming email system
 #nsv_set acs_mail_lite scan_in_start_t_cs $si_start_time_cs
 nsv_set acs_mail_lite si_start_t_cs $si_start_time_cs
-nsv_set acs_mail_lite si_dur_p_cycle_s $si_dur_per_cycle_s
-nsv_set acs_mail_Lite si_max_ct_p_cycle \
+nsv_set acs_mail_lite si_dur_per_cycle_s $si_dur_per_cycle_s
+nsv_set acs_mail_lite si_dur_per_cycle_s_override ""
+nsv_set acs_mail_Lite si_max_ct_per_cycle \
     [expr { int( $si_mirps * $si_dur_per_cycle_s ) } ]
 if { [db_table_exists acs_mail_lite_ui] } {
     acs_mail_lite::sched_parameters
