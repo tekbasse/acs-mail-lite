@@ -42,7 +42,7 @@ ad_proc -public acs_mail_lite::sched_parameters {
 
     @option sched_parameter value
 
-    @param sredpcs_override If set, use this instead of scan_in_est_dur_per_cycle_s. See www/doc/analysis-notes
+    @param sredpcs_override If set, use this instead of si_dur_per_cycle_s. See www/doc/analysis-notes
 
     @param reprocess_old_p If set, does not ignore prior unread email
 
@@ -270,7 +270,7 @@ ad_proc -public acs_mail_lite::sched_parameters {
                 }
 
                 # See acs_mail_lite::imap_check_incoming for usage of:
-                nsv_set acs_mail_lite scan_in_configured_p 1
+                nsv_set acs_mail_lite si_configured_p 1
             }
         }
                 
@@ -405,8 +405,8 @@ ad_proc -public acs_mail_lite::prioritize_in {
     # char_size, date time stamp
     set varnum 2
     # Get most recent scan start time for reference to batch present time
-    set start_cs [nsv_get acs_mail_lite scan_in_start_t_cs]
-    set dur_s [nsv_get acs_mail_lite scan_in_est_dur_p_cycle_s]
+    set start_cs [nsv_get acs_mail_lite si_start_t_cs]
+    set dur_s [nsv_get acs_mail_lite si_dur_p_cycle_s]
     ns_log Dev "prioritize_in: start_cs '${start_cs}' dur_s '${dur_s}'"
 
     # Priority favors earlier reception, returns decimal -1. to 0.
@@ -618,6 +618,12 @@ ad_proc -public acs_mail_lite::email_type {
             set party_id [party::get_by_email -email $from_email]
             if { $party_id ne "" } {
                 set pe_p 1
+
+                ##code 
+                #check for too many emails from a party_id within a cycle
+                # that is, count per second * cycle_duration
+                # Flag as low priority if over count for period
+                # That is, add party_id to lowpriority
             }
         } else {
             set from_host ""

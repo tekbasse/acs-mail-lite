@@ -516,16 +516,16 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
 
 } {
     set error_p 0
-    if { [nsv_exists acs_mail_lite scan_in_configured_p ] } {
-        set scan_in_configured_p [nsv_get acs_mail_lite scan_in_configured_p]
+    if { [nsv_exists acs_mail_lite si_configured_p ] } {
+        set si_configured_p [nsv_get acs_mail_lite si_configured_p]
     } else {
-        set scan_in_configured_p 1
+        set si_configured_p 1
         # Try to connect at least once
     }
     # This proc is called by ad_schedule_proc regularly
 
     # scan_in_ = scan_in_est_ = scan_in_estimate = si_
-    if { $scan_in_configured_p } {
+    if { $si_configured_p } {
         set cycle_start_cs [clock seconds]
         nsv_lappend acs_mail_lite si_actives_list $cycle_start_cs
         set si_actives_list [nsv_get acs_mail_lite si_actives_list]
@@ -652,13 +652,13 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
             
             
         } else {
-            nsv_set acs_mail_lite scan_in_configured_p 0
+            nsv_set acs_mail_lite si_configured_p 0
         }
         # acs_mail_lite::imap_check_incoming should quit gracefully 
         # when not configured or there is error on connect.
 
     }
-    return $scan_in_configured_p
+    return $si_configured_p
 }
 
 ad_proc -private acs_mail_lite::imap_parse_email {
