@@ -622,8 +622,10 @@ ad_proc -public acs_mail_lite::email_type {
                 ##code 
                 #check for too many emails from a party_id within a cycle
                 # that is, count per second * cycle_duration
-                # Flag as low priority if over count for period
-                # That is, add party_id to lowpriority
+                # 
+                # Flag as low priority if over count for cycle
+                # That is, add party_id to 
+                #    acs_mail_lite::sched_parameters -lpri_party_ids 
             }
         } else {
             set from_host ""
