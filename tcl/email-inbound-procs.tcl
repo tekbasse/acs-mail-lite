@@ -618,14 +618,6 @@ ad_proc -public acs_mail_lite::email_type {
             set party_id [party::get_by_email -email $from_email]
             if { $party_id ne "" } {
                 set pe_p 1
-
-                ##code 
-                #check for too many emails from a party_id within a cycle
-                # that is, count per second * cycle_duration
-                # 
-                # Flag as low priority if over count for cycle
-                # That is, add party_id to 
-                #    acs_mail_lite::sched_parameters -lpri_party_ids 
             }
         } else {
             set from_host ""
@@ -635,6 +627,35 @@ ad_proc -public acs_mail_lite::email_type {
 
         if { !$ar_p && [info exists h_arr(internaldate.year)] \
                  && $from ne "" } {
+
+            # Use the internal timestamp for additional filters
+            set dti $h_arr(internaldate.year)
+            append dti "-" [format "%02u" $h_arr(internaldate.month)]
+            append dti "-" [format "%02u" $h_arr(internaldate.day)]
+            append dti " " [format "%02u" $h_arr(internaldate.hours)]
+            append dti ":" [format "%02u" $h_arr(internaldate.minutes)]
+            append dti ":" [format "%02u" $h_arr(internaldate.seconds)] " "
+            if { $h_arr(internaldate.zoccident) eq "0" } {
+                # This is essentially iso8601 timezone formatting.
+                append dti "+"
+            } else {
+                # Comment from panda-imap/src/c-client/mail.h:
+                # /* non-zero if west of UTC */
+                # See also discussion beginning with:
+                # /* occidental *from Greenwich) timezones */
+                # in panda-imap/src/c-client/mail.c
+                append dti "-"
+            }
+            append dti [format "%02u" $h_arr(internaldate.zhours)]
+            append dti [format "%02u" $h_arr(internaldate.zminutes)] "00"
+            if { [catch {
+                set dti_cs [clock scan $dti -format "%Y-%m-%e %H:%M:%S %z"]
+            } err_txt ] } {
+                set dti_cs ""
+                ns_log Warning "acs_mail_lite::email_type.1102 \
+ clock scan '${dti}' -format %Y-%m-%d %H:%M:%S %z failed. Could not check ts_p case."
+            }
+
             # Does response time indicate more likely by a machine?
             # Not by itself. Only if it is a reply of some kind.
 
@@ -655,6 +676,60 @@ ad_proc -public acs_mail_lite::email_type {
             # As well, this check providesy yet another
             # indicator to intervene in uniquely crafted attacks.
 
+            if { $pe_p && $dti_cs ne "" } {
+                # check multiple emails from same user
+
+                nsv_lappend acs_mail_lite si_party_id_cs(${party_id}) $dti_cs
+                set max_ct [nsv_get acs_mail_lite si_max_ct_per_cycle]
+                set cycle_s [nsv_get acs_mail_lite si_dur_per_cycle_s]
+                set cs_list [nsv_get acs_mail_lite si_party_id_cs(${party_id})]
+                set cs_list_len [llength $cs_list]
+                if { $cs_list_len > $max_ct } {
+                    # List must be checked
+                    set start_cs [nsv_get acs_mail_lite si_start_t_cs]
+                    set prev_start_cs [expr { $start_cs - $cycle_s } ]
+                    set cs_list [lsort -integer -increasing -unique $cs_list]
+                    set i 0
+                    set is_stale_p 1
+                    while { $is_stale_p && $i < $cs_list_len } {
+                        set test_ts [lindex $cs_list $i]
+                        if { $test_ts > $prev_start_cs } {
+                            set is_stale_p 0
+                        }
+                        incr i
+                    }
+                    if { $is_stale_p } {
+                        set cs2_list [list ]
+                        # Really? 
+                        # We just added dti_cs to si_party_id_cs(party_id)
+                        # This happens when scaning email is delayed some
+                        ns_log Warning "acs_mail_lite::email_type.655 \
+ party_id '${party_id}' prev_start_cs '${prev_start_cs}' i '${i}' \
+ cs_list_len '${cs_list_len}' cs_list '${cs_list}' cs2_list '${cs2_list}'"
+                    } else {
+                        set cs2_list [lrange $cs_list $i-1 end]
+                        set cs2_list_len [llength $cs2_list]
+                        if { $cs2_list_len > $max_ct } {
+                            # si_max_ct_per_cycle reached for party_id
+
+                            # Flag as low priority if over count for cycle
+                            # That is, add party_id to 
+                            # acs_mail_lite::sched_parameters -lpri_party_ids 
+                            # if it is not already
+                            set params_ul [acs_mail_lite::sched_parameters]
+                            set lpri_pids [dict get $params_ul lpri_party_ids]
+                            set lpri_pids_list [split $lpri_pids]
+                            if { $party_id ni $lpri_pids_list } {
+                                lappend lpri_pids_list $party_id
+                                acs_mail_lite::sched_parameters \
+                                    -lpri_party_ids $lpri_pids_list
+                            }
+                        }
+                    }
+                    nsv_set acs_mail_lite si_party_id_cs(${party_id}) $cs2_list
+                }
+            }
+
             # RFC 822 header required: DATE
             set dt_idx [lsearch -glob -nocase $hn_list {date}]
             # If there is no date. Flag it.
@@ -666,32 +741,6 @@ ad_proc -public acs_mail_lite::email_type {
 
                 set dt_h [lindex $hn_list $dt_idx]
                 set dte_cs [ns_imap parsedate $h_arr(${dt_h})]
-                set dti $h_arr(internaldate.year)
-                append dti "-" [format "%02u" $h_arr(internaldate.month)]
-                append dti "-" [format "%02u" $h_arr(internaldate.day)]
-                append dti " " [format "%02u" $h_arr(internaldate.hours)]
-                append dti ":" [format "%02u" $h_arr(internaldate.minutes)]
-                append dti ":" [format "%02u" $h_arr(internaldate.seconds)] " "
-                if { $h_arr(internaldate.zoccident) eq "0" } {
-                    # This is essentially iso8601 timezone formatting.
-                    append dti "+"
-                } else {
-                    # Comment from panda-imap/src/c-client/mail.h:
-                    # /* non-zero if west of UTC */
-                    # See also discussion beginning with:
-                    # /* occidental *from Greenwich) timezones */
-                    # in panda-imap/src/c-client/mail.c
-                    append dti "-"
-                }
-                append dti [format "%02u" $h_arr(internaldate.zhours)]
-                append dti [format "%02u" $h_arr(internaldate.zminutes)] "00"
-                if { [catch {
-                    set dti_cs [clock scan $dti -format "%Y-%m-%e %H:%M:%S %z"]
-                } err_txt ] } {
-                    set dti_cs ""
-                    ns_log Warning "acs_mail_lite::email_type.1102 \
- clock scan '${dti}' -format %Y-%m-%d %H:%M:%S %z failed. Could not check ts_p case."
-                }
                 set diff 1000
                 if { $dte_cs ne "" && $dti_cs ne "" } {
                     set diff [expr { abs( $dte_cs - $dti_cs ) } ]
@@ -700,7 +749,6 @@ ad_proc -public acs_mail_lite::email_type {
                 if { $diff < 11 } {
                     set ts_p 1
                 }
-
 
                 # check from host against acs_mail_lite's host
                 # From: header must show same OpenACS domain for bounce
@@ -728,10 +776,6 @@ ad_proc -public acs_mail_lite::email_type {
                 # and reply is within 10 seconds
                 # and a non-standard acs-mail-lite reply-to address
 
-                # Or multiple emails from same user under 10 seconds
-                # but we can't check that from this context.
-                # Internal date info can be imported with email
-                # for futher filtering after import.
                 
             }
 
