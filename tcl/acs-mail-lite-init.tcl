@@ -27,13 +27,13 @@ set si_start_time_cs [clock seconds]
 #set scan_in_est_dur_per_cycle_s 120
 set si_dur_per_cycle_s 120
 # max_import_rate_per_s .5
-set si_mirps .5
+set si_mirps .16
 # Used by incoming email system
 #nsv_set acs_mail_lite scan_in_start_t_cs $si_start_time_cs
 nsv_set acs_mail_lite si_start_t_cs $si_start_time_cs
 nsv_set acs_mail_lite si_dur_per_cycle_s $si_dur_per_cycle_s
 nsv_set acs_mail_lite si_dur_per_cycle_s_override ""
-nsv_set acs_mail_Lite si_max_ct_per_cycle \
+nsv_set acs_mail_lite si_max_ct_per_cycle \
     [expr { int( $si_mirps * $si_dur_per_cycle_s ) } ]
 if { [db_table_exists acs_mail_lite_ui] } {
     acs_mail_lite::sched_parameters
@@ -43,7 +43,7 @@ ad_schedule_proc -thread t \
 ad_schedule_proc -thread t \
     $si_dur_per_cycle_s acs_mail_lite::queue_inbound_batch_pull
 
-ad_schedule_proc -thread t -schedule_proc ns_schedule_daily acs_mail_lite::queue_release
+ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 1 41] acs_mail_lite::queue_release
 # above was
 # acs_mail_lite::imap_check_incoming was acs_mail_lite::check_bounces:
 # ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces

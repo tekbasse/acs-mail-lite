@@ -108,7 +108,7 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                 set na "mail/INBOX"
                 set mb [acs_mail_lite::imap_mailbox_join -host $ho -name $na]
 
-                ns_log Notice "acs_mail_Lite::imap_conn_set.482: \
+                ns_log Notice "acs_mail_lite::imap_conn_set.482: \
  Using values from nsd config.tcl. host '${ho}' mailbox.name '${na}'"
 
             }
@@ -623,7 +623,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                     lappend headers_txt $key " : " \
                                         $headers_arr(${key})
                                 }
-
+                                ##code queue_inbound_insert
                                 acs_mail_lite::queue_inbound_insert \
                                     -headers_txt $headers_txt \
                                     -headers_arr headers_arr \
