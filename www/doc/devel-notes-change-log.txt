@@ -83,7 +83,7 @@ part.2 {type message encoding 7bit subtype DELIVERY-STATUS description {Delivery
 part.3 {type message encoding 7bit subtype RFC822 description {Undelivered Message} lines 28 bytes 1134 message {type text encoding 7bit subtype PLAIN lines 3 bytes 10 body.charset utf-8 body.format flowed}} \
 part.count 3 msgno 5'
 
-some more examples with varying attachments and content.
+some more examples with varying attachments and content. uid 12 has nested example.
 
 'uid 2 flags {} size 2929 internaldate.day 2 internaldate.month 8 internaldate.year 2017 internaldate.hours 8 internaldate.minutes 17 internaldate.seconds 49 internaldate.zoccident 0 internaldate.zhours 0 internaldate.zminutes 0 type text encoding 7bit subtype PLAIN lines 1 bytes 6 body.charset utf-8 body.format flowed msgno 1'
 
