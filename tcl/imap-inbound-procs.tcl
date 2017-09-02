@@ -668,7 +668,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
     return $si_configured_p
 }
 
-ad_proc -private acs_mail_lite::imap_parse_email {
+ad_proc -private acs_mail_lite::imap_email_parse {
     -headers_arr_name
     -parts_arr_name
     -files_arr_name
@@ -705,7 +705,12 @@ ad_proc -private acs_mail_lite::imap_parse_email {
             if { [string match {part.[0-9]*} $n] } {
                 set subref $section_ref
                 append subref [string range $n 4 end]
-                acs_mail_lite::imap_parse_email \
+                acs_mail_lite::imap_email_parse \
+                    -headers_arr_name h_arr \
+                    -parts_arr_name p_arr \
+                    -files_arr_name f_arr \
+                    -conn_id $conn_id \
+                    -msgno $msgno \
                     -struct_list $v $subref \
                     -section_ref $subref
             } else {
