@@ -794,19 +794,37 @@ msgno '${msgno}' section_ref '${section_ref}' section_id '${section_id}'"
  $p_arr(${section_id},content)'"
             
         } else {
-            set msg_txt [ns_imap text $conn_id $msgno ]
-            set msg_start_max [expr { 72 * 15 } ]
-            set msg_txtb [string range $msg_txt 0 $msg_start_max]
-            if { [string length $msg_txt] > [expr { $msg_start_max + 400 } ] } {
-                set msg_txte [string range $msg_txt end-$msg_start_max end]
-            } elseif { [string length $msg_txt] > [expr { $msg_start_max + 144 } ] } {
-                set msg_txte [string range $msg_txt end-144 end]
-            } else {
-                set msg_txte ""
-            }
-            ns_log Dev "acs_mail_lite::imap_email_parse.797 IGNORED \
+            set p_arr(${section_id},content) ""
+            # The content for this case
+            # has been verified to be redundant.
+            # It is mostly the last section/part of message.
+            #
+            # If diagnostics urge examining these cases, 
+            # Set debug_p 1 to allow the following code to 
+            # to compress a message to recognizable parts without 
+            # flooding the log.
+            set debug_p 0
+            if { $debug_p } {
+                set msg_txt [ns_imap text $conn_id $msgno ]
+                # 72 character wide lines * x lines
+                set msg_start_max [expr { 72 * 20 } ]
+                set msg_txtb [string range $msg_txt 0 $msg_start_max]
+                if { [string length $msg_txt] \
+                         > [expr { $msg_start_max + 400 } ] } {
+                    set msg_txte [string range $msg_txt end-$msg_start_max end]
+                } elseif { [string length $msg_txt] \
+                               > [expr { $msg_start_max + 144 } ] } {
+                    set msg_txte [string range $msg_txt end-144 end]
+                } else {
+                    set msg_txte ""
+                }
+                ns_log Dev "acs_mail_lite::imap_email_parse.818 IGNORED \
  ns_imap text '${conn_id}' '${msgno}' '${section_ref}' \n \
  msg_txte '${msg_txte}'"
+            } else {
+                ns_log Dev "acs_mail_lite::imap_email_parse.822 ignored \
+ ns_imap text '${conn_id}' '${msgno}' '${section_ref}'"
+            }
         }
 
     }
