@@ -927,7 +927,7 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
 
     #   h_arr($name) $value         acs_mail_lite_ie_headers
     #
-    #   p_arr($section_id,<field>)  acs_mail_lite_ie_parts
+    #   p_arr($section_id,<field>)  acs_mail_lite_ie_parts (content of a part)
     #   p_arr($section_id,nv_list)  acs_mail_lite_part_nv_pairs
     #   p_arr(section_id_list) list of section_ids
     #

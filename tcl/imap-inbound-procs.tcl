@@ -691,16 +691,52 @@ ad_proc -private acs_mail_lite::imap_parse_email {
     upvar 1 $headers_arr_name h_arr
     upvar 1 $parts_arr_name p_arr
     upvar 1 $files_arr_name f_arr
-
+    upvar 1 __max_txt_bytes __max_txt_bytes
+    if { ![info exists __max_txt_bytes] } {
+        set sp_list [acs_mail_lite::sched_parameters]
+        set __max_txt_bytes [dict get $sp_list max_blob_chars]
+    }
     if { !$error_p } {
-        
-        ##code
+        if { [string range $section_ref 0 0] eq "." } {
+            set section_id [string range $section_ref 1 end]
+        }
 
-        # 
-        # acs_mail_lite_ie_headers
-        #
-        # acs_mail_lite_ie_parts
-        # acs_mail_lite_ie_files
+        foreach {n v} $struct_list {
+            if { [string match {part.[0-9]*} $n] } {
+                set subref $section_ref
+                append subref [string range $n 4 end]
+                acs_mail_lite::imap_parse_email \
+                    -struct_list $v $subref \
+                    -section_ref $subref
+            } else {
+                if { [string match -nocase bytes $n] } {
+                    set bytes $v
+                }
+                if { $section_ref eq "" } {
+                    set h_arr(${n}) ${v}
+                } else {
+                    lappend p_arr(${section_id},nv_list) ${n} ${v}
+                }
+            }
+        }
+        # Add content of an email part
+
+        if { [info exists bytes] && $bytes > $__max_txt_bytes } {
+            ##code  Need to define a filepathname with some persistence
+            # by putting in acs-root-dir/acs-mail-lite/unique-filename
+
+            ns_imap body $conn_id $msgno part ${section_id} -file $filepathname
+        } else {
+
+            set body_txt [ns_imap body $conn_id $msgno part ${section_id} ]
+        }
+        set p_arr(${section_id},${n}) ${}
+        # Add a section id to list of section id references
+        lappend p_arr(secion_id_list) ${section_id}
+                      
+        ##code Determine if content if a file, and add it to f_arr instead
+        # of p_arr 
+        }
     }
     return $error_p
 }
