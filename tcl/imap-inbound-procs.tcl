@@ -692,23 +692,26 @@ ad_proc -private acs_mail_lite::imap_email_parse {
     upvar 1 $parts_arr_name p_arr
     upvar 1 $files_arr_name f_arr
     upvar 1 __max_txt_bytes __max_txt_bytes
+    set has_parts_p 0
+    set section_n_v_list [list ]
     if { ![info exists __max_txt_bytes] } {
         set sp_list [acs_mail_lite::sched_parameters]
         set __max_txt_bytes [dict get $sp_list max_blob_chars]
     }
     if { !$error_p } {
-        set section_id $section_ref
-        if { [string range $section_id 0 0] eq "." } {
-            set section_id [string range $section_id 1 end]
+
+        if { [string range $section_ref 0 0] eq "." } {
+            set section_ref [string range $section_ref 1 end]
         } 
-        ns_log Dev "acs_mail_lite::imap_email_parse \
-msgno '${msgno}' section_id '${section_id}'"
+        ns_log Dev "acs_mail_lite::imap_email_parse.706 \
+msgno '${msgno}' section_ref '${section_ref}'"
 
         # Assume headers and names are unordered
 
         foreach {n v} $struct_list {
             if { [string match {part.[0-9]*} $n] } {
-                set subref $section_id
+                set has_parts_p 1
+                set subref $section_ref
                 append subref [string range $n 4 end]
                 acs_mail_lite::imap_email_parse \
                     -headers_arr_name h_arr \
@@ -736,12 +739,25 @@ msgno '${msgno}' section_id '${section_id}'"
                 if { $section_ref eq "" } {
                     set h_arr(${n}) ${v}
                 } else {
-                    lappend p_arr(${section_id},nv_list) ${n} ${v}
+                    lappend section_n_v_list ${n} ${v}
                 }
             }
         }
+
+        if { $section_ref eq "" && !$has_parts_p } {
+            # section_ref defaults to '1'
+            set section_ref "1"
+        }
+
+        set section_id [acs_mail_lite::section_id_of $section_ref]
+        ns_log Dev "acs_mail_lite::imap_email_parse.746 \
+msgno '${msgno}' section_ref '${section_ref}' section_id '${section_id}'"
+
         # Add content of an email part
+        set p_arr(${section_id},nv_list) $section_n_v_list
         set p_arr(${section_id},c_type) $type
+        lappend p_arr(section_id_list) ${section_id}
+
         if { [info exists bytes] && $bytes > $__max_txt_bytes \
                  && ![info exists filename] } {
             set filename "blob.txt"
@@ -756,28 +772,18 @@ msgno '${msgno}' section_id '${section_id}'"
             set p_arr(${section_id},filename) $filename
             set p_arr(${section_id},c_filepathname) $filepathname
             if { $filename eq "blob.txt" } {
-                ns_imap body $conn_id $msgno part ${section_id} \
+                ns_imap body $conn_id $msgno ${section_ref} \
                     -file $filepathname
             } else {
-                ns_imap body $conn_id $msgno part ${section_id} \
+                ns_imap body $conn_id $msgno ${section_ref} \
                     -file $filepathname \
                     -decode
             } 
-        } else {
+        } elseif { $section_ref ne "" } {
             # text content
-            if { $section_id eq "" } {
-                set p_arr(${section_id},content) \
-                    [ns_imap body $conn_id $msgno ""]
-            } else {
-                set p_arr(${section_id},content) \
-                    [ns_imap body $conn_id $msgno "${section_id}"]
-            }
-            
-            # Add a section id to list of section id references
-            lappend p_arr(section_id_list) ${section_id}
-            
-
+            set p_arr(${section_id},content) [ns_imap body $conn_id $msgno $section_ref]
         }
+            
     }
     return $error_p
 }

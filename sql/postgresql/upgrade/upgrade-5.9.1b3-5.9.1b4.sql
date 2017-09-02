@@ -288,7 +288,7 @@ create index acs_mail_lite_ie_parts_aml_email_id_idx
 -- incoming email parts, name value pairs of
 create table acs_mail_lite_ie_part_nv_pairs (
        aml_email_id integer,
-       -- Usage is same as acs_mail_lite_ie_parts.section_ref
+       -- Usage is same as acs_mail_lite_ie_parts.section_id
        section_id integer,
        -- name value pair
        p_hame text,
@@ -311,7 +311,8 @@ create table acs_mail_lite_ie_section_ref_map (
        -- And yet, this reference system holds for any email
        -- storage, so is adopted for generic use as well.
 
-       -- Root tree reference is blank.
+       -- Default reference is value of 1.
+       -- A two part message has values 1 and 2.
        -- Part 2 of a 3 part email (2/3) has reference '2'
        -- If part 2 is also multiple parts, then
        -- part 1 of part 2 of email has reference '2.1' and so on.

@@ -20,6 +20,9 @@ nsv_set acs_mail_lite send_mails_p 0
 nsv_set acs_mail_lite check_bounce_p 0
 
 
+
+set inbound_queue_dir [file join [acs_root_dir] acs-mail-lite ]
+file mkdir $inbound_queue_dir
 # scan incoming = si_
 # Scan incoming start time in clock seconds.
 set si_start_time_cs [clock seconds]

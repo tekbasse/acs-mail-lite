@@ -87,7 +87,6 @@ append range ":" $last
 append content "\nfirst $first last $last range $range"
 ns_log Notice "first $first last $last range $range"
 
-
 #set check [ns_imap check $conn_id]
 #ns_log Notice "ns_imap check $conn_id = '${check}'"
 
@@ -159,8 +158,13 @@ ns_log Notice "first $first last $last range $range"
 
 set messages1_list [ns_imap search $conn_id ""]
 ns_log Notice "messages1_list' '${messages1_list}'"
-set messages2_lists [ns_imap sort $conn_id "date" 0 ]
-ns_log Notice "messages2_lists' '${messages2_lists}'"
+#set messages2_lists [ns_imap sort $conn_id "date" 0 ]
+#ns_log Notice "messages2_lists' '${messages2_lists}'"
+
+
+#set test [ns_imap body $conn_id 1 1]
+#ns_log Notice "imap-test.tcl: test '${test}'"
+#ad_script_abort
 
 foreach msgno $messages1_list {
 
