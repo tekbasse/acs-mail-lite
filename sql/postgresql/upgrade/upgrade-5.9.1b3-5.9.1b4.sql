@@ -260,6 +260,10 @@ create index acs_mail_lite_ie_headers_aml_email_id_idx
 	on acs_mail_lite_ie_headers (aml_email_id);
 
 -- incoming email body parts
+-- including email file attachments and file content
+-- A part may be a filename. The filename data model is added
+-- to the parts table to reduce code complexity.
+-- An attached or inline file is a kind of part.
 create table acs_mail_lite_ie_parts (
        aml_email_id integer,
        section_id integer,
@@ -268,30 +272,17 @@ create table acs_mail_lite_ie_parts (
        -- headers, which contains all headers for email
        -- content_type = c_type
        c_type text,
+       -- If type has a filename, this is original filename.
+       filename text,
        -- If c_type is multipart, content is blank. part_id is branched.
        content text,
-       -- An alternate filepathname for large blob
+       -- An alternate filepathname for large blob, or
        -- A local absolute filepath location
        c_filepathname text
 );
 
 create index acs_mail_lite_ie_parts_aml_email_id_idx
 	on acs_mail_lite_ie_parts (aml_email_id);
-
--- incoming email file attachments and file content
-create table acs_mail_lite_ie_files (
-       aml_email_id integer,
-       -- Usage is same as acs_mail_lite_ie_parts.section_ref
-       section_id integer,
-       -- content_type
-       c_type text,
-       filename text,
-       -- A local absolute filepath location
-       c_filepathname text
-);
-
-create index acs_mail_lite_ie_files_aml_email_id_idx
-	on acs_mail_lite_ie_files (aml_email_id);
 
 
 -- incoming email parts, name value pairs of

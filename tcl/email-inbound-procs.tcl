@@ -931,17 +931,14 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
     #   p_arr($section_id,nv_list)  acs_mail_lite_part_nv_pairs
     #   p_arr(section_id_list) list of section_ids
     #
-    #   f_arr($section_id,<field>)  acs_mail_lite_ie_files
-    #   f_arr(section_id_list) list of section_ids
-    #
     # 
     # where index is section_id based on section_ref, and
     # where top most section_ref is empty string.
     # 
     # Specifically,
-    # for p_arr, c_type is p_arr($section_id,c_type)
-    # for 
-    # for f_arr, filename is f_arr($section_id,filename)
+    # for p_arr, content is p_arr($section_id,content)
+    #            c_type is p_arr($section_id,c_type)
+    #            filename is f_arr($section_id,filename)
     #            c_filepathname is f_arr($section_id,c_filepathname)
     # 
 

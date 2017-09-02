@@ -18,9 +18,6 @@ drop index acs_mail_lite_ie_section_ref_map_section_id_idx;
 drop index acs_mail_lite_ie_section_ref_map_section_ref_idx;
 drop table acs_mail_lite_ie_section_ref_map;
 
-drop index acs_mail_lite_ie_files_aml_email_id_idx;
-drop table acs_mail_lite_ie_files;
-
 drop index acs_mail_lite_ie_parts_aml_email_id_idx;
 drop table acs_mail_lite_ie_parts;
 

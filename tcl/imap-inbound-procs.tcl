@@ -49,7 +49,7 @@ ad_proc -private acs_mail_lite::imap_conn_set {
     used by ACS Mail Lite imap connections
 
     If a parameter is passed with value, the value is assigned to parameter.
- 
+    
     @param name_mb See nsimap documentaion for mailbox.name. 
     @param port Ignored for now. SSL automatically switches port.
 } {
@@ -113,7 +113,7 @@ ad_proc -private acs_mail_lite::imap_conn_set {
 
             }
         }
- 
+        
         set pa [ns_config nsimap password ""]
         set po [ns_config nsimap port ""]
         set ti [ns_config -int nsimap timeout 1800]
@@ -172,7 +172,7 @@ ad_proc -private acs_mail_lite::imap_conn_set {
                 }
             }
         }
-            
+        
         if { $validated_p } {
             foreach ic_n $n_pv_list {
                 set ${ic_n} $n_arr($ic_n)
@@ -295,7 +295,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
             ns_log Dev "acs_mail_lite::imap_conn_go.640: fl_list '${fl_list}'"
         }
     }
-        
+    
     if { !$prior_conn_exists_p } {
         if { "ssl" in $fl_list } {
             set ssl_p 1
@@ -414,7 +414,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
                 }
             }
         }
-                
+        
     }
     return $conn_id
 }
@@ -697,13 +697,18 @@ ad_proc -private acs_mail_lite::imap_email_parse {
         set __max_txt_bytes [dict get $sp_list max_blob_chars]
     }
     if { !$error_p } {
-        if { [string range $section_ref 0 0] eq "." } {
-            set section_id [string range $section_ref 1 end]
-        }
+        set section_id $section_ref
+        if { [string range $section_id 0 0] eq "." } {
+            set section_id [string range $section_id 1 end]
+        } 
+        ns_log Dev "acs_mail_lite::imap_email_parse \
+msgno '${msgno}' section_id '${section_id}'"
+
+        # Assume headers and names are unordered
 
         foreach {n v} $struct_list {
             if { [string match {part.[0-9]*} $n] } {
-                set subref $section_ref
+                set subref $section_id
                 append subref [string range $n 4 end]
                 acs_mail_lite::imap_email_parse \
                     -headers_arr_name h_arr \
@@ -711,11 +716,22 @@ ad_proc -private acs_mail_lite::imap_email_parse {
                     -files_arr_name f_arr \
                     -conn_id $conn_id \
                     -msgno $msgno \
-                    -struct_list $v $subref \
+                    -struct_list $v \
                     -section_ref $subref
             } else {
-                if { [string match -nocase bytes $n] } {
-                    set bytes $v
+                switch -exact -nocase -- $n {
+                    bytes {
+                        set bytes $v
+                    }
+                    dispostition.filename {
+                        set filename $v
+                    }
+                    type {
+                        set type $v
+                    }
+                    default {
+                        # do nothing
+                    }
                 }
                 if { $section_ref eq "" } {
                     set h_arr(${n}) ${v}
@@ -725,22 +741,42 @@ ad_proc -private acs_mail_lite::imap_email_parse {
             }
         }
         # Add content of an email part
-
-        if { [info exists bytes] && $bytes > $__max_txt_bytes } {
-            ##code  Need to define a filepathname with some persistence
-            # by putting in acs-root-dir/acs-mail-lite/unique-filename
-
-            ns_imap body $conn_id $msgno part ${section_id} -file $filepathname
-        } else {
-
-            set body_txt [ns_imap body $conn_id $msgno part ${section_id} ]
+        set p_arr(${section_id},c_type) $type
+        if { [info exists bytes] && $bytes > $__max_txt_bytes \
+                 && ![info exists filename] } {
+            set filename "blob.txt"
         }
-        set p_arr(${section_id},${n}) ${}
-        # Add a section id to list of section id references
-        lappend p_arr(secion_id_list) ${section_id}
-                      
-        ##code Determine if content if a file, and add it to f_arr instead
-        # of p_arr 
+        
+        if { [info exists filename ] } {
+            set filename2 [clock microseconds]
+            append filename2 "-" $filename
+            set filepathname [file join [acs_root_dir] \
+                                  acs-mail-lite \
+                                  $filename2 ]
+            set p_arr(${section_id},filename) $filename
+            set p_arr(${section_id},c_filepathname) $filepathname
+            if { $filename eq "blob.txt" } {
+                ns_imap body $conn_id $msgno part ${section_id} \
+                    -file $filepathname
+            } else {
+                ns_imap body $conn_id $msgno part ${section_id} \
+                    -file $filepathname \
+                    -decode
+            } 
+        } else {
+            # text content
+            if { $section_id eq "" } {
+                set p_arr(${section_id},content) \
+                    [ns_imap body $conn_id $msgno ""]
+            } else {
+                set p_arr(${section_id},content) \
+                    [ns_imap body $conn_id $msgno "${section_id}"]
+            }
+            
+            # Add a section id to list of section id references
+            lappend p_arr(section_id_list) ${section_id}
+            
+
         }
     }
     return $error_p
