@@ -671,7 +671,6 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
 ad_proc -private acs_mail_lite::imap_email_parse {
     -headers_arr_name
     -parts_arr_name
-    -files_arr_name
     -conn_id
     -msgno
     {-section_ref ""}
@@ -690,7 +689,6 @@ ad_proc -private acs_mail_lite::imap_email_parse {
     # this proc is recursive.
     upvar 1 $headers_arr_name h_arr
     upvar 1 $parts_arr_name p_arr
-    upvar 1 $files_arr_name f_arr
     upvar 1 __max_txt_bytes __max_txt_bytes
     set has_parts_p 0
     set section_n_v_list [list ]
@@ -716,7 +714,6 @@ msgno '${msgno}' section_ref '${section_ref}'"
                 acs_mail_lite::imap_email_parse \
                     -headers_arr_name h_arr \
                     -parts_arr_name p_arr \
-                    -files_arr_name f_arr \
                     -conn_id $conn_id \
                     -msgno $msgno \
                     -struct_list $v \

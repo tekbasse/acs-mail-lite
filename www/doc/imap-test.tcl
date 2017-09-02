@@ -176,15 +176,16 @@ foreach msgno $messages1_list {
     #  'uid 6 flags {} size 3226 internaldate.day 17 internaldate.month 8 internaldate.year 2017 internaldate.hours 9 internaldate.minutes 25 internaldate.seconds 9 internaldate.zoccident 0 internaldate.zhours 0 internaldate.zminutes 0 type multipart encoding 7bit subtype REPORT body.report-type delivery-status body.boundary 1F5D214C96DE.1502961909/or97.net part.1 {type text encoding 7bit subtype PLAIN description Notification lines 15 bytes 589 body.charset us-ascii} part.2 {type message encoding 7bit subtype DELIVERY-STATUS description {Delivery report} bytes 449} part.3 {type message encoding 7bit subtype RFC822 description {Undelivered Message} lines 28 bytes 1134 message {type text encoding 7bit subtype PLAIN lines 3 bytes 10 body.charset utf-8 body.format flowed}} part.count 3 msgno 5'
     array unset hh_arr
     array unset pp_arr
-    array unset ff_arr
     acs_mail_lite::imap_email_parse \
         -headers_arr_name hh_arr \
         -parts_arr_name pp_arr \
-        -files_arr_name ff_arr \
         -conn_id $conn_id \
         -msgno $msgno \
         -struct_list $struct_list
-    
+
+    append content "\n hh_arr [array get hh_ar] \n"
+    append content "\n pp_arr [array get pp_ar] \n"
+
     
 #    set bodystruct_list [ns_imap bodystruct $conn_id $msgno]
 #    ns_log Notice "ns_imap bodystruct $msgno: '${bodystruct_list}'"

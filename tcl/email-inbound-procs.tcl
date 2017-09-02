@@ -902,7 +902,6 @@ ad_proc -public acs_mail_lite::email_type {
 ad_proc -private acs_mail_lite::queue_inbound_insert {
     -headers_arr_name
     -parts_arr_name
-    -files_arr_name
     {-aml_email_id ""}
     {-section_ref ""}
     {-struct_list ""}
@@ -915,7 +914,7 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
 } {
     upvar 1 $headers_arr_name h_arr
     upvar 1 $parts_arr_name p_arr
-    upvar 1 $files_arr_name f_arr
+
 
     # This should remain general enough to import
     # email regardless of its source.
@@ -938,8 +937,8 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
     # Specifically,
     # for p_arr, content is p_arr($section_id,content)
     #            c_type is p_arr($section_id,c_type)
-    #            filename is f_arr($section_id,filename)
-    #            c_filepathname is f_arr($section_id,c_filepathname)
+    #            filename is p_arr($section_id,filename)
+    #            c_filepathname is p_arr($section_id,c_filepathname)
     # 
 
 
@@ -952,7 +951,7 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
         # 
         # acs_mail_lite_ie_headers
         #
-        # acs_mail_lite_ie_parts
+
         # acs_mail_lite_ie_files
     }
     return $error_p
@@ -984,7 +983,7 @@ ad_proc -private acs_mail_lite::queue_inbound_pull {
     # acs_mail_lite_from_external
     # acs_mail_lite_ie_headers
     # acs_mail_lite_ie_parts
-    # acs_mail_lite_ie_files
+
 
     # email is removed from queue when
     # set acs_mail_lite_from_external.processed_p 1
