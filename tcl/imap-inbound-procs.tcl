@@ -726,7 +726,7 @@ msgno '${msgno}' section_ref '${section_ref}'"
                     bytes {
                         set bytes $v
                     }
-                    dispostition.filename {
+                    disposition.filename {
                         set filename $v
                     }
                     type {
@@ -772,9 +772,16 @@ msgno '${msgno}' section_ref '${section_ref}' section_id '${section_id}'"
             set p_arr(${section_id},filename) $filename
             set p_arr(${section_id},c_filepathname) $filepathname
             if { $filename eq "blob.txt" } {
+                ns_log Dev "acs_mail_lite::imap_email_parse.775 \
+ ns_imap body '${conn_id}' '${msgno}' '${section_ref}' \
+ -file '${filepathname}'"
                 ns_imap body $conn_id $msgno ${section_ref} \
                     -file $filepathname
             } else {
+                ns_log Dev "acs_mail_lite::imap_email_parse.780 \
+ ns_imap body '${conn_id}' '${msgno}' '${section_ref}' \
+ -file '${filepathname}' -decode"
+
                 ns_imap body $conn_id $msgno ${section_ref} \
                     -file $filepathname \
                     -decode
@@ -782,8 +789,26 @@ msgno '${msgno}' section_ref '${section_ref}' section_id '${section_id}'"
         } elseif { $section_ref ne "" } {
             # text content
             set p_arr(${section_id},content) [ns_imap body $conn_id $msgno $section_ref]
-        }
+            ns_log Dev "acs_mail_lite::imap_email_parse.792 \
+ text content '${conn_id}' '${msgno}' '${section_ref}' \
+ $p_arr(${section_id},content)'"
             
+        } else {
+            set msg_txt [ns_imap text $conn_id $msgno ]
+            set msg_start_max [expr { 72 * 15 } ]
+            set msg_txtb [string range $msg_txt 0 $msg_start_max]
+            if { [string length $msg_txt] > [expr { $msg_start_max + 400 } ] } {
+                set msg_txte [string range $msg_txt end-$msg_start_max end]
+            } elseif { [string length $msg_txt] > [expr { $msg_start_max + 144 } ] } {
+                set msg_txte [string range $msg_txt end-144 end]
+            } else {
+                set msg_txte ""
+            }
+            ns_log Dev "acs_mail_lite::imap_email_parse.797 IGNORED \
+ ns_imap text '${conn_id}' '${msgno}' '${section_ref}' \n \
+ msg_txte '${msg_txte}'"
+        }
+
     }
     return $error_p
 }
