@@ -932,7 +932,8 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
     #
     # 
     # where index is section_id based on section_ref, and
-    # where top most section_ref is empty string.
+    # where top most section_ref is a natural number as
+    # there may be more than one tree.
     # 
     # Specifically,
     # for p_arr, content is p_arr($section_id,content)
@@ -945,14 +946,128 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
     
     if { !$error_p } {
         
-        ##code
         # email goes into queue tables:
 
-        # 
-        # acs_mail_lite_ie_headers
-        #
+        # This data is expected to be available at same moment
+        ##code db_trans.. is uncommented for error checking during dev
+        #db_transaction {
+        set id [db_nextval acs_mail_lite_in_id_seq]
 
-        # acs_mail_lite_ie_files
+        # acs_mail_lite_ie_headers
+        set h_names_list [array names h_arr]
+        set to_email_addrs ""
+        set from_email_addrs ""
+        set subject ""
+        set party_id ""
+        set object_id ""
+        set package_id ""
+        set size_chars ""
+        foreach h_name $h_names_list {
+            set h_value $h_arr(${h_name}) 
+            switch -nocase -- $h_name {
+                x-openacs-from -
+                from {
+                    set from_email_addrs [acs_mail_lite::parse_email_address \
+                                              -email $h_value ]
+                }
+                x-openacs-to -
+                to {
+                    set to_email_addrs [acs_mail_lite::parse_email_address \
+                                              -email $h_value ]
+                }
+                x-openacs-subject -
+                subject {
+
+                }
+                x-openacs-size -
+                size {
+                    if { [string is integer -strict $h_value] } {
+                        set size_chars $h_value
+                    }
+                }
+            }
+            db_dml acs_mail_lite_ie_headers_w1 {
+                insert into acs_mail_lite_ie_headers 
+                (aml_email_id,h_name,h_value)
+                values (:id,:h_name,:h_value)
+            }
+        }
+        
+        # acs_mail_lite_from_external 
+        set false 0
+        #set processed_p 0
+        #set release_p 0
+        db_dml acs_mail_lite_from_external_w1 {
+            insert into acs_mail_lite_from_external
+            (aml_email_id,
+             to_email_addrs,
+             from_email_addrs,
+             subject,
+             party_id,
+             object_id,
+             package_id,
+             size_chars,
+             processed_p,
+             release_p)
+            values (:id,
+                    :to_email_addrs,
+                    :from_email_addrs,
+                    :subject,
+                    :party_id,
+                    :object_id,
+                    :package_id,
+                    :size_chars,
+                    :false,
+                    :false)
+        }
+
+
+        set parts_list [list c_type filename content c_filepathname]
+        foreach section_id $p_arr(section_id_list) {
+
+        # acs_mail_lite_ie_parts
+            foreach p $parts_list {
+                set $p ""
+                if { [info exists p_arr(${section_id},${p}) ] } {
+                    set $p $p_arr(${section_id},${p})
+                } 
+            }
+            db_dml acs_mail_lite_ie_parts_w1 {
+                insert into acs_mail_lite_ie_parts
+                (aml_email_id,
+                 section_id,
+                 c_type,
+                 filename,
+                 content,
+                 c_filepathname)
+                values 
+                (:id,
+                 :section_id,
+                 :c_type,
+                 :filename,
+                 :content,
+                 :c_filepathname)
+            }
+
+            # acs_mail_lite_ie_part_nv_pairs
+            foreach {p_name p_value} $p_arr(${section_id},nv_list) {
+                db_dml acs_mail_lite_ie_part_mv_pairs_w1 {
+                    insert into acs_mail_lite_ie_part_nv_pairs
+                    (aml_email_id,
+                     section_id,
+                     p_name,
+                     p_value)
+                   values
+                    (:id,
+                     :section_id,
+                     :p_name,
+                     :p_value)
+                }
+            }
+        }
+        
+
+        #}
     }
     return $error_p
 }
