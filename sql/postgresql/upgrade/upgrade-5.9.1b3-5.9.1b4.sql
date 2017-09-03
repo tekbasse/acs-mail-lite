@@ -291,7 +291,7 @@ create table acs_mail_lite_ie_part_nv_pairs (
        -- Usage is same as acs_mail_lite_ie_parts.section_id
        section_id integer,
        -- name value pair
-       p_hame text,
+       p_name text,
        p_value text
 );
 
