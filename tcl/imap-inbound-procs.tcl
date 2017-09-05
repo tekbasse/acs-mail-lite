@@ -667,6 +667,8 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                 # Preliminary references:
                                 # See rfc 821, 3464, 4406, 5429,7489, 5598,
                                 # 5438
+                                # headers: original-recipient
+                                # original-envelope-id (optional, value is case sensitive, same as original email's envelope-id) per rfc3464 2.2.1
                                 set b_ol [acs_mail_lite::parse_bounce_address \
                                               -bounce_address $to]
                                 set user_id ""
