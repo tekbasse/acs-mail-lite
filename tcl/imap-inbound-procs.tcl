@@ -642,21 +642,51 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                     set subject ""
                                 }
                                 
+                                set to_idx [lsearch -nocase -exact \
+                                                $headers_list to]
+                                if { ${to_idx} > -1 } {
+                                    set ton [lindex $headers_list $to_idx]
+                                    set to $hdrs_arr(${ton})
+                                } else {
+                                    set to ""
+                                }
+
+
+                                # bounce_ordered_list = b_ol
+                                ##code this bounce address paradigm
+                                # from MailDir incoming email api
+                                # likely doesn't work for 
+                                # standard email accounts where a dynamic email
+                                # would bounce back again therefore never
+                                # report back.
+                                # Bounce info needs to be placed in an rfc
+                                # compliant header, such as message_id ie
+                                # original-message_id or whatever it's called.
+                                # If original-recipient is also available,
+                                # it can be crossreferenced for validity.
+                                # Preliminary references:
+                                # See rfc 821, 3464, 4406, 5429,7489, 5598,
+                                # 5438
+                                set b_ol [acs_mail_lite::parse_bounce_address \
+                                              -bounce_address $to]
+                                set user_id ""
+                                set package_id ""
+                                set object_id ""
+                                lassign $b_ol user_id package_id scratch
+
+
                                 set pri [acs_mail_lite::prioritize_in \
                                              -size_chars $size_chars \
-                                             -received_cs $hdrs_arr(received_cs) \
+                                             -received_cs $received_cs \
                                              -subject $subject \
-                                             -package_id \
-                                             -party_id \
-                                             -object_id ]
+                                             -package_id $package_id \
+                                             -party_id $user_id \
+                                             -object_id $object_id ]
 
                                 set id [acs_mail_lite::queue_inbound_insert \
                                             -parts_arr_name \
                                             -headers_arr_name hdrs_arr \
-                                            -priority $pri \
-                                            -text $msg_txt ]
-                                
-
+                                            -priority $pri ]
                             }
                         }
                     }
