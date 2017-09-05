@@ -669,6 +669,17 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                 # 5438
                                 # headers: original-recipient
                                 # original-envelope-id (optional, value is case sensitive, same as original email's envelope-id) per rfc3464 2.2.1
+                                # or message-id or 
+                                # message-id or msg-id <the unique ref> 
+                                # where angle brackets are used to quote msg-id
+                                # in In-Reply-to or References (space delim
+                                # list)
+                                # header per rfc2822 3.6.4
+                                # note message-id should be in form:
+                                # <unique_id@local_domain.example>
+                                # and unqiue_id should map to 
+                                # any package, party and/or object_id so
+                                # as to not leak info unnecessarily.
                                 set b_ol [acs_mail_lite::parse_bounce_address \
                                               -bounce_address $to]
                                 set user_id ""
