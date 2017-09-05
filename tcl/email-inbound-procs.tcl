@@ -291,9 +291,11 @@ ad_proc -public acs_mail_lite::prioritize_in {
     {-party_id ""}
     {-object_id ""}
 } {
-    Returns a prioritization number for assigning priority to an inbound email.
+    Returns a prioritization integer for assigning priority to an inbound email.
     Another proc processes in order of lowest number first.
     Returns empty string if input values from email are not expected types.
+    Priority has 3 categories: high priority, normal priority, low priority
+    as specified in acs_mail_lite::sched_parameters
 
     @param size_chars of email
 
@@ -306,6 +308,8 @@ ad_proc -public acs_mail_lite::prioritize_in {
     @param sujbect of email
 
     @param object_id associated with email (if any)
+
+    @see acs_mail_lite::sched_parameters
 
 } {
     set priority_fine ""
@@ -436,7 +440,8 @@ ad_proc -public acs_mail_lite::email_type {
     {-check_subject_p "0"}
 } {
     Scans email's subject, from and headers for actionable type.
-    Returns actionable type: 'auto_gen' 'auto_reply', 'bounce', 'in_reply_to' or 
+    Returns actionable type: \
+        'auto_gen' 'auto_reply', 'bounce', 'in_reply_to' or 
     empty string indicating 'other' type.
     'auto_reply' may be a Delivery Status Notification for example.
     'bounce' is a specific kind of Delivery Status Notification.
@@ -460,8 +465,7 @@ ad_proc -public acs_mail_lite::email_type {
         emails for deployment routing purposes.
 
     If array includes keys from 'ns_imap struct', such as internaldate.*, \
-        then type will also classify quick re-sends (reply or forward) \
-        with large content as 'auto_gen'.
+        then adds header with epoch time quivilent to header index received_cs
 
     @param subject of email
     @param from of email
@@ -655,7 +659,7 @@ ad_proc -public acs_mail_lite::email_type {
                 ns_log Warning "acs_mail_lite::email_type.1102 \
  clock scan '${dti}' -format %Y-%m-%d %H:%M:%S %z failed. Could not check ts_p case."
             }
-
+            set h_arr(received_cs) $dti_cs
             # Does response time indicate more likely by a machine?
             # Not by itself. Only if it is a reply of some kind.
 
@@ -902,6 +906,7 @@ ad_proc -public acs_mail_lite::email_type {
 ad_proc -private acs_mail_lite::queue_inbound_insert {
     -headers_arr_name
     -parts_arr_name
+    -priority
     {-aml_email_id ""}
     {-section_ref ""}
     {-struct_list ""}
@@ -915,7 +920,7 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
     upvar 1 $headers_arr_name h_arr
     upvar 1 $parts_arr_name p_arr
 
-
+    set id ""
     # This should remain general enough to import
     # email regardless of its source.
 
@@ -986,6 +991,10 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
                     }
                 }
             }
+            if { $priority eq "" } {
+                set priority [dict get \
+                                  [acs_mail_lite::sched_parameters] mpri_max]
+            }
             db_dml acs_mail_lite_ie_headers_w1 {
                 insert into acs_mail_lite_ie_headers 
                 (aml_email_id,h_name,h_value)
@@ -1000,6 +1009,7 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
         db_dml acs_mail_lite_from_external_w1 {
             insert into acs_mail_lite_from_external
             (aml_email_id,
+             priority,
              to_email_addrs,
              from_email_addrs,
              subject,
@@ -1010,6 +1020,7 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
              processed_p,
              release_p)
             values (:id,
+                    :priority,
                     :to_email_addrs,
                     :from_email_addrs,
                     :subject,
@@ -1069,7 +1080,7 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
 
         #}
     }
-    return $error_p
+    return $id
 }
 
 

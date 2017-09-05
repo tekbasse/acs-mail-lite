@@ -603,8 +603,9 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                         set struct_list [ns_imap struct $cid $msgno]
 
                         # add struct info to headers for use with ::email_type
-                        array set headers_arr $struct_list
-                        set uid $headers_arr(uid)
+                        # headers_arr = hdrs_arr
+                        array set hdrs_arr $struct_list
+                        set uid $hdrs_arr(uid)
 
                         set processed_p [acs_mail_lite::imap_cache_hit_p \
                                              $uid \
@@ -612,22 +613,50 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                              $mailbox_host_name ]
                         if { !$processed_p } {
                             set headers_list [ns_imap headers $cid $msgno]
-                            array set headers_arr $headers_list
+                            array set hdrs_arr $headers_list
 
                             set type [acs_mail_lite::email_type \
-                                          -header_arr_name headers_arr ]
+                                          -header_arr_name hdrs_arr ]
                             if { $type ne "" } {
-                                # add it to the queue for processing
-                                set headers_txt ""
-                                foreach k [array names headers_arr] {
-                                    lappend headers_txt $key " : " \
-                                        $headers_arr(${key})
+                                set size_idx [lsearch -nocase -exact \
+                                                  $headers_list size]
+                                if { $size_idx > -1 } {
+                                    set sizen [lindex $headers_list $size_idx]
+                                    set size_chars $hdrs_arr(${sizen})
+                                } else {
+                                    set size_chars ""
                                 }
-                                ##code queue_inbound_insert
-                                acs_mail_lite::queue_inbound_insert \
-                                    -headers_txt $headers_txt \
-                                    -headers_arr headers_arr \
-                                    -text $msg_txt
+
+                                if { [info exists hdrs_arr(received_cs)] } {
+                                    set received_cs $hdrs_arr(received_cs)
+                                } else {
+                                    set received_cs ""
+                                }
+
+                                set su_idx [lsearch -nocase -exact \
+                                                  $headers_list subject]
+                                if { $su_idx > -1 } {
+                                    set sun [lindex $headers_list $su_idx]
+                                    set subject $hdrs_arr(${sun})
+                                } else {
+                                    set subject ""
+                                }
+                                
+                                set pri [acs_mail_lite::prioritize_in \
+                                             -size_chars $size_chars \
+                                             -received_cs $hdrs_arr(received_cs) \
+                                             -subject $subject \
+                                             -package_id \
+                                             -party_id \
+                                             -object_id ]
+
+                                set id [acs_mail_lite::queue_inbound_insert \
+                                            -parts_arr_name \
+                                            -headers_arr_name hdrs_arr \
+                                            -priority $pri \
+                                            -text $msg_txt ]
+                                
+
                             }
                         }
                     }
@@ -639,14 +668,6 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
 
                 ##code
                 # for each new imap email
-                # check email unique id against history in table:
-                # acs_mail_lite_email_uid_id_map
-
-                # set type \[acs_mail_lite::email_type\]
-
-                # save unique message id in table acs_mail_lite_email_uid_id_map
-                # so email doesn't get processed again.
-                #
 
                 # if actionable, type ne ""
                 # set priority \[acs_mail_lite::prioritize_in \]

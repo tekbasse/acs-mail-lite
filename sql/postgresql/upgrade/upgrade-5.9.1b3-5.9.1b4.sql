@@ -8,9 +8,12 @@ create sequence acs_mail_lite_in_id_seq;
 
 -- table tracking incoming email
 create table acs_mail_lite_from_external (
-       aml_email_id               integer primary key 
+       aml_email_id         integer primary key 
                             not null 
                             DEFAULT nextval ('acs_mail_lite_id_seq'), 
+       -- Priority for processing incoming email in queue.
+       -- Lower number processed first.
+       priority             integer,
        -- using varchar instead of text for indexing
        -- to and from email are defined according to headers. 
        -- See table acs_mail_lite_ie_headers

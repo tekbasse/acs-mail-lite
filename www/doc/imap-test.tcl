@@ -183,8 +183,8 @@ foreach msgno $messages1_list {
         -msgno $msgno \
         -struct_list $struct_list
 
-    append content "\n hh_arr [array get hh_ar] \n"
-    append content "\n pp_arr [array get pp_ar] \n"
+#    append content "\n hh_arr [array get hh_arr] \n"
+#    append content "\n pp_arr [array get pp_arr] \n"
 
     
 #    set bodystruct_list [ns_imap bodystruct $conn_id $msgno]
