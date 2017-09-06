@@ -619,8 +619,41 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            }
 
 
+           aa_log "r700 test acs_mail_lite::message_id_create/parse paradigm"
 
+           set integer_max 2147483647
+           incr integer_max -2
+           set fields_list [list package_id party_id object_id other]
+           for {set i 0} {$i < 12} {incr i } {
+               set package_id [randomRange $integer_max]
+               set party_id [randomRange $integer_max]
+               set object_id [randomRange $integer_max]
+               set other [ad_generate_random_string]
+               set blank_id [randomRange 3]
+               set blank_field [lindex $fields_list $blank_id]
+               set $blank_field ""
+               set m_arr(package_id,${i}) $package_id
+               set m_arr(party_id,${i}) $party_id
+               set m_arr(object_id,${i}) $object_id
+               set m_arr(other,${i}) $other
+               set m_arr(msg_id,${i}) [acs_mail_lite::message_id_create \
+                                           -package_id $package_id \
+                                           -party_id $party_id \
+                                           -object_id $object_id \
+                                           -other $other ]
+           }
+           for {set i 0} {$i < 12} {incr i } {
+               array unset e_arr
+               aa_log "r701 test message-id '$m_arr(msg_id,${i})'"
+               set e_list [acs_mail_lite::message_id_parse \
+                               -message_id $m_arr(msg_id,${i}) ]
+               array set e_arr $e_list
+               foreach field $fields_list {
+                   aa_equals "r702 test acs_mail_lite::message_id \
+ i '${i}' field '${field}'" $e_arr(${field}) $m_arr(${field},${i})
+               }
 
+           }
 
        }
 }

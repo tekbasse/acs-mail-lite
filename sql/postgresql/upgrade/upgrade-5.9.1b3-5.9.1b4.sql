@@ -334,3 +334,20 @@ create index acs_mail_lite_ie_section_ref_map_section_ref_idx
 	on acs_mail_lite_ie_section_ref_map (section_ref);
 create index acs_mail_lite_ie_section_ref_map_section_id_idx
 	on acs_mail_lite_ie_section_ref_map (section_id);
+
+--
+create table acs_mail_lite_send_msg_id_map (
+       -- a randomized number unique to this table
+       -- unique not null
+       msg_id bigint primary key,
+       package_id integer,
+       party_id integer,
+       object_id integer,
+       -- Indicate approximate time when this email is created
+       datetime_cs integer,
+       -- other data or parameters to associate with email
+       other text
+);
+
+create index acs_mail_lite_send_msg_id_map_msg_id_idx
+       on acs_mail_lite_send_msg_id_map (msg_id);

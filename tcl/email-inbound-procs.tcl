@@ -313,13 +313,16 @@ ad_proc -public acs_mail_lite::prioritize_in {
 
 } {
     set priority_fine ""
+
+    set size_error_p 0
     # validate email inputs
-    if { ! ([string is integer -strict $size_chars] && $size_chars > 0) } {
+    if { ! ([string is wideinteger -strict $size_chars] && $size_chars > 0) } {
         set size_error_p 1
         ns_log Warning "acs_mail_lite::prioritize_in.283: \
  size_chars '${size_chars}' is not a natural number."
     }
-    if { ! ([string is integer -strict $received_cs] && $received_cs > 0) } {
+    set time_error_p 0
+    if { ! ([string is wideinteger -strict $received_cs] && $received_cs > 0) } {
         set time_error_p 1
         ns_log Warning "acs_mail_lite::prioritize_in.289: \
  received_cs '${received_cs}' is not a natural number."
@@ -1004,7 +1007,7 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
                 }
                 x-openacs-size -
                 size {
-                    if { [string is integer -strict $h_value] } {
+                    if { [string is wideinteger -strict $h_value] } {
                         set size_chars $h_value
                     }
                 }
@@ -1281,7 +1284,7 @@ ad_proc -private acs_mail_lite::section_ref_of {
 } {
     set section_ref ""
     set exists_p 0
-    if { [ad_var_type_check_integer_p $section_id] } {
+    if { [string is wideinteger -strict $section_id] } {
         if { $section_id eq "-1" } {
             set exists_p 1
         } else {
@@ -1334,6 +1337,90 @@ ad_proc -private acs_mail_lite::section_id_of {
         }
     }
     return $section_id
+}
+
+ad_proc -private acs_mail_lite::message_id_create {
+    {-package_id ""}
+    {-party_id ""}
+    {-object_id ""}
+    {-other ""}
+} {
+    Creates a unique reference for an outbound email header message-id or msg-id
+} {
+    set not_unique_p 1
+    set count 0
+    set bigint_max 9223372036854775807
+    incr bigint_max -2
+    while { $not_unique_p } {
+        set id [randomRange $bigint_max]
+        incr count
+        if { $count > 3 && [f::even_p $count ] } {
+            ns_log Warning "acs_mail_lite::message_id_create id '${id}' \
+ Check this randomization, if this message is frequently repeated."
+        }
+        set not_unique_p [db_0or1row acs_mail_lite_send_msg_id_map_r1 {
+            select msg_id from acs_mail_lite_send_msg_id_map
+            where msg_id=:id } ]
+    }
+    set datetime_cs [clock seconds]
+    db_dml acs_mail_lite_send_msg_id_map_w1 {
+        insert into acs_mail_lite_send_msg_id_map
+        (msg_id,package_id,party_id,object_id,other,datetime_cs)
+        values (:id,:package_id,:party_id,:object_id,:other,:datetime_cs)
+    }
+
+    # 'binary encode hex message_id' does not work in NaviServer.
+    # Use ns_base64encode
+    set message_id "<"
+    append message_id [ns_base64encode $id] "@" [info hostname] ">"
+
+    return $message_id
+}
+
+ad_proc -private acs_mail_lite::message_id_parse {
+    -message_id:required
+} {
+    Parses a message-id reference created by acs_mail_lite::message_id_create.
+    Returns package_id, party_id, object_id, other, datetime_cs in a name value list.
+
+    datetime_cs is approximate system time in seconds from epoch when header was created.
+
+    see @acs_mail_lite::message_id_create
+} {
+    # 'binary decode hex message_id' does not work in NaviServer.
+    # Use ns_base64decode
+    if { [string range $message_id 0 0] eq "<" } {
+        # remove quote which is not part of message id according to RFCs
+        set message_id [string range $message_id 1 end-1]
+    }
+    set last_at [string last "@" $message_id]
+    set p_list [list ]
+    if { [string range $message_id $last_at+1 end] eq [info hostname] } {
+        set unique_part [string range $message_id 0 $last_at-1]
+        set msg_id [ns_base64decode $unique_part]
+        ns_log Dev "acs_mail_lite::message_id_parse msg_id '${msg_id}'"
+        if { [string is wideinteger -strict $msg_id] } {
+            set p_lists [db_list_of_lists acs_mail_lite_send_msg_id_map_r1all {
+                select package_id,party_id,object_id,other,datetime_cs
+                from acs_mail_lite_send_msg_id_map
+                where msg_id=:msg_id } ]
+            set p_list [lindex $p_lists 0]
+        } else {
+            ns_log Warning "acs_mail_lite::message_id_parse message_id \
+ expects to decode to an integer instead of '${msg_id}'"
+        }
+    } else {
+        ns_log Warning "acs_mail_lite::message_id_parse \
+ message_id '${message_id}' is not from '@[info hostname]'"
+    }
+    lassign $p_list package_id party_id object_id other datetime_cs
+    set r_list [list \
+                    package_id $package_id \
+                    party_id $party_id \
+                    object_id $object_id \
+                    other $other \
+                    datetime_cs $datetime_cs ]
+    return $r_list
 }
 
 #            
