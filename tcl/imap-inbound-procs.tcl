@@ -611,17 +611,20 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                              $uid \
                                              $uidvalidity \
                                              $mailbox_host_name ]
+
                         if { !$processed_p } {
                             set headers_list [ns_imap headers $cid $msgno]
                             array set hdrs_arr $headers_list
 
                             set type [acs_mail_lite::email_type \
                                           -header_arr_name hdrs_arr ]
+
                             if { $type ne "" } {
+
                                 set size_idx [lsearch -nocase -exact \
                                                   $headers_list size]
-                                if { $size_idx > -1 } {
-                                    set sizen [lindex $headers_list $size_idx]
+                                set sizen [lindex $headers_list $size_idx]
+                                if { $sizen ne "" } {
                                     set size_chars $hdrs_arr(${sizen})
                                 } else {
                                     set size_chars ""
