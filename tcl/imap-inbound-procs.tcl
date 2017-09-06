@@ -699,10 +699,18 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                              -party_id $user_id \
                                              -object_id $object_id ]
 
+                                set error_p [acs_mail_lite::imap_email_parse \
+                                                 -headers_arr_name hdrs_arr \
+                                                 -parts_arr_name parts_arr \
+                                                 -conn_id $cid \
+                                                 -msgno $msgno \
+                                                 -struct_list $struct_list]
+
                                 set id [acs_mail_lite::queue_inbound_insert \
-                                            -parts_arr_name \
+                                            -parts_arr_name parts_arr\
                                             -headers_arr_name hdrs_arr \
-                                            -priority $pri ]
+                                            -priority $pri \
+                                            -error_p $error_p ]
                             }
                         }
                     }
@@ -712,15 +720,11 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
  Either Uidnext or Messages not in status_list: '${status_list}'"
                 }
 
-                ##code
-                # for each new imap email
-
-                # if actionable, type ne ""
-                # set priority \[acs_mail_lite::prioritize_in \]
-
-                # acs_mail_lite::queue_inbound_insert to insert email to queue
-                # repeat
-                # if there is more than 60 seconds to next cycle, close connection
+                if { [expr { [clock seconds] + 65 } ] < $si_quit_cs } {
+                     # If there is more than 65 seconds to next cycle,
+                     # close connection
+                    acs_mail_lite::imap_conn_close -conn_id $cid
+                }
                 
             }
             # end if !$error
@@ -740,12 +744,16 @@ ad_proc -private acs_mail_lite::imap_email_parse {
     -parts_arr_name
     -conn_id
     -msgno
+    -struct_list
     {-section_ref ""}
-    {-struct_list ""}
     {-error_p "0"}
 } {
     Parse an email from an imap connection into array array_name
     for adding to queue via acs_mail_lite::queue_inbound_insert
+
+    Parsed data is set in headers and parts arrays in calling environment.
+
+    struct_list expects output list from ns_imap struct conn_id msgno
 } {
     # Put email in a format usable for
     # acs_mail_lite::queue_inbound_insert to insert into queue
