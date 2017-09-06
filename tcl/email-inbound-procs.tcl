@@ -313,20 +313,16 @@ ad_proc -public acs_mail_lite::prioritize_in {
 
 } {
     set priority_fine ""
-    set input_error_p 0
     # validate email inputs
     if { ! ([string is integer -strict $size_chars] && $size_chars > 0) } {
-        set input_error_p 1
+        set size_error_p 1
         ns_log Warning "acs_mail_lite::prioritize_in.283: \
  size_chars '${size_chars}' is not a natural number."
     }
     if { ! ([string is integer -strict $received_cs] && $received_cs > 0) } {
-        set input_error_p 1
+        set time_error_p 1
         ns_log Warning "acs_mail_lite::prioritize_in.289: \
  received_cs '${received_cs}' is not a natural number."
-    }
-    if { $input_error_p } {
-        return ""
     }
 
     # *_cs means clock time from epoch in seconds, 
@@ -415,12 +411,20 @@ ad_proc -public acs_mail_lite::prioritize_in {
 
     # Priority favors earlier reception, returns decimal -1. to 0.
     # for normal operation. Maybe  -0.5 to 0. for most.
-    set pri_t [expr { ( $received_cs - $start_cs ) / ( 2. * $dur_s ) } ]
+    if { $time_error_p } {
+        set pri_t 0
+    } else {
+        set pri_t [expr { ( $received_cs - $start_cs ) / ( 2. * $dur_s ) } ]
+    }
 
     # Priority favors smaller message size. Returns decimal 0. to 1.
     # and for most, somewhere closer to perhaps 0.
-    set pri_s [expr { ( $size_chars / ( $size_max + 0. ) ) } ]
-    
+    if { $size_error_p } {
+        set pri_s [expr { ( $size_max / 2 ) } ]
+    } else {
+        set pri_s [expr { ( $size_chars / ( $size_max + 0. ) ) } ]
+    }
+
     set priority_fine [expr { int( ( $pri_t + $pri_s ) * $d_max ) + $mp } ] 
     ns_log Dev "prioritize_in: pri_t '${pri_t}' pri_s '${pri_s}'"
     ns_log Dev "prioritize_in: pre(max/min) priority_fine '${priority_fine}'"
