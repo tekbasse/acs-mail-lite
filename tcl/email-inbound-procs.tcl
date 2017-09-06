@@ -528,7 +528,7 @@ ad_proc -public acs_mail_lite::email_type {
         array set h_arr [list ]
     }
 
-    if { $headers ne "" && [llength [array names h_arr]] < 1) } {
+    if { $headers ne "" && [llength [array names h_arr]] < 1 } {
         #  To remove subject from headers to search, 
         #  incase topic uses a reserved word,
         #  we rebuild the semblence of array returned by ns_imap headers.
@@ -565,11 +565,10 @@ ad_proc -public acs_mail_lite::email_type {
         }
     }
 
-    if { [array exists h_arr] } {
-        set reject_p [acs_mail_lite::inbound_filters -headers_arr_name h_arr]
-    }
+    set reject_p [acs_mail_lite::inbound_filters -headers_arr_name h_arr]
 
-    if { [array exists h_arr] && !$reject_p } {
+
+    if { !$reject_p } {
 
         set hn_list [array names h_arr]
         ns_log Dev "acs_mail_lite::email_type.996 hn_list '${hn_list}'"
@@ -605,7 +604,7 @@ ad_proc -public acs_mail_lite::email_type {
         set i 0
         set h [lindex $ar_list $i]
         while { $h ne "" && !$ar_p } {
-            #set ar_p sring match -nocase $h $hn
+            #set ar_p string match -nocase $h $hn
 
             set ar_idx [lsearch -glob $hn_list $h]
             if { $ar_idx > -1 } {
@@ -617,6 +616,28 @@ ad_proc -public acs_mail_lite::email_type {
         }
 
         ns_log Dev "acs_mail_lite::email_type.1039 ar_p ${ar_p}"
+
+        # set values in h_arr for downstream processing
+        # set h_arr(size_chars)
+        set size_idx [lsearch -glob -nocase $hn_list size]
+        if { $size_idx > -1 } {
+            set size_h [lindex $hn_list $size_idx]
+            set h_arr(size_chars) $h_arr(${size_h})
+        } else {
+            set h_arr(size_chars) ""
+        }
+        # value for h_arr(received_cs) is set further down
+        set h_arr(received_cs) ""
+        # set h_arr(subject_idx)
+        set fr_idx [lsearch -glob -nocase $hn_list {subject}]
+        set h_arr(subject_idx) [lindex $hn_list $fr_idx]
+        if { $fr_idx > -1 && $subject eq "" } {
+            set subject $h_arr(${subject})
+        }
+        # set h_arr(to_idx)
+        set to_idx [lsearch -glob -nocase $hn_list {to}]
+        set h_arr(subject_idx) [lindex $hn_list $to_idx]
+
 
         # get 'from' header value possibly used in a couple checks
         set fr_idx [lsearch -glob -nocase $hn_list {from}]
@@ -643,6 +664,8 @@ ad_proc -public acs_mail_lite::email_type {
             set party_id ""
         }
 
+
+        
 
         if { !$ar_p && [info exists h_arr(internaldate.year)] \
                  && $from ne "" } {
