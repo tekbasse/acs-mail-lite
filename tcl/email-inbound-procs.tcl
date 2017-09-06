@@ -440,7 +440,10 @@ ad_proc -public acs_mail_lite::email_type {
     {-check_subject_p "0"}
 } {
     Scans email's subject, from and headers for actionable type.
-    Returns actionable type: \
+    Returns actionable type, and saves some normalized header info
+    to reduce redundant processing downstream.
+
+    Actional types: \
         'auto_gen' 'auto_reply', 'bounce', 'in_reply_to' or 
     empty string indicating 'other' type.
     'auto_reply' may be a Delivery Status Notification for example.
@@ -452,11 +455,19 @@ ad_proc -public acs_mail_lite::email_type {
     'other' refers to email that the system does not recognize as a reply
     of any kind.
 
-
     If not a qualifying type, returns empty string.
 
+    Additional headers added:
 
-    If headers and header_arr_name provided, only header_arr_name will be used.
+    size_chars: size of email in character count.
+    received_cs: the recevied time of email in tcl clock epoch time.
+    subject_idx: the literal case sensitive index in the array that stores the email 'subject' header.
+    to_idx: the literal case sensitive index in the array that stores the email 'to' header.
+
+    If additional headers not calculated, they are have value of empty string.
+
+
+    If headers and header_arr_name provided, only header_arr_name will be used, if header_arr_name contains at least one value.
 
     If check_subject_p is set 1, \
     checks for common subjects identifying autoreplies. \
@@ -513,7 +524,11 @@ ad_proc -public acs_mail_lite::email_type {
     
     if { $header_arr_name ne "" } {
         upvar 1 $header_arr_name h_arr
-    } elseif { $headers ne "" } {
+    } else {
+        array set h_arr [list ]
+    }
+
+    if { $headers ne "" && [llength [array names h_arr]] < 1) } {
         #  To remove subject from headers to search, 
         #  incase topic uses a reserved word,
         #  we rebuild the semblence of array returned by ns_imap headers.
