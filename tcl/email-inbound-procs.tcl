@@ -441,7 +441,7 @@ ad_proc -public acs_mail_lite::email_type {
 } {
     Scans email's subject, from and headers for actionable type.
     Returns actionable type, and saves some normalized header info
-    to reduce redundant processing downstream.
+    to reduce redundant processing downstream. Cu
 
     Actional types: \
         'auto_gen' 'auto_reply', 'bounce', 'in_reply_to' or 
@@ -457,12 +457,9 @@ ad_proc -public acs_mail_lite::email_type {
 
     If not a qualifying type, returns empty string.
 
-    Additional headers added:
+    Currently, only additional header added, since it is used in this proc:
 
-    size_chars: size of email in character count.
     received_cs: the recevied time of email in tcl clock epoch time.
-    subject_idx: the literal case sensitive index in the array that stores the email 'subject' header.
-    to_idx: the literal case sensitive index in the array that stores the email 'to' header.
 
     If additional headers not calculated, they are have value of empty string.
 
@@ -616,27 +613,6 @@ ad_proc -public acs_mail_lite::email_type {
         }
 
         ns_log Dev "acs_mail_lite::email_type.1039 ar_p ${ar_p}"
-
-        # set values in h_arr for downstream processing
-        # set h_arr(size_chars)
-        set size_idx [lsearch -glob -nocase $hn_list size]
-        if { $size_idx > -1 } {
-            set size_h [lindex $hn_list $size_idx]
-            set h_arr(size_chars) $h_arr(${size_h})
-        } else {
-            set h_arr(size_chars) ""
-        }
-        # value for h_arr(received_cs) is set further down
-        set h_arr(received_cs) ""
-        # set h_arr(subject_idx)
-        set fr_idx [lsearch -glob -nocase $hn_list {subject}]
-        set h_arr(subject_idx) [lindex $hn_list $fr_idx]
-        if { $fr_idx > -1 && $subject eq "" } {
-            set subject $h_arr($h_arr(subject_idx))
-        }
-        # set h_arr(to_idx)
-        set to_idx [lsearch -glob -nocase $hn_list {to}]
-        set h_arr(subject_idx) [lindex $hn_list $to_idx]
 
 
         # get 'from' header value possibly used in a couple checks
