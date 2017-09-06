@@ -632,7 +632,7 @@ ad_proc -public acs_mail_lite::email_type {
         set fr_idx [lsearch -glob -nocase $hn_list {subject}]
         set h_arr(subject_idx) [lindex $hn_list $fr_idx]
         if { $fr_idx > -1 && $subject eq "" } {
-            set subject $h_arr(${subject})
+            set subject $h_arr($h_arr(subject_idx))
         }
         # set h_arr(to_idx)
         set to_idx [lsearch -glob -nocase $hn_list {to}]
