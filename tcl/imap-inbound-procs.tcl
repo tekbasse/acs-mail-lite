@@ -555,7 +555,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
         set pause_ms [expr { $pause_s * 1000 } ]
         while { $active_cs eq $cycle_start_cs \
                     && [clock seconds] < $si_quit_cs \
-                    && $concurrent_ct > 1  } {
+                    && $concurrent_ct > 1 } {
 
             incr per_cycle_s_override $pause_s
             nsv_set acs_mail_lite si_dur_per_cycle_s_override \
@@ -654,6 +654,21 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                     set to ""
                                 }
 
+                                set msg_idx [lsearch -nocase -exact \
+                                                 $headers_list \
+                                                 original-message-id]
+                                if { ${msg_idx} == -1 } {
+                                    set msg_idx [lsearch -nocase -exact \
+                                                     $headers_list \
+                                                     original-msg-id]
+                                }
+                                if { ${msg_idx} > -1 } {
+                                    set msgn [lindex $headers_list $msg_idx]
+                                    set h_msg_id $hdrs_arr(${msgn})
+                                    ##code add xref from db and set pkg_id etc
+                                } else {
+                                    set msg ""
+                                }
 
                                 # bounce_ordered_list = b_ol
                                 ##code this bounce address paradigm

@@ -20,18 +20,13 @@ create table acs_mail_lite_from_external (
        to_email_addrs       varchar(1000),
        from_email_addrs     text,
        subject              text,
-       party_id             integer
-                            constraint aml_from_external_party_id_fk
-                            references parties (party_id),
-       object_id            integer 
-                            constraint aml_from_external_obect_id_fk
-                            references acs_objects (object_id),
-       package_id           integer
-                            constraint amlq_package_id_fk
-                            references apm_packages,
+       -- see acs_mail_lite_send_msg_id_map.msg_id
+       msg_id               bigint,
        -- used by prioritization calculations
        -- For IMAP4 this is size defined by rfc822
        size_chars           numeric,
+       -- time email received from server in seconds since tcl epoch
+       received_cs          bigint,
        -- Answers question: 
        -- Has all ACS Mail Lite processes finished for this email?
        -- Processes like parsing email, bounced email, input validation
@@ -339,14 +334,20 @@ create index acs_mail_lite_ie_section_ref_map_section_id_idx
 create table acs_mail_lite_send_msg_id_map (
        -- a randomized number unique to this table
        -- unique not null
-       msg_id bigint primary key,
-       package_id integer,
-       party_id integer,
-       object_id integer,
+       msg_id        bigint primary key,
+       package_id    integer
+                     constraint amlq_package_id_fk
+                     references apm_packages,
+       party_id      integer
+                     constraint aml_from_external_party_id_fk
+                     references parties (party_id),
+       object_id     integer 
+                     constraint aml_from_external_obect_id_fk
+                     references acs_objects (object_id),
        -- Indicate approximate time when this email is created
-       datetime_cs integer,
+       datetime_cs   integer,
        -- other data or parameters to associate with email
-       other text
+       other         text
 );
 
 create index acs_mail_lite_send_msg_id_map_msg_id_idx
