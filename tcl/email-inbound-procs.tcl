@@ -1478,6 +1478,115 @@ ad_proc -private acs_mail_lite::message_id_parse {
     return $r_list
 }
 
+
+ad_proc -private acs_mail_lite::email_context {
+    {-header_array_name ""}
+    {-header_name_list ""}
+
+} {
+    Attempts to find openacs generated unique id from headers.
+
+    Returns openacs data associated with original outbound email in
+    the header_array_name with same indexes as names:
+    package_id, party_id, object_id, other, datetime_cs 
+
+    If a value is not found, an empty string is returned for the value.
+
+    @see acs_mail_lite::message_id_create
+    @see acs_mail_lite::message_id_parse
+
+    @see acs_mail_lite::generate_message_id
+    @see acs_mail_lite::parse_bounce_address
+} {
+    upvar 1 $header_array_name h_arr
+    if { $header_name_list eq "" } {
+        set h_n_list [array names h_arr]
+    }
+
+    ##code 
+
+    # Note: message-id should be in form:
+    # <unique_id@local_domain.example>
+    # and unqiue_id should map to 
+    # any package, party and/or object_id so
+    # as to not leak info unnecessarily.
+    # See table acs_mail_lite_send_msg_id_map
+
+
+    # Bounce info needs to be placed in an rfc
+    # compliant header. Replies can take many forms.
+    # This could be a mess.
+    # If a service using MailDir switches to use IMAP,
+    # should we still try to make the MailDir work?
+    # Should this work with MailDir regardless of IMAP?
+    # Yes and yes.
+    # This should be as generic as possible.
+
+    # Headers to check:
+
+    # original-message_id
+    # original-envelope-id  
+    # message-id 
+    # msg-id 
+    # In-Reply-to space delimited list of unique message ids per rfc2822 3.6.4
+    # References  space delimited list of unique message ids per rfc2822 3.6.4
+    
+    # original-recipient    may contain original 'to' address of party_id
+
+    # A unique reference is case sensitive, same as original email's envelope-id) per rfc3464 2.2.1
+    # angle brackets are used to quote unique reference
+
+
+
+    
+
+    # oacs-5-9 MailDir way:
+
+    # adds same unique id to 'message-id' and 'content-id'.
+    # example: <17445.1479806245.127@openacs.wu-wien.ac.at.wu-wien.ac.at>
+    # adds a different unique id to 'reply-to' and 'mail-followup-to'.
+    # example: "openacs.org mailer" <notification-5342759-2960@openacs.org>
+    # adds a different unique id to 'Return-Path'.
+    # example: <bounce-lite-49020-5AA3B467C31BBE655281220B0583195B52956B70-2578@openacs.org>
+
+    # This proc should be capable of integrating with existing MailDir service
+    # if the MailDir paradigm gets integrated into this generic incoming
+    # email handler.
+
+    # bounce_ordered_list = b_ol
+    # MailDir incoming email api likely does not work for 
+    # standard email accounts where a dynamic (unstatic) email
+    # would bounce back again if not expected, and therefore never
+    # report back.
+
+
+    set b_ol [acs_mail_lite::parse_bounce_address \
+                  -bounce_address $to]
+    set user_id ""
+    set package_id ""
+    set object_id ""
+    lassign $b_ol user_id package_id scratch
+
+    set m_idx [lsearch -nocase -exact \
+                   $headers_list \
+                   original-message-id]
+    if { ${m_idx} < 0 } {
+        set m_idx [lsearch -nocase -exact \
+                       $headers_list \
+                       original-msg-id]
+    }
+    if { ${m_idx} > -1 } {
+        set mn [lindex $headers_list $m_idx]
+        set h_m_id $hdrs_arr(${mn})
+        set m_id [acs_mail_lite::message_id_parse \
+                      
+                  ##code add xref from db and set pkg_id etc
+              } else {
+                  set msg ""
+              }
+    }
+}
+
 #            
 # Local variables:
 #    mode: tcl

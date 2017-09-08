@@ -653,66 +653,18 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                 } else {
                                     set to ""
                                 }
-
-                                set msg_idx [lsearch -nocase -exact \
-                                                 $headers_list \
-                                                 original-message-id]
-                                if { ${msg_idx} == -1 } {
-                                    set msg_idx [lsearch -nocase -exact \
-                                                     $headers_list \
-                                                     original-msg-id]
-                                }
-                                if { ${msg_idx} > -1 } {
-                                    set msgn [lindex $headers_list $msg_idx]
-                                    set h_msg_id $hdrs_arr(${msgn})
-                                    ##code add xref from db and set pkg_id etc
-                                } else {
-                                    set msg ""
-                                }
-
-                                # bounce_ordered_list = b_ol
-                                ##code this bounce address paradigm
-                                # from MailDir incoming email api
-                                # likely doesn't work for 
-                                # standard email accounts where a dynamic email
-                                # would bounce back again therefore never
-                                # report back.
-                                # Bounce info needs to be placed in an rfc
-                                # compliant header, such as message_id ie
-                                # original-message_id or whatever it's called.
-                                # If original-recipient is also available,
-                                # it can be crossreferenced for validity.
-                                # Preliminary references:
-                                # See rfc 821, 3464, 4406, 5429,7489, 5598,
-                                # 5438
-                                # headers: original-recipient
-                                # original-envelope-id (optional, value is case sensitive, same as original email's envelope-id) per rfc3464 2.2.1
-                                # or message-id or 
-                                # message-id or msg-id <the unique ref> 
-                                # where angle brackets are used to quote msg-id
-                                # in In-Reply-to or References (space delim
-                                # list)
-                                # header per rfc2822 3.6.4
-                                # note message-id should be in form:
-                                # <unique_id@local_domain.example>
-                                # and unqiue_id should map to 
-                                # any package, party and/or object_id so
-                                # as to not leak info unnecessarily.
-                                set b_ol [acs_mail_lite::parse_bounce_address \
-                                              -bounce_address $to]
-                                set user_id ""
-                                set package_id ""
-                                set object_id ""
-                                lassign $b_ol user_id package_id scratch
-
+                                ##code redo following procs to pass via array
+                                array set hdrs_arr [acs_mail_lite::email_context \
+                                                        -header_array_name hdrs_arr \
+                                                        -headers_list $headers_list]
 
                                 set pri [acs_mail_lite::prioritize_in \
-                                             -size_chars $size_chars \
-                                             -received_cs $received_cs \
-                                             -subject $subject \
-                                             -package_id $package_id \
-                                             -party_id $user_id \
-                                             -object_id $object_id ]
+                                             -size_chars $hdrs_arr(size_chars) \
+                                             -received_cs $hdrs_arr(received_cs) \
+                                             -subject $hdrs_arr(subject) \
+                                             -package_id $hdrs_arr(package_id) \
+                                             -party_id $hdrs_arr(user_id) \
+                                             -object_id $hdrs_arr(object_id) ]
 
                                 set error_p [acs_mail_lite::imap_email_parse \
                                                  -headers_arr_name hdrs_arr \

@@ -213,8 +213,8 @@ Other useful lib procs provided by ns_map:
 New parameters added to new section: inbound_email
 
 Parameters
- BounceScanQueue                 IncomingScanQueue
- BounceDomain                    IncomingDomian
+ BounceScanQueue (not in use)    IncomingScanRate
+ BounceDomain                    BounceEmail
  send_immediately                SendImmediatelyP
                                  IMAPHost
                                  IMAPPassword

@@ -28,7 +28,7 @@ file mkdir $inbound_queue_dir
 set si_start_time_cs [clock seconds]
 # Scan incoming estimated duration pur cycle in seconds
 #set scan_in_est_dur_per_cycle_s 120
-set si_dur_per_cycle_s 120
+set si_dur_per_cycle_s [parameter::get_from_package_key -parameter "IncomingScanRate" -package_key "acs-mail-lite" -default 120]
 # max_import_rate_per_s .5
 set si_mirps .16
 # Used by incoming email system
