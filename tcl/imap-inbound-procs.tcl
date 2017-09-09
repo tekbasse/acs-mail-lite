@@ -653,7 +653,11 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                 } else {
                                     set to ""
                                 }
-                                ##code redo following procs to pass via array
+                                # Redo these procs to pass params via array?
+                                # This would reduce need to use lsearch.
+                                # If so, identify lowercase indexes 
+                                # so that they are not saved with email headers
+                                # maybe x_internal_<parameter-name>
                                 array set hdrs_arr [acs_mail_lite::email_context \
                                                         -header_array_name hdrs_arr \
                                                         -headers_list $headers_list]
