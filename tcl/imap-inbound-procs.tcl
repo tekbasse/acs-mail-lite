@@ -15,7 +15,7 @@ ad_library {
 
 namespace eval acs_mail_lite {}
 
-ad_proc -private acs_mail_lite::imap_cache_clear {
+ad_proc -private acs_mail_lite::inbound_cache_clear {
 } {
     Clears table of all email uids for all imap history.
     All unread input emails will be considered new and reprocessed.
@@ -607,7 +607,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                         array set hdrs_arr $struct_list
                         set uid $hdrs_arr(uid)
 
-                        set processed_p [acs_mail_lite::imap_cache_hit_p \
+                        set processed_p [acs_mail_lite::inbound_cache_hit_p \
                                              $uid \
                                              $uidvalidity \
                                              $mailbox_host_name ]
@@ -641,7 +641,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                                 $headers_list subject]
                                 if { $su_idx > -1 } {
                                     set sun [lindex $headers_list $su_idx]
-                                    set hdrs_arr(aml_subject) $hdrs_arr(${sun})
+                                    set hdrs_arr(aml_subject) [ad_quotehtml $hdrs_arr(${sun})]
                                 } else {
                                     set hdrs_arr(aml_subject) ""
                                 }
@@ -650,12 +650,12 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                                 $headers_list to]
                                 if { ${to_idx} > -1 } {
                                     set ton [lindex $headers_list $to_idx]
-                                    set hdrs_arr(aml_to) $hdrs_arr(${ton})
+                                    set hdrs_arr(aml_to) [ad_quotehtml $hdrs_arr(${ton}) ]
                                 } else {
                                     set hdrs_arr(aml_to) ""
                                 }
 
-                                acs_mail_lite::email_context \
+                                acs_mail_lite::inbound_email_context \
                                     -header_array_name hdrs_arr \
                                     -headers_list $headers_list
 
@@ -668,11 +668,17 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                                  -conn_id $cid \
                                                  -msgno $msgno \
                                                  -struct_list $struct_list]
-
-                                set id [acs_mail_lite::inbound_queue_insert \
-                                            -parts_arr_name parts_arr\
-                                            -headers_arr_name hdrs_arr \
-                                            -error_p $error_p ]
+                                if { !$error_p } {
+                                    
+                                    set id [acs_mail_lite::inbound_queue_insert \
+                                                -parts_arr_name parts_arr 
+\
+                                                -headers_arr_name hdrs_arr \
+                                                -error_p $error_p ]
+                                    ns_log Notice "acs_mail_lite::imap_check_incoming \
+ inserted to queue aml_email_id '${id}'"
+                                }
+                                    
                             }
                         }
                     }

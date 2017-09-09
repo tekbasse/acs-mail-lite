@@ -320,13 +320,24 @@ ad_proc -public acs_mail_lite::inbound_prioritize {
 
 } {
     if { $header_array_name ne "" } {
+        set hn_list [list \
+                         aml_size_chars \
+                         aml_received_cs \
+                         aml_subject \
+                         aml_package_id \
+                         aml_party_id \
+                         aml_object_id ]
         upvar 1 $header_array_name h_arr
-        set size_chars $h_arr(aml_size_chars)
-        set received_cs $h_arr(aml_received_cs)
-        set subject $h_arr(aml_subject)
-        set package_id $h_arr(aml_package_id)
-        set party_id $h_arr(aml_party_id)
-        set object_id $h_arr(aml_object_id)
+        foreach hn $hn_list {
+            set vname [string range $hn 4 end]
+            if { [info exists h_arr(${hn}) ] } {
+                # set variable from array
+                set ${vname} $h_arr(${hn})
+            } elseif { [set ${hn}] ne "" } {
+                # set array's index same as variable
+                set h_arr(${hn}) [set ${vname} ]
+            }
+        }                
     }
 
     set priority_fine ""
@@ -470,7 +481,7 @@ ad_proc -public acs_mail_lite::email_type {
 } {
     Scans email's subject, from and headers for actionable type.
     Returns actionable type, and saves some normalized header info
-    to reduce redundant processing downstream. Cu
+    to reduce redundant processing downstream. 
 
     Actional types: \
         'auto_gen' 'auto_reply', 'bounce', 'in_reply_to' or 
@@ -653,6 +664,7 @@ ad_proc -public acs_mail_lite::email_type {
             set from_email [string tolower \
                                 [acs_mail_lite::parse_email_address \
                                      -email $from]]
+            set h_arr(aml_from_addrs) $from_email
             set at_idx [string last "@" $from ]
         } else {
             set at_idx -1
@@ -702,7 +714,7 @@ ad_proc -public acs_mail_lite::email_type {
                 ns_log Warning "acs_mail_lite::email_type.1102 \
  clock scan '${dti}' -format %Y-%m-%d %H:%M:%S %z failed. Could not check ts_p case."
             }
-            set h_arr(received_cs) $dti_cs
+            set h_arr(aml_received_cs) $dti_cs
             # Does response time indicate more likely by a machine?
             # Not by itself. Only if it is a reply of some kind.
 
@@ -900,6 +912,7 @@ ad_proc -public acs_mail_lite::email_type {
                 set fr_idx [lsearch -glob -nocase $hn_list {subject}]
                 if { $fr_idx > -1 } {
                     set subject $h_arr(${subject})
+                    set h_arr(aml_subject) [ad_quotehtml $subject]
                 }
             }
             
@@ -1331,22 +1344,27 @@ ad_proc -private acs_mail_lite::inbound_filters {
     return $reject_p
 }
 
-ad_proc -private acs_mail_lite::imap_cache_hit_p {
+ad_proc -private acs_mail_lite::inbound_cache_hit_p {
     email_uid
-    imap_uidvalidity
+    uidvalidity
     mailbox_host_name
 } {
     Check email unqiue id (UID) against history in table.
     If already exists, returns 1 otherwise 0.
     Adds checked case to cache if not already there.
+
+    uidvalidity is defined by imap rfc3501 2.3.1.1
+    https://tools.ietf.org/html/rfc3501#section-2.3.1.1
+    Other protocols have an analog mechanism, or one
+    can be made locally to be equivallent in use.
 } {
     set hit_p 0
     set src_ext_id $mailbox_host_name
-    append src_ext_id "-" $imap_uidvalidity
+    append src_ext_id "-" $uidvalidity
     set aml_src_id ""
     db_0or1row acs_mail_lite_email_src_ext_id_map_r1 \
         -cache_key aml_in_src_id_${src_ext_id} {
-            select aml_src_id from acs_mal_lite_email_src_ext_id_map
+            select aml_src_id from acs_mail_lite_email_src_ext_id_map
             where src_ext=:src_ext_id }
     if { $aml_src_id eq "" } {
         set aml_src_id [db_nextval acs_mail_lite_in_id_seq]
@@ -1528,12 +1546,14 @@ ad_proc -private acs_mail_lite::message_id_parse {
 }
 
 
-ad_proc -private acs_mail_lite::email_context {
+ad_proc -private acs_mail_lite::inbound_email_context {
     -header_array_name
     {-header_name_list ""}
 
 } {
-    Attempts to find openacs generated unique id from headers.
+    Attempts to find openacs generated unique id from inbound email headers.
+
+    OpenACS generates a variety of headers.
 
     Returns openacs data associated with original outbound email in
     the header_array_name and as an ordered list of values:
@@ -1564,7 +1584,7 @@ ad_proc -private acs_mail_lite::email_context {
     # any package, party and/or object_id so
     # as to not leak info unnecessarily.
     # See table acs_mail_lite_send_msg_id_map
-
+    # and acs_mail_lite::message_id_create/find/parse
 
     # Bounce info needs to be placed in an rfc
     # compliant header. Replies can take many forms.
@@ -1632,12 +1652,12 @@ ad_proc -private acs_mail_lite::email_context {
         set mn [lindex $headers_list $m_idx]
         set h_m_id $hdrs_arr(${mn})
         set m_id [acs_mail_lite::message_id_parse \
-                      
-                  ##code add xref from db and set pkg_id etc
-              } else {
-                  set msg ""
-              }
+                      ]
+        ##code add xref from db and set pkg_id etc
+    } else {
+        set msg ""
     }
+
 }
 
 #            
