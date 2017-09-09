@@ -246,7 +246,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                     set z2 s1
                 }
                 
-                set p_arr(t1) [acs_mail_lite::prioritize_in \
+                set p_arr(t1) [acs_mail_lite::inbound_prioritize \
                                        -size_chars $s \
                                        -received_cs $t1 \
                                        -subject $subject \

@@ -44,9 +44,9 @@ if { [db_table_exists acs_mail_lite_ui] } {
 ad_schedule_proc -thread t \
     $si_dur_per_cycle_s acs_mail_lite::imap_check_incoming
 ad_schedule_proc -thread t \
-    $si_dur_per_cycle_s acs_mail_lite::queue_inbound_batch_pull
+    $si_dur_per_cycle_s acs_mail_lite::inbound_queue_batch_pull
 
-ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 1 41] acs_mail_lite::queue_release
+ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 1 41] acs_mail_lite::inbound_queue_release
 # above was
 # acs_mail_lite::imap_check_incoming was acs_mail_lite::check_bounces:
 # ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces

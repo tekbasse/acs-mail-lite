@@ -615,60 +615,52 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                         if { !$processed_p } {
                             set headers_list [ns_imap headers $cid $msgno]
                             array set hdrs_arr $headers_list
-
+                            
                             set type [acs_mail_lite::email_type \
                                           -header_arr_name hdrs_arr ]
-
+                            
                             if { $type ne "" } {
-
+                                # Create some standardized header indexes aml_*
+                                # with corresponding values 
                                 set size_idx [lsearch -nocase -exact \
                                                   $headers_list size]
                                 set sizen [lindex $headers_list $size_idx]
                                 if { $sizen ne "" } {
-                                    set size_chars $hdrs_arr(${sizen})
+                                    set hdrs_arr(aml_size_chars) $hdrs_arr(${sizen})
                                 } else {
-                                    set size_chars ""
+                                    set hdrs_arr(aml_size_chars) ""
                                 }
 
-                                if { [info exists hdrs_arr(received_cs)] } {
-                                    set received_cs $hdrs_arr(received_cs)
+                                if { [info exists hdrs_arr(aml_received_cs)] } {
+                                    set hdrs_arr(aml_received_cs) $hdrs_arr(aml_received_cs)
                                 } else {
-                                    set received_cs ""
+                                    set hdrs_arr(aml_received_cs) ""
                                 }
 
                                 set su_idx [lsearch -nocase -exact \
-                                                  $headers_list subject]
+                                                $headers_list subject]
                                 if { $su_idx > -1 } {
                                     set sun [lindex $headers_list $su_idx]
-                                    set subject $hdrs_arr(${sun})
+                                    set hdrs_arr(aml_subject) $hdrs_arr(${sun})
                                 } else {
-                                    set subject ""
+                                    set hdrs_arr(aml_subject) ""
                                 }
                                 
                                 set to_idx [lsearch -nocase -exact \
                                                 $headers_list to]
                                 if { ${to_idx} > -1 } {
                                     set ton [lindex $headers_list $to_idx]
-                                    set to $hdrs_arr(${ton})
+                                    set hdrs_arr(aml_to) $hdrs_arr(${ton})
                                 } else {
-                                    set to ""
+                                    set hdrs_arr(aml_to) ""
                                 }
-                                # Redo these procs to pass params via array?
-                                # This would reduce need to use lsearch.
-                                # If so, identify lowercase indexes 
-                                # so that they are not saved with email headers
-                                # maybe x_internal_<parameter-name>
-                                array set hdrs_arr [acs_mail_lite::email_context \
-                                                        -header_array_name hdrs_arr \
-                                                        -headers_list $headers_list]
 
-                                set pri [acs_mail_lite::prioritize_in \
-                                             -size_chars $hdrs_arr(size_chars) \
-                                             -received_cs $hdrs_arr(received_cs) \
-                                             -subject $hdrs_arr(subject) \
-                                             -package_id $hdrs_arr(package_id) \
-                                             -party_id $hdrs_arr(user_id) \
-                                             -object_id $hdrs_arr(object_id) ]
+                                acs_mail_lite::email_context \
+                                    -header_array_name hdrs_arr \
+                                    -headers_list $headers_list
+
+                                acs_mail_lite::inbound_prioritize \
+                                    -header_array_name hdrs_arr
 
                                 set error_p [acs_mail_lite::imap_email_parse \
                                                  -headers_arr_name hdrs_arr \
@@ -677,10 +669,9 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                                  -msgno $msgno \
                                                  -struct_list $struct_list]
 
-                                set id [acs_mail_lite::queue_inbound_insert \
+                                set id [acs_mail_lite::inbound_queue_insert \
                                             -parts_arr_name parts_arr\
                                             -headers_arr_name hdrs_arr \
-                                            -priority $pri \
                                             -error_p $error_p ]
                             }
                         }
@@ -720,14 +711,14 @@ ad_proc -private acs_mail_lite::imap_email_parse {
     {-error_p "0"}
 } {
     Parse an email from an imap connection into array array_name
-    for adding to queue via acs_mail_lite::queue_inbound_insert
+    for adding to queue via acs_mail_lite::inbound_queue_insert
 
     Parsed data is set in headers and parts arrays in calling environment.
 
     struct_list expects output list from ns_imap struct conn_id msgno
 } {
     # Put email in a format usable for
-    # acs_mail_lite::queue_inbound_insert to insert into queue
+    # acs_mail_lite::inbound_queue_insert to insert into queue
 
     # for format this proc is to generate.
 

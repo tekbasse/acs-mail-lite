@@ -283,10 +283,11 @@ ad_proc -public acs_mail_lite::sched_parameters {
     return $s_list
 }
 
-ad_proc -public acs_mail_lite::prioritize_in {
-    -size_chars:required
-    -received_cs:required
-    -subject:required
+ad_proc -public acs_mail_lite::inbound_prioritize {
+    {-header_array_name ""}
+    {-size_chars ""}
+    {-received_cs ""}
+    {-subject ""}
     {-package_id ""}
     {-party_id ""}
     {-object_id ""}
@@ -296,6 +297,12 @@ ad_proc -public acs_mail_lite::prioritize_in {
     Returns empty string if input values from email are not expected types.
     Priority has 3 categories: high priority, normal priority, low priority
     as specified in acs_mail_lite::sched_parameters
+
+    Expects parameters to be passed within an array, or individually.
+    When passing via an array, parameter names have suffix "aml_".
+    For example, size_chars becomes aml_size_chars.
+
+    Array values take precedence, if they exist.
 
     @param size_chars of email
 
@@ -312,19 +319,31 @@ ad_proc -public acs_mail_lite::prioritize_in {
     @see acs_mail_lite::sched_parameters
 
 } {
+    if { $header_array_name ne "" } {
+        upvar 1 $header_array_name h_arr
+        set size_chars $h_arr(aml_size_chars)
+        set received_cs $h_arr(aml_received_cs)
+        set subject $h_arr(aml_subject)
+        set package_id $h_arr(aml_package_id)
+        set party_id $h_arr(aml_party_id)
+        set object_id $h_arr(aml_object_id)
+    }
+
     set priority_fine ""
 
     set size_error_p 0
     # validate email inputs
-    if { ! ([string is wideinteger -strict $size_chars] && $size_chars > 0) } {
+    if { ! ([string is wideinteger -strict $size_chars] \
+                && $size_chars > 0) } {
         set size_error_p 1
-        ns_log Warning "acs_mail_lite::prioritize_in.283: \
+        ns_log Warning "acs_mail_lite::inbound_prioritize.283: \
  size_chars '${size_chars}' is not a natural number."
     }
     set time_error_p 0
-    if { ! ([string is wideinteger -strict $received_cs] && $received_cs > 0) } {
+    if { ! ([string is wideinteger -strict $received_cs] \
+                && $received_cs > 0) } {
         set time_error_p 1
-        ns_log Warning "acs_mail_lite::prioritize_in.289: \
+        ns_log Warning "acs_mail_lite::inbound_prioritize.289: \
  received_cs '${received_cs}' is not a natural number."
     }
 
@@ -390,19 +409,19 @@ ad_proc -public acs_mail_lite::prioritize_in {
             set pri_max $size_max
         }
         default {
-            ns_log Warning "acs_mail_lite::prioritize_in.305: \
+            ns_log Warning "acs_mail_lite::inbound_prioritize.305: \
  Priority value not expected '${priority}'"
         }
     }
 
-    ns_log Dev "prioritize_in: pri_max '${pri_max}' pri_min '${pri_min}'"
+    ns_log Dev "inbound_prioritize: pri_max '${pri_max}' pri_min '${pri_min}'"
 
     set range [expr { $pri_max - $pri_min } ]
     # deviation_max = d_max
     set d_max [expr { $range / 2 } ]
     # midpoint = mp
     set mp [expr { $pri_min + $d_max } ]
-    ns_log Dev "prioritize_in: range '${range}' d_max '${d_max}' mp '${mp}'"
+    ns_log Dev "inbound_prioritize: range '${range}' d_max '${d_max}' mp '${mp}'"
 
     # number of variables in fine granularity calcs: 
     # char_size, date time stamp
@@ -410,7 +429,7 @@ ad_proc -public acs_mail_lite::prioritize_in {
     # Get most recent scan start time for reference to batch present time
     set start_cs [nsv_get acs_mail_lite si_start_t_cs]
     set dur_s [nsv_get acs_mail_lite si_dur_per_cycle_s]
-    ns_log Dev "prioritize_in: start_cs '${start_cs}' dur_s '${dur_s}'"
+    ns_log Dev "inbound_prioritize: start_cs '${start_cs}' dur_s '${dur_s}'"
 
     # Priority favors earlier reception, returns decimal -1. to 0.
     # for normal operation. Maybe  -0.5 to 0. for most.
@@ -429,11 +448,14 @@ ad_proc -public acs_mail_lite::prioritize_in {
     }
 
     set priority_fine [expr { int( ( $pri_t + $pri_s ) * $d_max ) + $mp } ] 
-    ns_log Dev "prioritize_in: pri_t '${pri_t}' pri_s '${pri_s}'"
-    ns_log Dev "prioritize_in: pre(max/min) priority_fine '${priority_fine}'"
+    ns_log Dev "inbound_prioritize: pri_t '${pri_t}' pri_s '${pri_s}'"
+    ns_log Dev "inbound_prioritize: pre(max/min) priority_fine '${priority_fine}'"
     set priority_fine [f::min $priority_fine $pri_max]
     set priority_fine [f::max $priority_fine $pri_min]
 
+    if { $header_array_name ne "" } {
+        set h_arr(aml_priority) $priority_fine
+    }
     return $priority_fine
 }
 
@@ -924,10 +946,10 @@ ad_proc -public acs_mail_lite::email_type {
 }
 
 
-ad_proc -private acs_mail_lite::queue_inbound_insert {
+ad_proc -private acs_mail_lite::inbound_queue_insert {
     -headers_arr_name
     -parts_arr_name
-    -priority
+    {-priority ""}
     {-aml_email_id ""}
     {-section_ref ""}
     {-struct_list ""}
@@ -953,14 +975,14 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
     #   h_arr($name) $value         acs_mail_lite_ie_headers
     #       Some indexes match fields of table acs_mail_lite_from_external:
     #   h_arr(aml_email_id)
-    #   h_arr(to_email_addrs)
-    #   h_arr(from_email_addrs)
-    #   h_arr(priority)
-    #   h_arr(subject)          email subject (normalized index reference).
+    #   h_arr(aml_to_addrs)     to_email_addrs
+    #   h_arr(aml_from_addrs)   from_email_addrs
+    #   h_arr(aml_priority)     priority    
+    #   h_arr(aml_subject)      email subject (normalized index reference).
     #   h_arr(aml_msg_id)       email message-id or msg-id's cross-reference
     #                           see acs_mail_lite_msg_id_map.msg_id
-    #   h_arr(size_chars)
-    #   h_arr(processed_p)
+    #   h_arr(aml_size_chars)   size_chars
+    #   h_arr(aml_processed_p)  processed_p
 
     #   p_arr($section_id,<field>)  acs_mail_lite_ie_parts (content of a part)
     #   p_arr($section_id,nv_list)  acs_mail_lite_part_nv_pairs
@@ -997,37 +1019,64 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
         set msg_id ""
         set size_chars ""
         set received_cs ""
+        # sub set of header names
         foreach h_name $h_names_list {
             set h_value $h_arr(${h_name}) 
             switch -nocase -- $h_name {
                 x-openacs-from -
+                aml_from_addrs -
                 from {
-                    set from_email_addrs [acs_mail_lite::parse_email_address \
-                                              -email $h_value ]
+                    if { ![info exists h_arr(aml_from_addrs)] } {
+                        set from_email_addrs [acs_mail_lite::parse_email_address \
+                                                  -email $h_value ]
+                        set h_arr(aml_from_addrs) $from_email_addrs
+                    } else {
+                        set from_email_addrs $h_arr(aml_from_addrs)
+                    }
                 }
                 x-openacs-to -
+                aml_to_addrs -
                 to {
-                    set to_email_addrs [acs_mail_lite::parse_email_address \
-                                              -email $h_value ]
+                    if { ![info exists h_arr(aml_to_addrs)] } {
+                        set to_email_addrs [acs_mail_lite::parse_email_address \
+                                                -email $h_value ]
+                        set h_arr(aml_to_addrs) $to_email_addrs
+                    } else {
+                        set to_email_addrs $h_arr(aml_to_addrs)
+                    }
                 }
                 aml_msg_id {
                     set msg_id $h_value
                 }
                 x-openacs-subject -
+                aml_subject -
                 subject {
                     set subject $h_value
                 }
                 x-openacs-size -
+                aml_size_chars -
                 size {
-                    if { [string is wideinteger -strict $h_value] } {
-                        set size_chars $h_value
+                    if { ![info exists h_arr(aml_size_chars) ] } {
+                        if { [string is wideinteger -strict $h_value] } {
+                            set size_chars $h_value
+                        }
+                    } else {
+                        set size_chars $h_arr(ams_size_chars)
                     }
                 }
+                aml_received_cs { 
+                    set received_cs $h_value
+                }
+                aml_priority {
+                    set priority $h_value
+                }
             }
+            
             if { $priority eq "" } {
                 set priority [dict get \
                                   [acs_mail_lite::sched_parameters] mpri_max]
             }
+
             db_dml acs_mail_lite_ie_headers_w1 {
                 insert into acs_mail_lite_ie_headers 
                 (aml_email_id,h_name,h_value)
@@ -1116,18 +1165,18 @@ ad_proc -private acs_mail_lite::queue_inbound_insert {
 }
 
 
-ad_proc -private acs_mail_lite::queue_inbound_batch_pull {
+ad_proc -private acs_mail_lite::inbound_queue_batch_pull {
 } {
     Identifies and processes highest priority inbound email.
 } {
 
-    # calls acs_mail_lite::queue_inbound_pull once per email
+    # calls acs_mail_lite::inbound_queue_pull once per email
 
 }
 
 
 
-ad_proc -private acs_mail_lite::queue_inbound_pull {
+ad_proc -private acs_mail_lite::inbound_queue_pull {
     -e_array_name:required
     -h_array_name:required
     -p_array_name:required
@@ -1140,16 +1189,16 @@ ad_proc -private acs_mail_lite::queue_inbound_pull {
     <pre>
     h_arr(name) value          acs_mail_lite_ie_headers
 
-    Some indexes match fields of table acs_mail_lite_from_external:
-    h_arr(aml_email_id)     value of aml_email_id
-    h_arr(to_email_addrs)   email address from header 'to'.
-    h_arr(from_email_addrs) email address from header 'from'.
-    h_arr(priority)         value of priority
-    h_arr(subject)          email subject (normalized index reference).
-    h_arr(aml_msg_id)       email message-id or msg-id's cross-reference
+    Some indexes correspond to fields of table acs_mail_lite_from_external:
+    h_arr(aml_email_id)   aml_email_id
+    h_arr(aml_to_addrs)   to_email_addrs email address from header 'to'
+    h_arr(aml_from_addrs) from_email_addrs email address from header 'from'
+    h_arr(aml_priority)   priority
+    h_arr(aml_subject)    subject (normalized index reference).
+    h_arr(aml_msg_id)     email message-id or msg-id's cross-reference
                             see acs_mail_lite_msg_id_map.msg_id
-    h_arr(size_chars)       size of email
-    h_arr(processed_p)      false
+    h_arr(aml_size_chars)   size of email
+    h_arr(aml_processed_p)  false
     
     p_arr(&lt;section_id&gt;,&lt;field&gt;)  acs_mail_lite_ie_parts (content of a part)
     p_arr(&lt;section_id&gt;,nv_list)  acs_mail_lite_part_nv_pairs
@@ -1194,7 +1243,7 @@ ad_proc -private acs_mail_lite::queue_inbound_pull {
     # set acs_mail_lite_from_external.release_p 1
 }
 
-ad_proc -private acs_mail_lite::queue_release {
+ad_proc -private acs_mail_lite::inbound_queue_release {
 } {
     Delete email from queue that have been flagged 'release'.
 
@@ -1219,10 +1268,10 @@ ad_proc -private acs_mail_lite::inbound_filters {
     acs_mail_lite::sched_parameters.
 
     Instead of rejecting, an email can be filtered to low priority
-    by using acs_mail_lite::prioritize_in parameters
+    by using acs_mail_lite::inbound_prioritize parameters
     
     @see acs_mail_lite::sched_parameters
-    @see acs_mail_lite:;prioritize_in
+    @see acs_mail_lite::nbound_prioritize
 } {
     upvar 1 $headers_arr_name h_arr
     set reject_p 0
@@ -1480,15 +1529,19 @@ ad_proc -private acs_mail_lite::message_id_parse {
 
 
 ad_proc -private acs_mail_lite::email_context {
-    {-header_array_name ""}
+    -header_array_name
     {-header_name_list ""}
 
 } {
     Attempts to find openacs generated unique id from headers.
 
     Returns openacs data associated with original outbound email in
-    the header_array_name with same indexes as names:
+    the header_array_name and as an ordered list of values:
     package_id, party_id, object_id, other, datetime_cs 
+
+    Array indexes have suffix aml_ added to index name:
+    aml_package_id, aml_party_id, aml_object_id, aml_other, aml_datetime_cs 
+
 
     If a value is not found, an empty string is returned for the value.
 
