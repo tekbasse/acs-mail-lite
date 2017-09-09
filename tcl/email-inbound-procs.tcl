@@ -1617,8 +1617,10 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 
     # adds same unique id to 'message-id' and 'content-id'.
     # example: <17445.1479806245.127@openacs.wu-wien.ac.at.wu-wien.ac.at>
+
     # adds a different unique id to 'reply-to' and 'mail-followup-to'.
     # example: "openacs.org mailer" <notification-5342759-2960@openacs.org>
+
     # adds a different unique id to 'Return-Path'.
     # example: <bounce-lite-49020-5AA3B467C31BBE655281220B0583195B52956B70-2578@openacs.org>
 
