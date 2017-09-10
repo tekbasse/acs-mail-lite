@@ -1615,11 +1615,29 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 
     # oacs-5-9 MailDir way:
 
+    # message-id
+    # content-id
     # adds same unique id to 'message-id' and 'content-id'.
     # example: <17445.1479806245.127@openacs.wu-wien.ac.at.wu-wien.ac.at>
 
-    # adds a different unique id to 'reply-to' and 'mail-followup-to'.
+    # reply-to
+    # mail-followup-to
+    # parameter NotificationSender defaults to
+    #     reminder@ acs_mail_lite::address_domain 
+    # which defaults to:
+    #   reminder@ parameter BounceDomain
+    #   if set, otherwise to a driver hostname
+    # which..
+    # adds the same unique id to 'reply-to' and 'mail-followup-to'
+    # which is different than unique id in message-id and content-id.
     # example: "openacs.org mailer" <notification-5342759-2960@openacs.org>
+
+    # which is a variant from forums package.
+    # Where is it built? Not sure yet.
+    # 'from' header is built as:
+    #   party::email -party-id user_id
+    # in page:
+    # forums/www/message-email.tcl
 
     # adds a different unique id to 'Return-Path'.
     # example: <bounce-lite-49020-5AA3B467C31BBE655281220B0583195B52956B70-2578@openacs.org>
