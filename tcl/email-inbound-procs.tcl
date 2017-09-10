@@ -1613,7 +1613,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 
     
 
-    # oacs-5-9 MailDir way:
+    # existing oacs-5-9 'MailDir' ways:
 
     # message-id
     # Content-ID
@@ -1640,14 +1640,25 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # example: "openacs.org mailer" <notification-5342759-2960@openacs.org>
 
     # which is a variant from forums package.
-    # Where is it built? Not sure yet.
+    # Where is it built? Apparently in notifications package
+    #  notification::email::send
+    # located in file notifications/tcl/notification-email-procs.tcl
+    # reply_to built from 'send' calling 'reply_address'
+    # Mail-Followup-To is set to same value, then calls acs_mail_lite::send
+    #
     # 'from' header is built as:
     #   party::email -party-id user_id
     # in page:
     # forums/www/message-email.tcl
 
+    # acs-mail-lite::send_immediately 
     # adds a different unique id to 'Return-Path'.
     # example: <bounce-lite-49020-5AA3B467C31BBE655281220B0583195B52956B70-2578@openacs.org>
+    # address is built using acs_mail_lite::bounce_address
+    # Parsing is done with:
+    # acs_mail_lite::parse_bounce_address /acs_mail_lite::parse_email_address/
+    # in callback acs_mail_lite::incoming_email -impl acs-mail-lite
+
 
     # This proc should be capable of integrating with existing MailDir service
     # if the MailDir paradigm gets integrated into this generic incoming
