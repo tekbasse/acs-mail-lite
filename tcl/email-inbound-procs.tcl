@@ -1616,9 +1616,16 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # oacs-5-9 MailDir way:
 
     # message-id
-    # content-id
+    # Content-ID
     # adds same unique id to 'message-id' and 'content-id'.
     # example: <17445.1479806245.127@openacs.wu-wien.ac.at.wu-wien.ac.at>
+    # Content-ID is added by proc build_mime_message
+    # in file acs-tcl/tcl/html-email-procs.tcl
+    # message-id is built by acs_mail_lite::generate_message_id
+    
+    #                     or mime::unique_ID 
+    #              and used in acs_mail_lite::send_immediately 
+
 
     # reply-to
     # mail-followup-to
