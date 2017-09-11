@@ -1577,14 +1577,18 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     }
 
     ##code 
+    # This proc should be capable of integrating with MailDir based service
+    # whether as a legacy support or current choice (instead of IMAP).
 
-    # Note: message-id should be in form:
+
+    # Note for imap paradigm: message-id should be in form:
     # <unique_id@local_domain.example>
     # and unqiue_id should map to 
     # any package, party and/or object_id so
     # as to not leak info unnecessarily.
     # See table acs_mail_lite_send_msg_id_map
     # and acs_mail_lite::message_id_create/find/parse
+
 
     # Bounce info needs to be placed in an rfc
     # compliant header. Replies can take many forms.
@@ -1593,7 +1597,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # should we still try to make the MailDir work?
     # Should this work with MailDir regardless of IMAP?
     # Yes and yes.
-    # This should be as generic as possible.
+    # This should be as generic as possible and include legacy permutations.
 
     # headers to check:
 
@@ -1613,29 +1617,10 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 
     
 
-    # existing oacs-5-9 'MailDir' ways:
-
-    # message-id
-    # Content-ID
-    # adds same unique id to 'message-id' and 'content-id'.
-    # example: <17445.1479806245.127@openacs.wu-wien.ac.at.wu-wien.ac.at>
-
-    # Content-ID is added by proc:  build_mime_message
-    # in file acs-tcl/tcl/html-email-procs.tcl
-    # message-id is built by acs_mail_lite::generate_message_id
-    #                     or mime::unique_ID 
-    #              and used in acs_mail_lite::send_immediately 
-
-    # mime::unique_id:
-    #return "<[pid].[clock seconds].[incr mime(cid)]@[info hostname]>"
-    # To make acs_mail_lite_send_msg_id_map more robust,
-    # allow it to import other references via a separate table map,
-    # so it can be used as a reference.. albeit cluncky, until 
-    # openacs devs incorporate acs_mail_lite_send_msg_id_map
-
+    # existing oacs-5-9 'MailDir' ways:    
 
     # reply-to
-    # mail-followup-to
+    # Mail-Followup-To
     # parameter NotificationSender defaults to
     #     reminder@ acs_mail_lite::address_domain 
     # which defaults to:
@@ -1643,33 +1628,64 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     #   if set, otherwise to a driver hostname
     # which..
     # adds the same unique id to 'reply-to' and 'mail-followup-to'
-    # which is different than unique id in message-id and content-id.
     # example: "openacs.org mailer" <notification-5342759-2960@openacs.org>
-
-    # which is a variant from forums package.
-    # Where is it built? Apparently in notifications package
-    #  notification::email::send
+    # apparently built in notification::email::send
     # located in file notifications/tcl/notification-email-procs.tcl
-    # reply_to built from 'send' calling 'reply_address'
+    # reply_to built by calling local notification::email::reply_address
+    # where:
+    # if $object_id or $type_id is empty string:
+    #" \address_domai\] mailer <\reply_address_prefix\@\address_domain\>"
+    # else
+    # "\address_domain\ mailer <\reply_address_prefix\-$object_id-$type_id@\address_domain\>"
+    # where address_domain gets notifications package parameter EmailDomain
+    # and defaults to domain from ad_url
+    # and where reply_address_prefix gets notifications package parameter EmailReplyAddressPrefix
     # Mail-Followup-To is set to same value, then calls acs_mail_lite::send
-    #
+ 
+    # from
     # 'from' header is built as:
     #   party::email -party-id user_id
     # in page:
     # forums/www/message-email.tcl
 
     # acs-mail-lite::send_immediately 
+    # 'from' header defaults to acs_mail_lite parameter FixedSenderEmail
+    # 'Reply-to' defaults to 'from' header value.
     # adds a different unique id to 'Return-Path'.
     # example: <bounce-lite-49020-5AA3B467C31BBE655281220B0583195B52956B70-2578@openacs.org>
     # address is built using acs_mail_lite::bounce_address
     # Parsing is done with:
     # acs_mail_lite::parse_bounce_address /acs_mail_lite::parse_email_address/
     # in callback acs_mail_lite::incoming_email -impl acs-mail-lite
+    # message-id
+    # Content-ID
+    # adds same unique id to 'message-id' and 'content-id'.
+    # example: <17445.1479806245.127@openacs.wu-wien.ac.at.wu-wien.ac.at>
+
+    # Content-ID is added by proc:  build_mime_message
+    # which relies on tcllib mime package
+    # in file acs-tcl/tcl/html-email-procs.tcl
+    # message-id is built by acs_mail_lite::generate_message_id
+    #                     or mime::uniqueID 
+    #              and used in acs_mail_lite::send_immediately 
+
+    # mime::uniqueID: 
+    #return "<[pid].[clock seconds].[incr mime(cid)]@[info hostname]>"
+    # is defined in ns/lib/tcllib1.18/mime/mime.tcl
+    # mime(cid) is a counter that incriments by one each time called.
 
 
-    # This proc should be capable of integrating with existing MailDir service
-    # if the MailDir paradigm gets integrated into this generic incoming
-    # email handler.
+
+    # To make acs_mail_lite_send_msg_id_map more robust,
+    # should it be designed to import other references via a table map
+    # so external references can be used?   No.
+    # acs_mail_lite::message_id_create is slower than mime::uniqueID, yet
+    # reading an indexed integer from db will be faster than indexed string.
+    # Leave updating other reference uses to the discretion of
+    # openacs core developers.
+    ##code Recommend replacing use of mime::uniqueID with acs_mail_lite::generate_message_id
+
+
 
     # bounce_ordered_list = b_ol
     # MailDir incoming email api likely does not work for 
