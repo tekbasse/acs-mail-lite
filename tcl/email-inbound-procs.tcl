@@ -1595,7 +1595,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # Yes and yes.
     # This should be as generic as possible.
 
-    # Headers to check:
+    # headers to check:
 
     # original-message_id
     # original-envelope-id  
@@ -1619,12 +1619,19 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # Content-ID
     # adds same unique id to 'message-id' and 'content-id'.
     # example: <17445.1479806245.127@openacs.wu-wien.ac.at.wu-wien.ac.at>
-    # Content-ID is added by proc build_mime_message
+
+    # Content-ID is added by proc:  build_mime_message
     # in file acs-tcl/tcl/html-email-procs.tcl
     # message-id is built by acs_mail_lite::generate_message_id
-    
     #                     or mime::unique_ID 
     #              and used in acs_mail_lite::send_immediately 
+
+    # mime::unique_id:
+    #return "<[pid].[clock seconds].[incr mime(cid)]@[info hostname]>"
+    # To make acs_mail_lite_send_msg_id_map more robust,
+    # allow it to import other references via a separate table map,
+    # so it can be used as a reference.. albeit cluncky, until 
+    # openacs devs incorporate acs_mail_lite_send_msg_id_map
 
 
     # reply-to
