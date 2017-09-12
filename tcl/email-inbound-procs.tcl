@@ -1551,10 +1551,6 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     {-header_name_list ""}
 
 } {
-    Attempts to find openacs generated unique id from inbound email headers.
-
-    OpenACS generates a variety of headers.
-
     Returns openacs data associated with original outbound email in
     the header_array_name and as an ordered list of values:
     package_id, party_id, object_id, other, datetime_cs 
@@ -1562,14 +1558,26 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     Array indexes have suffix aml_ added to index name:
     aml_package_id, aml_party_id, aml_object_id, aml_other, aml_datetime_cs 
 
-
     If a value is not found, an empty string is returned for the value.
+
+
+    For openacs generated unique ids from inbound email headers, see these procs:
 
     @see acs_mail_lite::message_id_create
     @see acs_mail_lite::message_id_parse
 
     @see acs_mail_lite::generate_message_id
+    @see acs_mail_lite::bounce_address
     @see acs_mail_lite::parse_bounce_address
+
+    @see notification::email::reply_address_prefix
+    @see notification::email::reply_address
+    @see notification::email::address_domain
+    @see notification::email::send
+    @see acs_mail_lite::send
+
+    @see mime::uniqueID
+    @see acs_mail_lite::send_immediately
 } {
     upvar 1 $header_array_name h_arr
     if { $header_name_list eq "" } {
@@ -1599,7 +1607,8 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # Yes and yes.
     # This should be as generic as possible and include legacy permutations.
 
-    # headers to check:
+    # According to RFCs,
+    # these are the headers to check in a reply indicating original context:
 
     # original-message_id
     # original-envelope-id  
@@ -1610,15 +1619,16 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     
     # original-recipient    may contain original 'to' address of party_id
 
-    # A unique reference is case sensitive, same as original email's envelope-id) per rfc3464 2.2.1
-    # angle brackets are used to quote unique reference
+    # unique references are case sensitive per rfc3464 2.2.1
+    # original email's envelope-id value is case sensitive per rfc3464 2.2.1
+    # Angle brackets are used to quote a unique reference
 
 
+    # existing oacs-5-9 'MailDir' ways to show context or authenticate origin:
 
-    
-
-    # existing oacs-5-9 'MailDir' ways:    
-
+    #
+    # Notifications package
+    #
     # reply-to
     # Mail-Followup-To
     # parameter NotificationSender defaults to
@@ -1634,19 +1644,23 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # reply_to built by calling local notification::email::reply_address
     # where:
     # if $object_id or $type_id is empty string:
-    #" \address_domai\] mailer <\reply_address_prefix\@\address_domain\>"
+    #" \address_domain\ mailer <\reply_address_prefix\@\address_domain\>"
     # else
     # "\address_domain\ mailer <\reply_address_prefix\-$object_id-$type_id@\address_domain\>"
     # where address_domain gets notifications package parameter EmailDomain
     # and defaults to domain from ad_url
     # and where reply_address_prefix gets notifications package parameter EmailReplyAddressPrefix
     # Mail-Followup-To is set to same value, then calls acs_mail_lite::send
- 
-    # from
     # 'from' header is built as:
     #   party::email -party-id user_id
     # in page:
     # forums/www/message-email.tcl
+    #
+    # Test authenticity with message_id, then set user_id to party_id of email
+
+
+
+
 
     # acs-mail-lite::send_immediately 
     # 'from' header defaults to acs_mail_lite parameter FixedSenderEmail
@@ -1669,10 +1683,12 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     #                     or mime::uniqueID 
     #              and used in acs_mail_lite::send_immediately 
 
+    # acs_mail_lite::generate_message_id:
+    #     return "/clock clicks/./ns_time/.oacs@/address_domain/>"
     # mime::uniqueID: 
-    #return "<[pid].[clock seconds].[incr mime(cid)]@[info hostname]>"
-    # is defined in ns/lib/tcllib1.18/mime/mime.tcl
-    # mime(cid) is a counter that incriments by one each time called.
+    #     return "</pid/./clock seconds/./incr mime(cid)/@/info hostname/>"
+    #     is defined in ns/lib/tcllib1.18/mime/mime.tcl
+    #     mime(cid) is a counter that incriments by one each time called.
 
 
 
