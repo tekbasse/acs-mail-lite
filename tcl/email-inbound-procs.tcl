@@ -660,7 +660,8 @@ ad_proc -public acs_mail_lite::email_type {
         set from_email ""
         if { $fr_idx > -1 } {
             set fr_h [lindex $hn_list $fr_idx]
-            set from $h_arr(${fr_h})
+            set from [ad_quotehtml $h_arr(${fr_h})]
+            set h_arr(aml_from) $from
             set from_email [string tolower \
                                 [acs_mail_lite::parse_email_address \
                                      -email $from]]
@@ -1051,8 +1052,10 @@ ad_proc -private acs_mail_lite::inbound_queue_insert {
                 aml_to_addrs -
                 to {
                     if { ![info exists h_arr(aml_to_addrs)] } {
+                        set h_quoted [ad_quotehtml $h_value]
+                        set h_arr(aml_to) $h_quoted
                         set to_email_addrs [acs_mail_lite::parse_email_address \
-                                                -email $h_value ]
+                                                -email $h_quoted ]
                         set h_arr(aml_to_addrs) $to_email_addrs
                     } else {
                         set to_email_addrs $h_arr(aml_to_addrs)
@@ -1581,7 +1584,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 } {
     upvar 1 $header_array_name h_arr
     if { $header_name_list eq "" } {
-        set h_n_list [array names h_arr]
+        set hn_list [array names h_arr]
     }
 
     ##code 
@@ -1623,8 +1626,11 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # original email's envelope-id value is case sensitive per rfc3464 2.2.1
     # Angle brackets are used to quote a unique reference
 
-
+    #
+    #
+    #
     # existing oacs-5-9 'MailDir' ways to show context or authenticate origin:
+    #
 
     #
     # Notifications package
@@ -1638,19 +1644,25 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     #   if set, otherwise to a driver hostname
     # which..
     # adds the same unique id to 'reply-to' and 'mail-followup-to'
+    ## Isn't message_id more generic than reply-to?
+
     # example: "openacs.org mailer" <notification-5342759-2960@openacs.org>
     # apparently built in notification::email::send
     # located in file notifications/tcl/notification-email-procs.tcl
     # reply_to built by calling local notification::email::reply_address
     # where:
     # if $object_id or $type_id is empty string:
-    #" \address_domain\ mailer <\reply_address_prefix\@\address_domain\>"
+    #" /address_domain/ mailer \
+    #    </reply_address_prefix/@/address_domain/>"
     # else
-    # "\address_domain\ mailer <\reply_address_prefix\-$object_id-$type_id@\address_domain\>"
+    # "/address_domain/ mailer \
+    #    </reply_address_prefix/-$object_id-$type_id@/address_domain/>"
     # where address_domain gets notifications package parameter EmailDomain
     # and defaults to domain from ad_url
-    # and where reply_address_prefix gets notifications package parameter EmailReplyAddressPrefix
+    # and where reply_address_prefix gets
+    # notifications package parameter EmailReplyAddressPrefix
     # Mail-Followup-To is set to same value, then calls acs_mail_lite::send
+
     # 'from' header is built as:
     #   party::email -party-id user_id
     # in page:
@@ -1658,6 +1670,43 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     #
     # Test authenticity with message_id, then set user_id to party_id of email
 
+    
+    # in-reply-to = irt
+    set irt_idx [lsearch -exact -nocase $hn_list "in-reply-to"]
+    if { $irt_idx > -1 } {
+        set irt_n [lindex $hn_list $irt_idx]
+        set in_reply_to_list [list $h_arr(${irt_n})]
+    } else {
+        set in_reply_to_list [list ""]
+    }
+
+    set references_idx [lsearch -exact -nocase $hn_list "references" ]
+    if { $refreences_idx > -1 } {
+        set references_n [lindex $hn_list $references_idx]
+        set references_list [split $h_arr(${references_n}) ]
+    } else {
+        set references_list [list ]
+    }
+
+    # message_ids = mids
+    set mids_list [concat $in_reply_to_list $refrences_list]
+    set mids_list_len [length $mids_list]
+    set i 0
+    while $i < $mids_list_len {
+        set test [lindex $mids_list $i]
+        if { $test ne "" } {
+            
+            # parse for notification message_id
+
+        }
+
+        incr i
+    }
+    # Are original headers to be expected in replies??
+    # If so,
+    # mail_followup_to = mft
+    # set mft_idx /lsearch -exact -nocase $hn_list "mail_followup_to_idx" /
+    # ...
 
 
 
@@ -1700,7 +1749,8 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # Leave updating other reference uses to the discretion of
     # openacs core developers.
     ##code Recommend replacing use of mime::uniqueID with acs_mail_lite::generate_message_id
-
+    # Don't assume acs_mail_lite::valid_signature works. It appears to check
+    # an unknown form and is orphaned (not used).
 
 
     # bounce_ordered_list = b_ol

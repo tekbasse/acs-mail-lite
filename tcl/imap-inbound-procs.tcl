@@ -772,6 +772,7 @@ msgno '${msgno}' section_ref '${section_ref}'"
                     type {
                         set type $v
                     }
+                    
                     default {
                         # do nothing
                     }
