@@ -14,8 +14,9 @@ namespace eval acs_mail_lite {}
 # other inbound email paradigms with minimal amount
 # of re-factoring of code.
 
-# See acs_mail_lite::imap_check_incoming
-# for a template for creating a generic version:
+## code
+# Use acs_mail_lite::imap_check_incoming
+# as a template for creating a generic version:
 # acs_mail_lite::check_incoming
 
 ad_proc -public acs_mail_lite::sched_parameters {
@@ -848,6 +849,12 @@ ad_proc -public acs_mail_lite::email_type {
         # Note: original-envelope-id is not same as message-id.
         # original-recipient = or
         set or_idx [lsearch -glob -nocase $hn_list {original-recipient}]
+        if { $or_idx < 0 } {
+            # RFC3461 4.2 uses original-recipient-address
+            set or_idx [lsearch -glob \
+                            -nocase $hn_list {original-recipient-address}]
+        }
+
         # action = ac (required for DSN)
         # per fc3464 s2.3.3
         set ac_idx [lsearch -glob -nocase $hn_list {action}]
@@ -1610,17 +1617,34 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # Yes and yes.
     # This should be as generic as possible and include legacy permutations.
 
+    # General constraints:
+    #header field characters limited to US-ASCII characters between 33 and 126
+    # inclusive per rfc5322 2.2 https://tools.ietf.org/html/rfc5322#section-2.2
+    # and white-space characters 32 and 9.
+
+    # per rfc6532 3.3 and 5322 2.1.1, "Each line of characters must be no more
+    # than 998 characters, and should be no more than 78 characters.."
+    # A domain name can take up to 253 characters.
+
+    # Setting aside about 60 characters for a signature for a signed message-id
+    # should be okay even though it almost guarantees all cases of message_id
+    # will be over 78 characters.
+
+
     # According to RFCs,
     # these are the headers to check in a reply indicating original context:
 
     # original-message_id
     # original-envelope-id  
-    # message-id 
+    # message-id a unique message id per rfc2822 3.6.4
     # msg-id 
     # In-Reply-to space delimited list of unique message ids per rfc2822 3.6.4
     # References  space delimited list of unique message ids per rfc2822 3.6.4
-    
+ 
+
     # original-recipient    may contain original 'to' address of party_id
+    # original-recipient-address is used by rfc3461 4.2
+    # https://tools.ietf.org/html/rfc3461#section-4.2
 
     # unique references are case sensitive per rfc3464 2.2.1
     # original email's envelope-id value is case sensitive per rfc3464 2.2.1
