@@ -2,7 +2,27 @@
   <property name="title">@title;noquote@</property>
   <property name="context">@context;noquote@</property>
   <h1>@title@</h1>
-  <h2>Setup incoming email</h2>
+  <p>
+    Incoming email can come from a variety of sources. 
+    Currently there are these distinct paradigms for setting up return email:
+    </p>
+  <ol>
+    <li>
+      A fixed outbound email address. FixedSenderEmail parameter defines
+      the email address used. Each package sending email can create
+      and set its own FixedSenderEmail parameter. The default
+      is to use ACS-Mail-Lite's parameter.
+    </li><li>
+      A dynamic originator address that results in a custom return
+      email address for each outbound email. 
+      This provides an alternate way to supply the original message_id key, 
+      if the message_id key is altered.
+    </li>
+  </ol>
+  <p>
+  <h3>IMAP</h3>
+
+  <h3>postfix MailDir on Linux OS</h3>
   <p>
     Here is a how-to guide setting up a system using postfix in a Linux OS.
   </p>

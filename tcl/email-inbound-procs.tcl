@@ -1618,11 +1618,11 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # This should be as generic as possible and include legacy permutations.
 
     # General constraints:
-    #header field characters limited to US-ASCII characters between 33 and 126
+    # Header field characters limited to US-ASCII characters between 33 and 126
     # inclusive per rfc5322 2.2 https://tools.ietf.org/html/rfc5322#section-2.2
     # and white-space characters 32 and 9.
 
-    # per rfc6532 3.3 and 5322 2.1.1, "Each line of characters must be no more
+    # Per rfc6532 3.3 and 5322 2.1.1, "Each line of characters must be no more
     # than 998 characters, and should be no more than 78 characters.."
     # A domain name can take up to 253 characters.
 
@@ -1630,25 +1630,39 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # should be okay even though it almost guarantees all cases of message_id
     # will be over 78 characters.
 
+    # Unique references are case sensitive per rfc3464 2.2.1
+    # original email's envelope-id value is case sensitive per rfc3464 2.2.1
+    # Angle brackets are used to quote a unique reference
+
 
     # According to RFCs,
     # these are the headers to check in a reply indicating original context:
 
-    # original-message_id
+    # original-message-id
     # original-envelope-id  
-    # message-id a unique message id per rfc2822 3.6.4
-    # msg-id 
-    # In-Reply-to space delimited list of unique message ids per rfc2822 3.6.4
-    # References  space delimited list of unique message ids per rfc2822 3.6.4
- 
-
+    # message-id            a unique message id per rfc2822 3.6.4
+    #                       assigned by originator per rfc5598 3.4.1
+    #                        https://tools.ietf.org/html/rfc5598#section-3.4.1
+    #
+    # originator            A special case alternate to 'From' header.
+    #                       Usually defined by first SMTP MTA.
+    #                       Notices may be sent to this address when
+    #                       a bounce notice to the original email's 'From'
+    #                       address bounces.
+    #                       See RFC5321 2.3.1 
+    #                        https://tools.ietf.org/html/rfc5321#section-2.3.1
+    #                       and RFC5598 2.2.1 
+    #                        https://tools.ietf.org/html/rfc5598#section-2.1
+    # msg-id
+    # In-Reply-to  space delimited list of unique message ids per rfc2822 3.6.4
+    # References   space delimited list of unique message ids per rfc2822 3.6.4
+    #
     # original-recipient    may contain original 'to' address of party_id
-    # original-recipient-address is used by rfc3461 4.2
-    # https://tools.ietf.org/html/rfc3461#section-4.2
-
-    # unique references are case sensitive per rfc3464 2.2.1
-    # original email's envelope-id value is case sensitive per rfc3464 2.2.1
-    # Angle brackets are used to quote a unique reference
+    # original-recipient-address
+    #                       is an alternate to original-recipient 
+    #                       used by rfc3461 4.2 
+    #                        https://tools.ietf.org/html/rfc3461#section-4.2
+    #
 
     #
     #
@@ -1662,9 +1676,9 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # reply-to
     # Mail-Followup-To
     # parameter NotificationSender defaults to
-    #     reminder@ acs_mail_lite::address_domain 
+    #     remainder@ acs_mail_lite::address_domain 
     # which defaults to:
-    #   reminder@ parameter BounceDomain
+    #   remainder@ parameter BounceDomain
     #   if set, otherwise to a driver hostname
     # which..
     # adds the same unique id to 'reply-to' and 'mail-followup-to'
