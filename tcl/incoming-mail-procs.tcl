@@ -17,22 +17,32 @@ namespace eval acs_mail_lite {
     ad_proc -public address_domain {} {
 	@return domain address to which bounces are directed to
     } {
-        set domain [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter "BounceDomain"]
+        set domain [parameter::get_from_package_key \
+                        -package_key "acs-mail-lite" \
+                        -parameter "BounceDomain"]
         if { $domain eq "" } {
-            #
-            # If there is no domain configured, use the configured
-            # hostname as domain name
-            #
-            foreach driver {nsssl nssock} {
-                set driver_section [ns_driversection -driver $driver]
-                set configured_hostname [ns_config $driver_section hostname]
-                if {$configured_hostname ne ""} {
-                    set domain $configured_hostname
-                    break
+            # Assume a FixedSenderEmail domain, if it exists.
+            set email [parameter::get_from_package_key \
+                           -package_key "acs-mail-lite" \
+                           -parameter "FixedSenderEmail"]
+            if { $email ne "" } {
+                set domain [string range $email [string last "@" $email]+1 end]
+            } else {
+                #
+                # If there is no domain configured, use the configured
+                # hostname as domain name
+                #
+                foreach driver {nsssl nssock} {
+                    set section [ns_driversection -driver $driver]
+                    set configured_hostname [ns_config $section hostname]
+                    if {$configured_hostname ne ""} {
+                        set domain $configured_hostname
+                        break
+                    }
                 }
             }
-	}
-	return $domain
+        }
+        return $domain
     }
     
 
@@ -269,7 +279,7 @@ namespace eval acs_mail_lite {
 	mime::finalize $mime -subordinates all
     }    
 
-    ad_proc -public autoreply_p {
+    ad_proc -public -autoreply_p {
 	{-subject ""}
 	{-from ""}
     } {
@@ -280,6 +290,8 @@ namespace eval acs_mail_lite {
 	@param from From address which will be checked if it is coming from a mailer daemon
 
 	@return 1 if this is actually an autoreply
+
+    @See acs_mail_lite::email_type
     } {
 	set autoreply_p 0
 	if {$subject ne ""} {

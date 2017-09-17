@@ -1472,40 +1472,39 @@ ad_proc -private acs_mail_lite::section_id_of {
 }
 
 ad_proc -private acs_mail_lite::message_id_create {
+    {-message_id ""}
     {-package_id ""}
     {-party_id ""}
     {-object_id ""}
     {-other ""}
 } {
-    Creates a unique reference for an outbound email header message-id or msg-id
+    Returns a message_id into a signed message_id for an outbound email header message-id or msg-id where package_id, party_id, object_id, and/or other info are mapped to message-id. If message_id is empty string, creates a message_id then converts it.
 } {
-    set not_unique_p 1
-    set count 0
-    set bigint_max 9223372036854775807
-    incr bigint_max -2
-    while { $not_unique_p } {
-        set id [randomRange $bigint_max]
-        incr count
-        if { $count > 3 && [f::even_p $count ] } {
-            ns_log Warning "acs_mail_lite::message_id_create id '${id}' \
- Check this randomization, if this message is frequently repeated."
+    set last_at_idx [string last "@" $message_id]
+    if { $last_at_idx < 0 || [string match "<*>" $message_id]} {
+        set message_id [mime::uniqueID]
+        set last_at_idx [string last "@" $message_id]
+    }
+    if { $package_id ne "" \
+             || $party_id ne "" \
+             || $object_id ne "" \
+             || $other ne "" } {
+        # Sign this message-id, and map message-id to values
+        set uid [string range $message_id 1 $last_at_idx-1]
+        set domain [string range $message_id $last_at_idx+1 end-1]
+        set signed_message_id [ad_sign -max_age 600 $message_id]
+        set datetime_cs [clock seconds]
+        db_dml acs_mail_lite_send_msg_id_map_w1 {
+            insert into acs_mail_lite_send_msg_id_map
+            (msg_id,package_id,party_id,object_id,other,datetime_cs)
+            values (:id,:package_id,:party_id,:object_id,:other,:datetime_cs)
         }
-        set not_unique_p [db_0or1row acs_mail_lite_send_msg_id_map_r1 {
-            select msg_id from acs_mail_lite_send_msg_id_map
-            where msg_id=:id } ]
+        
+        set message_id "<"
+        append message_id [ns_base64encode $id] "@" [info hostname] ">"
+    } else {
+        # no change
     }
-    set datetime_cs [clock seconds]
-    db_dml acs_mail_lite_send_msg_id_map_w1 {
-        insert into acs_mail_lite_send_msg_id_map
-        (msg_id,package_id,party_id,object_id,other,datetime_cs)
-        values (:id,:package_id,:party_id,:object_id,:other,:datetime_cs)
-    }
-
-    # 'binary encode hex message_id' does not work in NaviServer.
-    # Use ns_base64encode
-    set message_id "<"
-    append message_id [ns_base64encode $id] "@" [info hostname] ">"
-
     return $message_id
 }
 

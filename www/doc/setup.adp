@@ -11,7 +11,13 @@
       A fixed outbound email address. FixedSenderEmail parameter defines
       the email address used. Each package sending email can create
       and set its own FixedSenderEmail parameter. The default
-      is to use ACS-Mail-Lite's parameter.
+      is to use ACS-Mail-Lite's parameter. 
+      As an originating smtp agent, orignator is set to the
+      ACS-Mail-Lite's parameter, if it is not empty.
+      The replying email's message-id is used to reference any mapped
+      information about the email, such as package_id or object_id.
+      The message-id includes a signed signature to detect and reject
+      a tampered message-id.
     </li><li>
       A dynamic originator address that results in a custom return
       email address for each outbound email. 
