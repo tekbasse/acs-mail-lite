@@ -15,7 +15,9 @@ namespace eval acs_mail_lite {
 
     #---------------------------------------
     ad_proc -public address_domain {} {
-	@return domain address to which bounces are directed to
+	@return domain address to which bounces are directed to.
+        If empty, uses domain from FixedSenderEmail parameter,
+        otherwise the hostname in config.tcl is used.
     } {
         set domain [parameter::get_from_package_key \
                         -package_key "acs-mail-lite" \
@@ -32,7 +34,7 @@ namespace eval acs_mail_lite {
                 # If there is no domain configured, use the configured
                 # hostname as domain name
                 #
-                foreach driver {nsssl nssock} {
+                foreach driver {nsssl nssock_v4 nssock_v6 nssock} {
                     set section [ns_driversection -driver $driver]
                     set configured_hostname [ns_config $section hostname]
                     if {$configured_hostname ne ""} {

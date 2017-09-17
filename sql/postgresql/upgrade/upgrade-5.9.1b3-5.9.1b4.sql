@@ -334,7 +334,7 @@ create index acs_mail_lite_ie_section_ref_map_section_id_idx
 create table acs_mail_lite_send_msg_id_map (
        -- a randomized number unique to this table
        -- unique not null
-       msg_id        bigint primary key,
+       msg_id        text primary key,
        package_id    integer
                      constraint amlq_package_id_fk
                      references apm_packages,

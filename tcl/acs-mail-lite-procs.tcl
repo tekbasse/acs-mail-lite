@@ -438,8 +438,30 @@ namespace eval acs_mail_lite {
             set reply_to $from_addr
         }
 
+        # Get any associated data indicating need to sign message-id
+
+        # associate a user_id
+        set rcpt_id 0
+        if { [llength $to_addr] eq 1 } {
+            set rcpt_id [party::get_by_email -email $to_addr]
+        }
+        set rcpt_id [ad_decode $rcpt_id "" 0 $rcpt_id]
+
+
         # Set the message_id
-        set message_id [mime::uniqueID]
+        # message-id gets signed if user_id or package_id not defaults        
+        set message_id [acs_mail_lite::message_id_create \
+                            -message_id $message_id \
+                            -package_id $package_id \
+                            -party_id $rcpt_id]
+
+
+        # Build the originator address to be used as enveloppe sender
+        # and originator etc. 
+        set orginator [bounce_address -user_id $rcpt_id \
+                            -package_id $package_id \
+                            -message_id $message_id]
+
 
         # Set the date
         set message_date [acs_mail_lite::utils::build_date]
@@ -588,16 +610,7 @@ namespace eval acs_mail_lite {
             lappend headers_list [list DCC [join $bcc_addr ","]]
         }
 
-        # Build the originator address to be used as enveloppe sender
-        set rcpt_id 0
-        if { [llength $to_addr] eq 1 } {
-            set rcpt_id [party::get_by_email -email $to_addr]
-        }
-        set rcpt_id [ad_decode $rcpt_id "" 0 $rcpt_id]
-
-        set originator [bounce_address -user_id $rcpt_id \
-                            -package_id $package_id \
-                            -message_id $message_id]
+        set originator $message_id
 
         set errorMsg ""
         set status ok

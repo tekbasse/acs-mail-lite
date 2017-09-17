@@ -1478,33 +1478,39 @@ ad_proc -private acs_mail_lite::message_id_create {
     {-object_id ""}
     {-other ""}
 } {
-    Returns a message_id into a signed message_id for an outbound email header message-id or msg-id where package_id, party_id, object_id, and/or other info are mapped to message-id. If message_id is empty string, creates a message_id then converts it.
+    Returns a message_id for an outbound email header message-id.
+    Signes message_id when package_id, party_id, object_id, and/or other info are supplied. party_id is not supplied if its value is empty string or 0. 
+    package_id not supplied when it is the default acs-mail-lite package_id. 
+    If message_id is empty string, creates a message_id then processes it.
 } {
     set last_at_idx [string last "@" $message_id]
-    if { $last_at_idx < 0 || [string match "<*>" $message_id]} {
+    if { $last_at_idx < 0 || ![string match "<*>" $message_id]} {
         set message_id [mime::uniqueID]
         set last_at_idx [string last "@" $message_id]
     }
-    if { $package_id ne "" \
-             || $party_id ne "" \
+    set aml_package_id [apm_package_id_from_key "acs-mail-lite"]
+    if { ( $package_id ne "" && $package_id ne $aml_package_id ) \
+             || ( $party_id ne "" && $party_id ne "0" ) \
              || $object_id ne "" \
              || $other ne "" } {
         # Sign this message-id, and map message-id to values
         set uid [string range $message_id 1 $last_at_idx-1]
         set domain [string range $message_id $last_at_idx+1 end-1]
-        set signed_message_id [ad_sign -max_age 600 $message_id]
+        # Just sign the uid part
+        set max_age [parameter::get -parameter "IncomingMaxAge" \
+                         -package_id $aml_package_id ]
+        set signed_message_id [ad_sign -max_age $max_age $uid]
+        regsub -all -- { } $signed_message_id {-} signed_message_id
         set datetime_cs [clock seconds]
         db_dml acs_mail_lite_send_msg_id_map_w1 {
             insert into acs_mail_lite_send_msg_id_map
             (msg_id,package_id,party_id,object_id,other,datetime_cs)
-            values (:id,:package_id,:party_id,:object_id,:other,:datetime_cs)
+            values (:uid,:package_id,:party_id,:object_id,:other,:datetime_cs)
         }
         
         set message_id "<"
-        append message_id [ns_base64encode $id] "@" [info hostname] ">"
-    } else {
-        # no change
-    }
+        append message_id $uid "-" $signed_message_id "@" $domain ">"
+    } 
     return $message_id
 }
 
@@ -1518,18 +1524,32 @@ ad_proc -private acs_mail_lite::message_id_parse {
 
     see @acs_mail_lite::message_id_create
 } {
-    # 'binary decode hex message_id' does not work in NaviServer.
-    # Use ns_base64decode
-    if { [string range $message_id 0 0] eq "<" } {
+    if { [string match "<*>" $message_id] } {
         # remove quote which is not part of message id according to RFCs
         set message_id [string range $message_id 1 end-1]
     }
-    set last_at [string last "@" $message_id]
+    set last_at_idx [string last "@" $message_id]
+    
+    set domain [string range $message_id $last_at_idx+1 end]
+    set unique_part [string range $message_id 0 $last_at_idx-1]
+    set first_dash_idx [string first "-" $unique_part]
+    if { $first_dash_idx > -1 } {
+        set unique_id [string range $unique_part 0 $first_dash_idx-1]
+        set sign [string range $unique_part $first_dash_idx+1 end]
+        set sign_list [split $sign "-"]
+        if { [llength $sign_list] == 3 } {
+
+        } else {
+            set sign_list [list ]
+        }
+    } else {
+        set unique_id $unique_part
+        set sign_list [list ]
+    }
+    ##code stopped here
     set p_list [list ]
-    if { [string range $message_id $last_at+1 end] eq [info hostname] } {
-        set unique_part [string range $message_id 0 $last_at-1]
-        set msg_id [ns_base64decode $unique_part]
-        ns_log Dev "acs_mail_lite::message_id_parse msg_id '${msg_id}'"
+    ns_log Dev "acs_mail_lite::message_id_parse msg_id '${msg_id}'"
+
         if { [string is wideinteger -strict $msg_id] } {
             set p_lists [db_list_of_lists acs_mail_lite_send_msg_id_map_r1all {
                 select package_id,party_id,object_id,other,datetime_cs

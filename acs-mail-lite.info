@@ -29,6 +29,7 @@
         <parameters>
             <parameter scope="instance" datatype="string"  min_n_values="1"  max_n_values="1"  name="IncomingFilterProcName"  description="Procedure name for custom filtering of incoming email. Default is empty string." section_name="inbound_email"/>
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="IncomingScanRate"  default="120" description="Duration between scans for new email (seconds)" section_name="inbound_email"/>
+            <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="IncomingMaxAge"  default="604800" description="Maximum time to accept replies from sent email before expiring. 604800 is 1 week of (seconds). 0 = does not expire" section_name="inbound_email"/>
             <parameter scope="instance" datatype="string"  min_n_values="1"  max_n_values="1"  name="IncomingDomain"  description="Email Domain for incoming messages" section_name="inbound_email"/>
             <parameter scope="instance" datatype="string"  min_n_values="1"  max_n_values="1"  name="IncomingMailDir"  description="Location of the maildir location that accepts incoming bounces" section_name="inbound_email"/>
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="SendImmediatelyP"  default="0" description="Boolean value. Answers question: Should email be sent immediately? 1 = yes, 0 = now, store in queue before sending. (replaces parameter 'send_immediately')" section_name="email"/>
