@@ -136,6 +136,11 @@ namespace eval acs_mail_lite {
 
         set smtppassword [parameter::get -parameter "SMTPPassword" \
                               -package_id $mail_package_id]
+
+        # Consider adding code here to 
+        # set orignator to acs-mail-lite parameter FixedSenderEmail
+        # if FixedSenderEmail is not empty,
+        # so as to be consistent for all cases calling this proc.
         
         set cmd [list smtp::sendmessage $multi_token -originator $originator]
         foreach header $headers {
