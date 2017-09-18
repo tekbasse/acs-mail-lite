@@ -1444,7 +1444,6 @@ ad_proc -private acs_mail_lite::section_id_of {
 } {
     set section_id ""
     if { [regexp -- {^[0-9\.]*$} $section_ref ] } {
-        # Are dots okay in db cache keys? Assume not? Assume can. Test 2 know
         
         if { $section_ref eq "" } {
             set section_id -1
@@ -1479,7 +1478,7 @@ ad_proc -private acs_mail_lite::message_id_create {
     {-other ""}
 } {
     Returns a message_id for an outbound email header message-id.
-    Signes message_id when package_id, party_id, object_id, and/or other info are supplied. party_id is not supplied if its value is empty string or 0. 
+    Signs message_id when package_id, party_id, object_id, and/or other info are supplied. party_id is not supplied if its value is empty string or 0. 
     package_id not supplied when it is the default acs-mail-lite package_id. 
     If message_id is empty string, creates a message_id then processes it.
 } {
@@ -1488,28 +1487,65 @@ ad_proc -private acs_mail_lite::message_id_create {
         set message_id [mime::uniqueID]
         set last_at_idx [string last "@" $message_id]
     }
+    # remove quotes, adjust last_at_idx
+    set message_id [string range $message_id 1 end-1]
+    incr last_at_idx -1
+
+    set bounce_domain [acs_mail_lite::address_domain]
+    if { [string range $message_id $last_at_idx+1 end-1] ne $bounce_domain } { 
+        # Use bounce's address_domain instead
+        # because message-id may also be used as originator
+        set message_id [string range $message_id 0 $last_at_idx]
+        append message_id $bounce_domain
+    }
+
     set aml_package_id [apm_package_id_from_key "acs-mail-lite"]
     if { ( $package_id ne "" && $package_id ne $aml_package_id ) \
              || ( $party_id ne "" && $party_id ne "0" ) \
              || $object_id ne "" \
              || $other ne "" } {
         # Sign this message-id, and map message-id to values
-        set uid [string range $message_id 1 $last_at_idx-1]
-        set domain [string range $message_id $last_at_idx+1 end-1]
+        set uid [string range $message_id 0 $last_at_idx-1]
+        set domain [string range $message_id $last_at_idx+1 end]
+
+        set uid_list [split $uid "."]
+        if { [llength $uid_list] == 3 } {
+            # Assume this is a unique id from mime::uniqueID
+            
+            # Replace clock seconds of uniqueID with a random integer
+            # since cs is used to build signature, which defeats purpose.
+            set uid_partial [lindex $uid_list 0]
+            # Suppose:
+            # max_chars = at least the same as length of clock seconds
+            # It will be 10 for a while..
+            # so use eleven 9's
+            # Some cycles are saved by using a constant
+            append uid_partial "." [randomRange 99999999999] 
+            append uid_partial "." [lindex $uid_list 2]
+
+            set uid $uid_partial
+        }
+
         # Just sign the uid part
         set max_age [parameter::get -parameter "IncomingMaxAge" \
-                         -package_id $aml_package_id ]
-        set signed_message_id [ad_sign -max_age $max_age $uid]
-        regsub -all -- { } $signed_message_id {-} signed_message_id
+                         -package_id $aml_package_id -default "0"]
+        ns_log Dev "acs_mail_lite::message_id_create sig max_age '${max_age}'"
+        set signed_message_id_list [ad_sign -max_age $max_age $uid]
+        set signed_message_id [join $signed_message_id_list "-"]
+
+        # Since signature is part of uniqueness of message_id, 
+        # use uid + signature for msg_id
+        set msg_id $uid
+        append msg_id "-" $signed_message_id 
+
         set datetime_cs [clock seconds]
         db_dml acs_mail_lite_send_msg_id_map_w1 {
             insert into acs_mail_lite_send_msg_id_map
             (msg_id,package_id,party_id,object_id,other,datetime_cs)
-            values (:uid,:package_id,:party_id,:object_id,:other,:datetime_cs)
+            values (:msg_id,:package_id,:party_id,:object_id,:other,:datetime_cs)
         }
-        
         set message_id "<"
-        append message_id $uid "-" $signed_message_id "@" $domain ">"
+        append message_id $msg_id "@" $domain ">"
     } 
     return $message_id
 }
@@ -1528,43 +1564,62 @@ ad_proc -private acs_mail_lite::message_id_parse {
         # remove quote which is not part of message id according to RFCs
         set message_id [string range $message_id 1 end-1]
     }
+    set return_list [list ]
+    lassign $return_list package_id party_id object_id other datetime_cs
+
     set last_at_idx [string last "@" $message_id]
     
     set domain [string range $message_id $last_at_idx+1 end]
     set unique_part [string range $message_id 0 $last_at_idx-1]
     set first_dash_idx [string first "-" $unique_part]
+    
     if { $first_dash_idx > -1 } {
+        # message-id is signed.
+        ns_log Dev "acs_mail_lite::message_id_parse message_id '${message_id}'"
         set unique_id [string range $unique_part 0 $first_dash_idx-1]
-        set sign [string range $unique_part $first_dash_idx+1 end]
-        set sign_list [split $sign "-"]
+        set signature [string range $unique_part $first_dash_idx+1 end]
+        set sign_list [split $signature "-"]
+        
         if { [llength $sign_list] == 3 } {
+            # signature is in good form
+            set expiration_cs [ad_verify_signature_with_expr $unique_id $sign_list]
 
+            if { $expiration_cs > 0 } {
+                set p_lists [db_list_of_lists \
+                                 acs_mail_lite_send_msg_id_map_r1all {
+                                     select package_id,
+                                     party_id,
+                                     object_id,
+                                     other,
+                                     datetime_cs
+                                     from acs_mail_lite_send_msg_id_map
+                                     where msg_id=:unique_part } ]
+                set p_list [lindex $p_lists 0]
+
+                lassign $p_list package_id party_id object_id other datetime_cs
+            } else {
+                ns_log Dev "acs_mail_lite::message_id_parse unverified signature unique_id '${unique_id}' signature '${sign_list}'"
+            }
+            set bounce_domain [acs_mail_lite::address_domain]
+            if { $bounce_domain ne $domain } {
+                ns_log Warning "acs_mail_lite::message_id_parse \
+ message_id '${message_id}' is not from '@${bounce_domain}'"
+            }
         } else {
-            set sign_list [list ]
+            ns_log Dev "acs_mail_lite::message_id_parse \
+ not in good form signature '${signature}'"
         }
     } else {
         set unique_id $unique_part
-        set sign_list [list ]
-    }
-    ##code stopped here
-    set p_list [list ]
-    ns_log Dev "acs_mail_lite::message_id_parse msg_id '${msg_id}'"
-
-        if { [string is wideinteger -strict $msg_id] } {
-            set p_lists [db_list_of_lists acs_mail_lite_send_msg_id_map_r1all {
-                select package_id,party_id,object_id,other,datetime_cs
-                from acs_mail_lite_send_msg_id_map
-                where msg_id=:msg_id } ]
-            set p_list [lindex $p_lists 0]
+        set uid_list [split $unique_id "."]
+        if { [llength $uid_list] == 3 } {
+            # assume from a mime::uniqueID
+            set date_time_cs [lindex $uid_list 1]
         } else {
-            ns_log Warning "acs_mail_lite::message_id_parse message_id \
- expects to decode to an integer instead of '${msg_id}'"
+            set date_time_cs ""
         }
-    } else {
-        ns_log Warning "acs_mail_lite::message_id_parse \
- message_id '${message_id}' is not from '@[info hostname]'"
-    }
-    lassign $p_list package_id party_id object_id other datetime_cs
+        
+    } 
     set r_list [list \
                     package_id $package_id \
                     party_id $party_id \

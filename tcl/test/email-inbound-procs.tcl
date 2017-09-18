@@ -7,9 +7,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
     Test acs-mail-lite procs in email-inbound-procs.tcl 
 } {
     aa_run_with_teardown \
-        -rollback \
         -test_code {
-
+#        -rollback\ 
            ns_log Notice "aa_register_case:acs_mail_lite_inbound_procs_check"
 
            set a_list [acs_mail_lite::sched_parameters]
@@ -624,15 +623,32 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            set integer_max 2147483647
            incr integer_max -2
            set fields_list [list package_id party_id object_id other]
+           set package_id_list [db_list apm_package_ids_rall { select 
+               distinct package_id from apm_packages } ]
+           set aml_package_id [apm_package_id_from_key "acs-mail-lite"]
+           set party_id_list [db_list parties_rall { select
+               distinct party_id from parties }]
+           set object_id_list [db_list acs_objects_rall { select
+               distinct object_id from acs_objects} ]
+           set package_ct [llength $package_id_list]
+           set party_ct [llength $party_id_list]
+           set object_ct [llength $object_id_list]
            for {set i 0} {$i < 12} {incr i } {
-               set package_id [randomRange $integer_max]
-               set party_id [randomRange $integer_max]
-               set object_id [randomRange $integer_max]
+               set package_id [lindex $package_id_list \
+                                   [randomRange $package_ct]]
+               set party_id [lindex $party_id_list \
+                                 [randomRange $party_ct]]
+               set object_id [lindex $object_id_list \
+                                  [randomRange $object_ct]]
                set other [ad_generate_random_string]
                set blank_id [randomRange 3]
                set blank_field [lindex $fields_list $blank_id]
                set $blank_field ""
-               set m_arr(package_id,${i}) $package_id
+               if { $package_id eq $aml_package_id } {
+                   set m_arr(package_id,${i}) ""
+               } else {
+                   set m_arr(package_id,${i}) $package_id
+               }
                set m_arr(party_id,${i}) $party_id
                set m_arr(object_id,${i}) $object_id
                set m_arr(other,${i}) $other
@@ -649,8 +665,9 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                -message_id $m_arr(msg_id,${i}) ]
                array set e_arr $e_list
                foreach field $fields_list {
-                   aa_equals "r702 test acs_mail_lite::message_id \
+                       aa_equals "r703 test acs_mail_lite::message_id \
  i '${i}' field '${field}'" $e_arr(${field}) $m_arr(${field},${i})
+
                }
 
            }

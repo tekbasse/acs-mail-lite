@@ -281,7 +281,7 @@ namespace eval acs_mail_lite {
 	mime::finalize $mime -subordinates all
     }    
 
-    ad_proc -public -autoreply_p {
+    ad_proc -public autoreply_p {
 	{-subject ""}
 	{-from ""}
     } {
