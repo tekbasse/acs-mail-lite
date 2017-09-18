@@ -336,7 +336,7 @@ create table acs_mail_lite_send_msg_id_map (
        -- unique not null
        msg_id        text primary key,
        package_id    integer
-                     constraint amlq_package_id_fk
+                     constraint aml_package_id_fk
                      references apm_packages,
        party_id      integer
                      constraint aml_from_external_party_id_fk
