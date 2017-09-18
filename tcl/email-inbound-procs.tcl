@@ -1294,7 +1294,7 @@ ad_proc -private acs_mail_lite::inbound_filters {
     by using acs_mail_lite::inbound_prioritize parameters
     
     @see acs_mail_lite::sched_parameters
-    @see acs_mail_lite::nbound_prioritize
+    @see acs_mail_lite::inbound_prioritize
 } {
     upvar 1 $headers_arr_name h_arr
     set reject_p 0

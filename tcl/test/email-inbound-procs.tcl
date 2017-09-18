@@ -254,7 +254,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                        -object_id $instance_id]
                 aa_log "p_arr(t1) = '$p_arr(t1)'"
 
-                set p_arr(t2) [acs_mail_lite::prioritize_in \
+                set p_arr(t2) [acs_mail_lite::inbound_prioritize \
                                    -size_chars $s \
                                    -received_cs $t2 \
                                    -subject $subject \
@@ -263,7 +263,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                    -object_id $instance_id]
                 aa_log "p_arr(t2) = '$p_arr(t2)'"
 
-                set p_arr(s1) [acs_mail_lite::prioritize_in \
+                set p_arr(s1) [acs_mail_lite::inbound_prioritize \
                                    -size_chars $s1 \
                                    -received_cs $t \
                                    -subject $subject \
@@ -272,7 +272,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                    -object_id $instance_id]
                 aa_log "p_arr(s1) = '$p_arr(s1)'"
 
-                set p_arr(s2) [acs_mail_lite::prioritize_in \
+                set p_arr(s2) [acs_mail_lite::inbound_prioritize \
                                    -size_chars $s2 \
                                    -received_cs $t \
                                    -subject $subject \
