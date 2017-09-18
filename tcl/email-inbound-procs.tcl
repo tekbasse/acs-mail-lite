@@ -404,8 +404,12 @@ ad_proc -public acs_mail_lite::inbound_prioritize {
     # quick math for arbitrary super max of maxes
     set su_max $params_arr(mpri_max)
     append su_max "00"
-    set size_max [ns_config -int -min $su_max -set nssock_v4 maxinput $su_max]
-
+    set size_list [list $su_max]
+    set ns_section_list [list nssock nssock_v4 nssock_v6]
+    foreach section $ns_section_list {
+        lappend size_list [ns_config -int -min 0 $section maxinput]
+    }
+    set size_max [f::lmax $size_list] 
     # add granularity
     switch -exact $priority {
         1 {
@@ -1534,10 +1538,12 @@ ad_proc -private acs_mail_lite::message_id_create {
             # A max_age of 0 or '' expires instantly.
             # User expects signature to not expire.
             set signed_message_id_list [ad_sign $uid]
+            set delim "-"
         } else {
             set signed_message_id_list [ad_sign -max_age $max_age $uid]
+            set delim "+"
         }
-        set signed_message_id [join $signed_message_id_list "-"]
+        set signed_message_id [join $signed_message_id_list $delim]
 
         # Since signature is part of uniqueness of message_id, 
         # use uid + signature for msg_id
@@ -1584,15 +1590,19 @@ ad_proc -private acs_mail_lite::message_id_parse {
         ns_log Dev "acs_mail_lite::message_id_parse message_id '${message_id}'"
         set unique_id [string range $unique_part 0 $first_dash_idx-1]
         set signature [string range $unique_part $first_dash_idx+1 end]
-        set sign_list [split $signature "-"]
+        set sign_list [split $signature "-+"]
         
         if { [llength $sign_list] == 3 } {
             # signature is in good form
-            set aml_package_id [apm_package_id_from_key "acs-mail-lite"]
-            set max_age [parameter::get -parameter "IncomingMaxAge" \
-                             -package_id $aml_package_id ]
-            ns_log Dev "acs_mail_lite::message_id_parse max_age '${max_age}'"
-            if { $max_age eq "" || $max_age eq "0" } {
+            # Use the signature's delimiter instead of param IncomingMaxAge
+            # so that this works even if there is a change in param value
+            #set aml_package_id /apm_package_id_from_key "acs-mail-lite"/
+            #set max_age /parameter::get -parameter "IncomingMaxAge" \
+            #                 -package_id $aml_package_id /
+            #ns_log Dev "acs_mail_lite::message_id_parse max_age '${max_age}'"
+            # if max_age is "" or "0" delim is "-". 
+            #    See acs_mail_lite::message_id_create
+            if { [string first "-" $signature } {
                 # A max_age of 0 or '' expires instantly.
                 # User expects signature to not expire.
                 set expiration_cs [ad_verify_signature $unique_id $sign_list]
