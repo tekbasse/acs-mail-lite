@@ -1528,9 +1528,15 @@ ad_proc -private acs_mail_lite::message_id_create {
 
         # Just sign the uid part
         set max_age [parameter::get -parameter "IncomingMaxAge" \
-                         -package_id $aml_package_id -default "0"]
-        ns_log Dev "acs_mail_lite::message_id_create sig max_age '${max_age}'"
-        set signed_message_id_list [ad_sign -max_age $max_age $uid]
+                         -package_id $aml_package_id ]
+        ns_log Dev "acs_mail_lite::message_id_create max_age '${max_age}'"
+        if { $max_age eq "" || $max_age eq "0" } {
+            # A max_age of 0 or '' expires instantly.
+            # User expects signature to not expire.
+            set signed_message_id_list [ad_sign $uid]
+        } else {
+            set signed_message_id_list [ad_sign -max_age $max_age $uid]
+        }
         set signed_message_id [join $signed_message_id_list "-"]
 
         # Since signature is part of uniqueness of message_id, 
@@ -1582,8 +1588,18 @@ ad_proc -private acs_mail_lite::message_id_parse {
         
         if { [llength $sign_list] == 3 } {
             # signature is in good form
-            set expiration_cs [ad_verify_signature_with_expr $unique_id $sign_list]
+            set aml_package_id [apm_package_id_from_key "acs-mail-lite"]
+            set max_age [parameter::get -parameter "IncomingMaxAge" \
+                             -package_id $aml_package_id ]
+            ns_log Dev "acs_mail_lite::message_id_parse max_age '${max_age}'"
+            if { $max_age eq "" || $max_age eq "0" } {
+                # A max_age of 0 or '' expires instantly.
+                # User expects signature to not expire.
+                set expiration_cs [ad_verify_signature $unique_id $sign_list]
+            } else {
 
+                set expiration_cs [ad_verify_signature_with_expr $unique_id $sign_list]
+            }
             if { $expiration_cs > 0 } {
                 set p_lists [db_list_of_lists \
                                  acs_mail_lite_send_msg_id_map_r1all {
@@ -1598,7 +1614,7 @@ ad_proc -private acs_mail_lite::message_id_parse {
 
                 lassign $p_list package_id party_id object_id other datetime_cs
             } else {
-                ns_log Dev "acs_mail_lite::message_id_parse unverified signature unique_id '${unique_id}' signature '${sign_list}'"
+                ns_log Dev "acs_mail_lite::message_id_parse unverified signature unique_id '${unique_id}' signature '${sign_list}' expiration_cs '${expiration_cs}'"
             }
             set bounce_domain [acs_mail_lite::address_domain]
             if { $bounce_domain ne $domain } {
