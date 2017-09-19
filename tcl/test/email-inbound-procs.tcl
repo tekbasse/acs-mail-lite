@@ -7,8 +7,9 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
     Test acs-mail-lite procs in email-inbound-procs.tcl 
 } {
     aa_run_with_teardown \
+        -rollback \
         -test_code {
-#        -rollback\ 
+
            ns_log Notice "aa_register_case:acs_mail_lite_inbound_procs_check"
 
            set a_list [acs_mail_lite::sched_parameters]
@@ -107,6 +108,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                                 $package_ids \
                                 $user_id \
                                 $sysowner_user_id]
+           # in order of least significant first, regarding prioritization:
+           # That is, object_id is more specific than glob_str or party_ids.
             set priority_types [list \
                                     package_ids \
                                     party_ids \
@@ -117,6 +120,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
             set su_glob "*"
             append su_glob [string range $subject [randomRange 8] end]
  
+           # priority_types are in order of least significant first.
+           set p_type_i 0
             foreach p_type $priority_types {
 
                 # reset prameters
@@ -147,9 +152,10 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
 
                 set i 0
                 set p_i [lindex $priority_types $i]
-                while { $p_i ne $p_type && $i < 100 } {
+                while { $p_i ne $p_type && $i < $p_type_i } {
                     # set a random value to be ignored 
-                    # with higher significance of p_type value
+                    # because p_i is lower significance than
+                    # higher significance of p_type value
 
                     # make low or high?
                     set p [util::random_list_element $lh_list]
@@ -213,8 +219,16 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
 
                 set t0 [nsv_get acs_mail_lite si_start_t_cs]
                 set dur_s [nsv_get acs_mail_lite si_dur_per_cycle_s]
-                set s0 [ns_config -int -set -min $su_max nssock_v4 maxinput $su_max]
-                aa_log "r161 given: t0 '${t0}' dur_s '${dur_s}' s0 '${s0}'"
+
+                set size_list [list $su_max]
+                set ns_section_list [list nssock nssock_v4 nssock_v6]
+                foreach section $ns_section_list {
+                    lappend size_list [ns_config -int -min 0 $section maxinput]
+                }
+                set s0  [f::lmax $size_list]
+
+                aa_log "r161 given: t0 '${t0}' dur_s '${dur_s}'"
+                aa_log "r161b given: s0 '${s0}' su_max '${su_max}'"
 
                 set t1 [expr { int( $t0 - $dur_s * 1.9 * [random]) } ]
                 set t2 [expr { int( $t0 - $dur_s * 1.9 * [random]) } ]
@@ -297,6 +311,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                 } else {
                     set size_p 0
                 }
+                aa_log "test r266 and r276 may fail when not testing \
+ a default clean system"
                 aa_true "smaller email assigned first \
  ${z1} '$p_arr(${z1})' < ${z2} '$p_arr(${z2})' " $size_p
 
@@ -322,8 +338,10 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
   '$p_arr(${j})' < '${p_min}' is within limits." $within_limits_p
                     }
 
-
                 }
+
+                incr p_type_i
+                # end foreach p_type loop
             }
 
            set ho "localhost"
@@ -644,11 +662,8 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                set blank_id [randomRange 3]
                set blank_field [lindex $fields_list $blank_id]
                set $blank_field ""
-               if { $package_id eq $aml_package_id } {
-                   set m_arr(package_id,${i}) ""
-               } else {
-                   set m_arr(package_id,${i}) $package_id
-               }
+               # if package_id = aml_package_id, it still is signed here
+               set m_arr(package_id,${i}) $package_id
                set m_arr(party_id,${i}) $party_id
                set m_arr(object_id,${i}) $object_id
                set m_arr(other,${i}) $other
