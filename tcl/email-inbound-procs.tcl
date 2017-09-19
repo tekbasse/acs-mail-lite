@@ -1663,36 +1663,48 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 } {
     Returns openacs data associated with original outbound email in
     the header_array_name and as an ordered list of values:
+
     package_id, party_id, object_id, other, datetime_cs 
+
+    datetime_cs is the time in seconds since tcl epoch.
+
+    other can be most any data represented in sql text.
+
+    By accessing all email headers, various scenarios of OpenACS sender
+    and replies can be checked to increase likelihood of retrieving
+    data in context of email.
 
     Array indexes have suffix aml_ added to index name:
     aml_package_id, aml_party_id, aml_object_id, aml_other, aml_datetime_cs 
 
     If a value is not found, an empty string is returned for the value.
 
-
-    For openacs generated unique ids from inbound email headers, see these procs:
-
     @see acs_mail_lite::message_id_create
     @see acs_mail_lite::message_id_parse
 
-    @see acs_mail_lite::generate_message_id
-    @see acs_mail_lite::bounce_address
-    @see acs_mail_lite::parse_bounce_address
-
-    @see notification::email::reply_address_prefix
-    @see notification::email::reply_address
-    @see notification::email::address_domain
-    @see notification::email::send
-    @see acs_mail_lite::send
-
-    @see mime::uniqueID
-    @see acs_mail_lite::send_immediately
 } {
     upvar 1 $header_array_name h_arr
     if { $header_name_list eq "" } {
         set hn_list [array names h_arr]
     }
+
+    # Here are some procs that help create a message-id or orginator
+    # or generated unique ids from inbound email headers
+    # that are of historical importance in helping
+    # shape this proc.
+    #    acs_mail_lite::message_id_create (current)
+    #    acs_mail_lite::message_id_parse (current)
+    #    acs_mail_lite::generate_message_id
+    #    acs_mail_lite::bounce_address
+    #    acs_mail_lite::parse_bounce_address
+    #    notification::email::reply_address_prefix
+    #    notification::email::reply_address
+    #    notification::email::address_domain
+    #    notification::email::send
+    #    acs_mail_lite::send
+    #    mime::uniqueID
+    #    acs_mail_lite::send_immediately
+
 
     ##code 
     # This proc should be capable of integrating with MailDir based service
@@ -1782,7 +1794,8 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     #   if set, otherwise to a driver hostname
     # which..
     # adds the same unique id to 'reply-to' and 'mail-followup-to'
-    ## Isn't message_id more generic than reply-to?
+
+    # message-id is a newer way to generate a dynamic reply-to.
 
     # example: "openacs.org mailer" <notification-5342759-2960@openacs.org>
     # apparently built in notification::email::send
