@@ -1602,7 +1602,7 @@ ad_proc -private acs_mail_lite::message_id_parse {
             #ns_log Dev "acs_mail_lite::message_id_parse max_age '${max_age}'"
             # if max_age is "" or "0" delim is "-". 
             #    See acs_mail_lite::message_id_create
-            if { [string first "-" $signature } {
+            if { [string first "-" $signature] } {
                 # A max_age of 0 or '' expires instantly.
                 # User expects signature to not expire.
                 set expiration_cs [ad_verify_signature $unique_id $sign_list]
