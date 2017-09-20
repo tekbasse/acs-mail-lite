@@ -1859,7 +1859,29 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # set mft_idx /lsearch -exact -nocase $hn_list "mail_followup_to_idx" /
     # ...
 
+    ##code below is sketch of process.. check_list shuld be prioritized to 
+    # most likely casees first.
 
+    set check_list [list message-id orignal-message-id]
+    set check_list_len [llength $check_list]
+    set header_i 0
+    set prefix "aml_"
+    set h_arr(aml_datetime_cs) ""
+    while { $header_id < $check_list_len && $h_arr(aml_datetime_cs) eq "" } {
+        set h_idx [lsearch -exact -nocase $hn_list $header]
+        if { $h_idx > -1 } {
+            set h_name [lindex $check_list $h_idx] 
+            set context_list [acs_mail_lite::message_id_parse \
+                                  -message_id $h_arr(${h_name})]
+            foreach {n v} $context_list {
+                set cname $prefix
+                append cname $n
+                set h_arr(${cname}) $v
+            }
+        }
+
+        incr header_id
+    }
 
 
     # acs-mail-lite::send_immediately 
