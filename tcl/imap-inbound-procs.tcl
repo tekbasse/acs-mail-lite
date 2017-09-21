@@ -539,12 +539,9 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                                * .8 ) } ]
         if { $per_cycle_s_override ne "" } {
             set si_quit_cs [expr { $si_quit_cs - $per_cycle_s_override } ]
-            ##code delayed_p might not be used. 
-            # deplayed_p takes over meaning for per_cycle_s_override == ""
-            set delayed_p 1
+            # deplayed
         } else {
             set per_cycle_s_override $si_dur_per_cycle_s
-            set delayed_p 0
         }
         
         

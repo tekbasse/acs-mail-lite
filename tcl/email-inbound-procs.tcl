@@ -1975,6 +1975,9 @@ ad_proc acs_mail_lite::bounce_ministry {
 
     Returns 1 if bounced, otherwise returns 0
 } {
+    ##code
+    # bounces are checked from the inbound queue
+    # before checking other cases that may trigger callbacks
 
     # bounce_ordered_list = b_ol
     # MailDir incoming email api likely does not work for 
