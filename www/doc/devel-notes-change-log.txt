@@ -22,45 +22,9 @@ Each set of example email headers is in a separate file in this package:
 where N is a natural number.
 
 
-API changes
-
-If row listed in 'From' column is blank, the item in 'To' column same row is new.
-
-From                            To
- acs_mail_lite::mail_dir         acs_mail_lite::incoming_mail_dir
- acs_mail_lite::address_domain   acs_mail_lite::incoming_domain
- acs_mail_lite::get_package_id   apm_package_id_from_key
- acs_mail_lite::get_parameter    parameter::get_from_package_key
-                                 acs_mail_lite::scan_incoming 
- acs_mail_lite::parse_email      See these ns_imap equivalents:
-                                 ns_imap header #s msgno
-                                 ns_imap header #s msgno hdrname
-                                 ns_imap headers #s msgno ?-array name?
-                                 ns_imap text #s msgno ?-flags flags?
-                                 ns_imap body #s msgno part ?-flags flags? ?-decode? ?-file name?
-acs_mail_lite::load_mails        acs_mail_lite::load_via_imap
-
-                                 ns_imap struct #s msgno ?-flags flags? ?-array name?
-                                 ns_imap bodystruct #s msgno part ?-flags flags? ?-array name?
-                                 fetches all the structured information
-                                 (envelope, internal date, RFC 822 size, flags, and body structure) for
-                                 the given msgno and returns it as a Tcl name value list
-                                 ns_imap bodystruct fetches just one particular message body part.
-                                 if array name is specified result will be placed into array variable
-
-                                 acs_mail_lite::parameters
-                                  returns parameter names and values as a name value list 
-                                 acs_mail_lite::parameters -name value 
-                                  sets value to parameter 'name'
-                                  This api bypasses issues of value updates not detected
-                                  by scheduled procs by using existing OpenACS parameter api
-
-
-New parameters added to new section: inbound_email
+New parameters added to new section: IMAP
 
 Parameters
- BounceScanQueue (not in use)    IncomingScanRate
- send_immediately                SendImmediatelyP
                                  IMAPHost
                                  IMAPPassword
                                  IMAPPort

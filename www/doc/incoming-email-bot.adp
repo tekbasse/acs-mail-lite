@@ -16,3 +16,12 @@
     The code is general enough to be adapted to any email source.
   </p>
 
+  <p>
+    Incoming attachments are placed in folder acs_root_dir/acs-mail-lite
+    since emails are queued. 
+    Attachments might need to persist passed a system reset, 
+    which may clear a standard system tmp directory used by ad_tmpdir.
+    Note that this is different than value provided by parameter
+    FilesystemAttachmentsRoot. 
+    FilesystemAttachmentsRoot is for outbound attachments.
+  </p>
