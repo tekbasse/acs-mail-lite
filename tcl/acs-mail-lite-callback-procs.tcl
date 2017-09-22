@@ -90,12 +90,14 @@ ad_proc -public -callback acs_mail_lite::incoming_email -impl acs-mail-lite {
     @error
 } {
     upvar $array email
-
+    ##code
+    # for email_queue, header info is already parsed
     set to [acs_mail_lite::parse_email_address -email $email(to)]
     ns_log Debug "acs_mail_lite::incoming_email -impl acs-mail-lite called. Recepient $to"
 
     lassign [acs_mail_lite::parse_bounce_address -bounce_address $to] user_id package_id signature
     
+    ##code THis logic needs to be revised depending on type
     # If no user_id found or signature invalid, ignore message
     if {$user_id eq ""} {
       ns_log Debug "acs_mail_lite::incoming_email impl acs-mail-lite: No equivalent user found for $to"

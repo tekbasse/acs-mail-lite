@@ -485,8 +485,10 @@ ad_proc -public acs_mail_lite::email_type {
     {-check_subject_p "0"}
 } {
     Scans email's subject, from and headers for actionable type.
-    Returns actionable type, and saves some normalized header info
-    to reduce redundant processing downstream. 
+    Returns actionable type and saves same type in header_arr_name(aml_type),
+    and saves some normalized header info
+    to reduce redundant processing downstream. See code comments for details.
+    
 
     Actional types: \
         'auto_gen' 'auto_reply', 'bounce', 'in_reply_to' or 
@@ -966,7 +968,9 @@ ad_proc -public acs_mail_lite::email_type {
         # other
         set type ""
     }
-    
+    if { $header_arr_name ne "" } {
+        set h_arr(aml_type) $type
+    }
     return $type
 }
 
