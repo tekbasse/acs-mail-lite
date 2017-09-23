@@ -1479,32 +1479,32 @@ ad_proc -private acs_mail_lite::section_id_of {
 }
 
 ad_proc -private acs_mail_lite::unique_id_create {
-    {-message_id ""}
+    {-unique_id ""}
     {-package_id ""}
     {-party_id ""}
     {-object_id ""}
     {-other ""}
 } {
-    Returns a message_id for an outbound email header message-id.
-    Signs message_id when package_id, party_id, object_id, and/or other info are supplied. party_id is not supplied if its value is empty string or 0. 
+    Returns a unique_id for an outbound email header message-id.
+    Signs unique_id when package_id, party_id, object_id, and/or other info are supplied. party_id is not supplied if its value is empty string or 0. 
     package_id not supplied when it is the default acs-mail-lite package_id. 
-    If message_id is empty string, creates a message_id then processes it.
+    If unique_id is empty string, creates a unique_id then processes it.
 } {
-    set last_at_idx [string last "@" $message_id]
-    if { $last_at_idx < 0 || ![string match "<*>" $message_id]} {
-        set message_id [mime::uniqueID]
-        set last_at_idx [string last "@" $message_id]
+    set last_at_idx [string last "@" $unique_id]
+    if { $last_at_idx < 0 || ![string match "<*>" $unique_id]} {
+        set unique_id [mime::uniqueID]
+        set last_at_idx [string last "@" $unique_id]
     }
     # remove quotes, adjust last_at_idx
-    set message_id [string range $message_id 1 end-1]
+    set unique_id [string range $unique_id 1 end-1]
     incr last_at_idx -1
 
     set bounce_domain [acs_mail_lite::address_domain]
-    if { [string range $message_id $last_at_idx+1 end-1] ne $bounce_domain } { 
+    if { [string range $unique_id $last_at_idx+1 end-1] ne $bounce_domain } { 
         # Use bounce's address_domain instead
         # because message-id may also be used as originator
-        set message_id [string range $message_id 0 $last_at_idx]
-        append message_id $bounce_domain
+        set unique_id [string range $unique_id 0 $last_at_idx]
+        append unique_id $bounce_domain
     }
 
     set aml_package_id [apm_package_id_from_key "acs-mail-lite"]
@@ -1513,8 +1513,8 @@ ad_proc -private acs_mail_lite::unique_id_create {
              || $object_id ne "" \
              || $other ne "" } {
         # Sign this message-id, and map message-id to values
-        set uid [string range $message_id 0 $last_at_idx-1]
-        set domain [string range $message_id $last_at_idx+1 end]
+        set uid [string range $unique_id 0 $last_at_idx-1]
+        set domain [string range $unique_id $last_at_idx+1 end]
 
         set uid_list [split $uid "."]
         if { [llength $uid_list] == 3 } {
@@ -1541,18 +1541,18 @@ ad_proc -private acs_mail_lite::unique_id_create {
         if { $max_age eq "" || $max_age eq "0" } {
             # A max_age of 0 or '' expires instantly.
             # User expects signature to not expire.
-            set signed_message_id_list [ad_sign $uid]
+            set signed_unique_id_list [ad_sign $uid]
             set delim "-"
         } else {
-            set signed_message_id_list [ad_sign -max_age $max_age $uid]
+            set signed_unique_id_list [ad_sign -max_age $max_age $uid]
             set delim "+"
         }
-        set signed_message_id [join $signed_message_id_list $delim]
+        set signed_unique_id [join $signed_unique_id_list $delim]
 
-        # Since signature is part of uniqueness of message_id, 
+        # Since signature is part of uniqueness of unique_id, 
         # use uid + signature for msg_id
         set msg_id $uid
-        append msg_id "-" $signed_message_id 
+        append msg_id "-" $signed_unique_id 
 
         set datetime_cs [clock seconds]
         db_dml acs_mail_lite_send_msg_id_map_w1 {
@@ -1560,21 +1560,22 @@ ad_proc -private acs_mail_lite::unique_id_create {
             (msg_id,package_id,party_id,object_id,other,datetime_cs)
             values (:msg_id,:package_id,:party_id,:object_id,:other,:datetime_cs)
         }
-        set message_id "<"
-        append message_id $msg_id "@" $domain ">"
+        set unique_id "<"
+        append unique_id $msg_id "@" $domain ">"
     } 
-    return $message_id
+    return $unique_id
 }
 
 ad_proc -private acs_mail_lite::unique_id_parse {
     -message_id:required
 } {
-    Parses a message-id reference created by acs_mail_lite::unique_id_create.
+    Parses a message-id compatible reference 
+    created by acs_mail_lite::unique_id_create.
     Returns package_id, party_id, object_id, other, datetime_cs in a name value list.
 
     datetime_cs is approximate system time in seconds from epoch when header was created.
 
-    see @acs_mail_lite::unique_id_create
+    @see acs_mail_lite::unique_id_create
 } {
     if { [string match "<*>" $message_id] } {
         # remove quote which is not part of message id according to RFCs
