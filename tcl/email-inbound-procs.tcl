@@ -1478,7 +1478,7 @@ ad_proc -private acs_mail_lite::section_id_of {
     return $section_id
 }
 
-ad_proc -private acs_mail_lite::message_id_create {
+ad_proc -private acs_mail_lite::unique_id_create {
     {-message_id ""}
     {-package_id ""}
     {-party_id ""}
@@ -1537,7 +1537,7 @@ ad_proc -private acs_mail_lite::message_id_create {
         # Just sign the uid part
         set max_age [parameter::get -parameter "IncomingMaxAge" \
                          -package_id $aml_package_id ]
-        ns_log Dev "acs_mail_lite::message_id_create max_age '${max_age}'"
+        ns_log Dev "acs_mail_lite::unique_id_create max_age '${max_age}'"
         if { $max_age eq "" || $max_age eq "0" } {
             # A max_age of 0 or '' expires instantly.
             # User expects signature to not expire.
@@ -1566,15 +1566,15 @@ ad_proc -private acs_mail_lite::message_id_create {
     return $message_id
 }
 
-ad_proc -private acs_mail_lite::message_id_parse {
+ad_proc -private acs_mail_lite::unique_id_parse {
     -message_id:required
 } {
-    Parses a message-id reference created by acs_mail_lite::message_id_create.
+    Parses a message-id reference created by acs_mail_lite::unique_id_create.
     Returns package_id, party_id, object_id, other, datetime_cs in a name value list.
 
     datetime_cs is approximate system time in seconds from epoch when header was created.
 
-    see @acs_mail_lite::message_id_create
+    see @acs_mail_lite::unique_id_create
 } {
     if { [string match "<*>" $message_id] } {
         # remove quote which is not part of message id according to RFCs
@@ -1591,7 +1591,7 @@ ad_proc -private acs_mail_lite::message_id_parse {
     
     if { $first_dash_idx > -1 } {
         # message-id is signed.
-        ns_log Dev "acs_mail_lite::message_id_parse message_id '${message_id}'"
+        ns_log Dev "acs_mail_lite::unique_id_parse message_id '${message_id}'"
         set unique_id [string range $unique_part 0 $first_dash_idx-1]
         set signature [string range $unique_part $first_dash_idx+1 end]
         set sign_list [split $signature "-+"]
@@ -1603,9 +1603,9 @@ ad_proc -private acs_mail_lite::message_id_parse {
             #set aml_package_id /apm_package_id_from_key "acs-mail-lite"/
             #set max_age /parameter::get -parameter "IncomingMaxAge" \
             #                 -package_id $aml_package_id /
-            #ns_log Dev "acs_mail_lite::message_id_parse max_age '${max_age}'"
+            #ns_log Dev "acs_mail_lite::unique_id_parse max_age '${max_age}'"
             # if max_age is "" or "0" delim is "-". 
-            #    See acs_mail_lite::message_id_create
+            #    See acs_mail_lite::unique_id_create
             if { [string first "-" $signature] } {
                 # A max_age of 0 or '' expires instantly.
                 # User expects signature to not expire.
@@ -1628,15 +1628,15 @@ ad_proc -private acs_mail_lite::message_id_parse {
 
                 lassign $p_list package_id party_id object_id other datetime_cs
             } else {
-                ns_log Dev "acs_mail_lite::message_id_parse unverified signature unique_id '${unique_id}' signature '${sign_list}' expiration_cs '${expiration_cs}'"
+                ns_log Dev "acs_mail_lite::unique_id_parse unverified signature unique_id '${unique_id}' signature '${sign_list}' expiration_cs '${expiration_cs}'"
             }
             set bounce_domain [acs_mail_lite::address_domain]
             if { $bounce_domain ne $domain } {
-                ns_log Warning "acs_mail_lite::message_id_parse \
+                ns_log Warning "acs_mail_lite::unique_id_parse \
  message_id '${message_id}' is not from '@${bounce_domain}'"
             }
         } else {
-            ns_log Dev "acs_mail_lite::message_id_parse \
+            ns_log Dev "acs_mail_lite::unique_id_parse \
  not in good form signature '${signature}'"
         }
     } else {
@@ -1683,8 +1683,8 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 
     If a value is not found, an empty string is returned for the value.
 
-    @see acs_mail_lite::message_id_create
-    @see acs_mail_lite::message_id_parse
+    @see acs_mail_lite::unique_id_create
+    @see acs_mail_lite::unique_id_parse
 
 } {
     upvar 1 $header_array_name h_arr
@@ -1696,8 +1696,8 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # or generated unique ids from inbound email headers
     # that are of historical importance in helping
     # shape this proc.
-    #    acs_mail_lite::message_id_create (current)
-    #    acs_mail_lite::message_id_parse (current)
+    #    acs_mail_lite::unique_id_create (current)
+    #    acs_mail_lite::unique_id_parse (current)
     #    acs_mail_lite::generate_message_id
     #    acs_mail_lite::bounce_address
     #    acs_mail_lite::parse_bounce_address
@@ -1722,7 +1722,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # any package, party and/or object_id so
     # as to not leak info unnecessarily.
     # See table acs_mail_lite_send_msg_id_map
-    # and acs_mail_lite::message_id_create/find/parse
+    # and acs_mail_lite::unique_id_create/find/parse
 
 
     # Bounce info needs to be placed in an rfc
@@ -1838,7 +1838,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # To make acs_mail_lite_send_msg_id_map more robust,
     # should it be designed to import other references via a table map
     # so external references can be used?   No.
-    # acs_mail_lite::message_id_create is slower than mime::uniqueID, yet
+    # acs_mail_lite::unique_id_create is slower than mime::uniqueID, yet
     # reading an indexed integer from db will be faster than indexed string.
     # Leave updating other reference uses to the discretion of
     # openacs core developers.
@@ -1926,7 +1926,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
                 if { [string match "<*>" $hv ] } {
                     set hv [string range $hv 1 end-1]
                 } 
-                set context_list [acs_mail_lite::message_id_parse \
+                set context_list [acs_mail_lite::unique_id_parse \
                                       -message_id $hv]
                 if { $h_arr(aml_datetime_cs) eq "" \
                          && [string match "${bounce_addrs}*" $hv] } {
@@ -2008,7 +2008,7 @@ ad_proc acs_mail_lite::bounce_ministry {
     if { ${m_idx} > -1 } {
         set mn [lindex $headers_list $m_idx]
         set h_m_id $hdrs_arr(${mn})
-        set m_id [acs_mail_lite::message_id_parse \
+        set m_id [acs_mail_lite::unique_id_parse \
                       ]
         ##code add xref from db and set pkg_id etc
     } else {

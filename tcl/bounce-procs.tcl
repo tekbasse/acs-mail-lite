@@ -72,7 +72,7 @@ namespace eval acs_mail_lite {
                 append ba "-" $user_id "-" [ns_sha1 $message_id] \
                     "-" $package_id "@" [address_domain]
                 ns_log Warning "acs_mail_lite::bounce_address is using \
- deprecated way. Supply message_id. Use acs_mail_lite::message_id_create"
+ deprecated way. Supply message_id. Use acs_mail_lite::unique_id_create"
             }
         }
         return $ba
