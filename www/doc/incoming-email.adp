@@ -13,8 +13,6 @@
 
 
   <h2>Processing incoming e-mail</h2>
-
-
   <p>
     A sweeper procedure like <a  href='http://openacs.org/api-doc/proc-view?proc=acs_mail_lite::load_mails&amp;amp;source_p=1'>acs_mail_lite::load_mails</a> should:
   </p>

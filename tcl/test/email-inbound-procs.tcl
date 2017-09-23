@@ -636,7 +636,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            }
 
 
-           aa_log "r700 test acs_mail_lite::message_id_create/parse paradigm"
+           aa_log "r700 test acs_mail_lite::unique_id_create/parse paradigm"
 
            set integer_max 2147483647
            incr integer_max -2
@@ -667,7 +667,7 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                set m_arr(party_id,${i}) $party_id
                set m_arr(object_id,${i}) $object_id
                set m_arr(other,${i}) $other
-               set m_arr(msg_id,${i}) [acs_mail_lite::message_id_create \
+               set m_arr(msg_id,${i}) [acs_mail_lite::unique_id_create \
                                            -package_id $package_id \
                                            -party_id $party_id \
                                            -object_id $object_id \
@@ -676,11 +676,11 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
            for {set i 0} {$i < 12} {incr i } {
                array unset e_arr
                aa_log "r701 test message-id '$m_arr(msg_id,${i})'"
-               set e_list [acs_mail_lite::message_id_parse \
+               set e_list [acs_mail_lite::unique_id_parse \
                                -message_id $m_arr(msg_id,${i}) ]
                array set e_arr $e_list
                foreach field $fields_list {
-                       aa_equals "r703 test acs_mail_lite::message_id \
+                       aa_equals "r703 test acs_mail_lite::unique_id \
  i '${i}' field '${field}'" $e_arr(${field}) $m_arr(${field},${i})
 
                }

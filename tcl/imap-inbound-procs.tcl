@@ -590,6 +590,10 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                 set uidvalidity $status_arr(Uidvalidity)
                 if { [info exists status_arr(Uidnext) ] \
                          && [info exists status_arr(Messages) ] } {
+
+                    set aml_package_id [apm_package_id_from_key "acs-mail-lite"]
+                    set filter_proc [parameter::get -parameter "IncomingFilterProcName" \
+                                         -package_id $aml_package_id]
                     #
                     # Iterate through emails
                     #
@@ -616,67 +620,70 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                             set type [acs_mail_lite::email_type \
                                           -header_arr_name hdrs_arr ]
                             
-                            if { $type ne "" } {
-                                # Create some standardized header indexes aml_*
-                                # with corresponding values 
-                                set size_idx [lsearch -nocase -exact \
-                                                  $headers_list size]
-                                set sizen [lindex $headers_list $size_idx]
-                                if { $sizen ne "" } {
-                                    set hdrs_arr(aml_size_chars) $hdrs_arr(${sizen})
-                                } else {
-                                    set hdrs_arr(aml_size_chars) ""
-                                }
 
-                                if { [info exists hdrs_arr(aml_received_cs)] } {
-                                    set hdrs_arr(aml_received_cs) $hdrs_arr(aml_received_cs)
-                                } else {
-                                    set hdrs_arr(aml_received_cs) ""
-                                }
-
-                                set su_idx [lsearch -nocase -exact \
-                                                $headers_list subject]
-                                if { $su_idx > -1 } {
-                                    set sun [lindex $headers_list $su_idx]
-                                    set hdrs_arr(aml_subject) [ad_quotehtml $hdrs_arr(${sun})]
-                                } else {
-                                    set hdrs_arr(aml_subject) ""
-                                }
-                                
-                                set to_idx [lsearch -nocase -exact \
-                                                $headers_list to]
-                                if { ${to_idx} > -1 } {
-                                    set ton [lindex $headers_list $to_idx]
-                                    set hdrs_arr(aml_to) [ad_quotehtml $hdrs_arr(${ton}) ]
-                                } else {
-                                    set hdrs_arr(aml_to) ""
-                                }
-
-                                acs_mail_lite::inbound_email_context \
-                                    -header_array_name hdrs_arr \
-                                    -headers_list $headers_list
-
-                                acs_mail_lite::inbound_prioritize \
-                                    -header_array_name hdrs_arr
-
-                                set error_p [acs_mail_lite::imap_email_parse \
-                                                 -headers_arr_name hdrs_arr \
-                                                 -parts_arr_name parts_arr \
-                                                 -conn_id $cid \
-                                                 -msgno $msgno \
-                                                 -struct_list $struct_list]
-                                if { !$error_p } {
-                                    
-                                    set id [acs_mail_lite::inbound_queue_insert \
-                                                -parts_arr_name parts_arr 
-\
-                                                -headers_arr_name hdrs_arr \
-                                                -error_p $error_p ]
-                                    ns_log Notice "acs_mail_lite::imap_check_incoming \
- inserted to queue aml_email_id '${id}'"
-                                }
-                                    
+                            # Create some standardized header indexes aml_*
+                            # with corresponding values 
+                            set size_idx [lsearch -nocase -exact \
+                                              $headers_list size]
+                            set sizen [lindex $headers_list $size_idx]
+                            if { $sizen ne "" } {
+                                set hdrs_arr(aml_size_chars) $hdrs_arr(${sizen})
+                            } else {
+                                set hdrs_arr(aml_size_chars) ""
                             }
+                            
+                            if { [info exists hdrs_arr(aml_received_cs)] } {
+                                set hdrs_arr(aml_received_cs) $hdrs_arr(aml_received_cs)
+                            } else {
+                                set hdrs_arr(aml_received_cs) ""
+                            }
+                            
+                            set su_idx [lsearch -nocase -exact \
+                                            $headers_list subject]
+                            if { $su_idx > -1 } {
+                                set sun [lindex $headers_list $su_idx]
+                                set hdrs_arr(aml_subject) [ad_quotehtml $hdrs_arr(${sun})]
+                            } else {
+                                set hdrs_arr(aml_subject) ""
+                            }
+                            
+                            set to_idx [lsearch -nocase -exact \
+                                            $headers_list to]
+                            if { ${to_idx} > -1 } {
+                                set ton [lindex $headers_list $to_idx]
+                                set hdrs_arr(aml_to) [ad_quotehtml $hdrs_arr(${ton}) ]
+                            } else {
+                                set hdrs_arr(aml_to) ""
+                            }
+                            
+                            acs_mail_lite::inbound_email_context \
+                                -header_array_name hdrs_arr \
+                                -headers_list $headers_list
+                            
+                            acs_mail_lite::inbound_prioritize \
+                                -header_array_name hdrs_arr
+                            
+                            set error_p [acs_mail_lite::imap_email_parse \
+                                             -headers_arr_name hdrs_arr \
+                                             -parts_arr_name parts_arr \
+                                             -conn_id $cid \
+                                             -msgno $msgno \
+                                             -struct_list $struct_list]
+
+                            if { !$error_p && [string match {[a-z]*_[a-z]*} $filter_proc] } {
+                                set hdrs_arr(aml_package_ids_list) [safe_eval ${filter_proc}]
+                            }
+                            if { !$error_p } {
+                                
+                                set id [acs_mail_lite::inbound_queue_insert \
+                                            -parts_arr_name parts_arr 
+                                        \
+                                            -headers_arr_name hdrs_arr \
+                                            -error_p $error_p ]
+                                ns_log Notice "acs_mail_lite::imap_check_incoming \
+ inserted to queue aml_email_id '${id}'"
+                            }
+
                         }
                     }
                 } else {
@@ -686,8 +693,9 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                 }
 
                 if { [expr { [clock seconds] + 65 } ] < $si_quit_cs } {
-                     # If there is more than 65 seconds to next cycle,
-                     # close connection
+                    # Regardless of parameter SMPTTimeout,
+                    # if there is more than 65 seconds to next cycle,
+                    # close connection
                     acs_mail_lite::imap_conn_close -conn_id $cid
                 }
                 
