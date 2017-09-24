@@ -1212,9 +1212,11 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
     -h_array_name:required
     -p_array_name:required
     -aml_email_id:required
+    {-mark_processed_p "1"}
 } {
-    Puts email referenced by aml_email_id from the inbound queue into array of array_name.
-    Marks the email in the queue as processed.
+    Puts email referenced by aml_email_id from the inbound queue into array of array_name for use by registered callbacks.
+
+    When complete, marks the email in the queue as processed.
     
     Array content corresponds to these tables:
     <pre>
@@ -1230,7 +1232,14 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                             see acs_mail_lite_msg_id_map.msg_id
     h_arr(aml_size_chars)   size of email
     h_arr(aml_processed_p)  false
-    
+
+    some are from internal
+    h_arr(aml_package_id) passed via acs_mail_lite::unique_id_create
+    h_arr(aml_party_id)   ditto
+    h_arr(aml_object_id)  ditto
+    h_arr(aml_other)      ditto, some text string
+    h_arr(aml_package_ids_list) package_ids returned by proc in IncomingFilterProcName
+
     p_arr(&lt;section_id&gt;,&lt;field&gt;)  acs_mail_lite_ie_parts (content of a part)
     p_arr(&lt;section_id&gt;,nv_list)  acs_mail_lite_part_nv_pairs
     p_arr(section_id_list)     list of section_ids
@@ -1278,7 +1287,7 @@ ad_proc -private acs_mail_lite::inbound_queue_release {
 } {
     Delete email from queue that have been flagged 'release'.
 
-    This does not affect email via imap.
+    This does not affect email via imap or other connections.
     
 } {
     # To flag 'release', set acs_mail_lite_from_external.release_p 1
