@@ -1489,15 +1489,24 @@ ad_proc -private acs_mail_lite::unique_id_create {
     Signs unique_id when package_id, party_id, object_id, and/or other info are supplied. party_id is not supplied if its value is empty string or 0. 
     package_id not supplied when it is the default acs-mail-lite package_id. 
     If unique_id is empty string, creates a unique_id then processes it.
+
 } {
+    # remove quotes, adjust last_at_idx
+    if { [string match "<*>" $unique_id] } {
+        set unique_id [string range $unique_id 1 end-1]
+    }
+    set envelope_prefix [acs_mail_lite:bounce_prefix ]
+    if { ![string match "${envelope_prefix}*" $unique_id ] } {
+        set unique_id2 $envelope_prefix
+        append unique_id2 $unique_id
+        set unique_id $unique_id2
+    }
     set last_at_idx [string last "@" $unique_id]
-    if { $last_at_idx < 0 || ![string match "<*>" $unique_id]} {
-        set unique_id [mime::uniqueID]
+    if { $last_at_idx < 0 } {
+        set unique_id $envelope_prefix
+        append unique_id [mime::uniqueID]
         set last_at_idx [string last "@" $unique_id]
     }
-    # remove quotes, adjust last_at_idx
-    set unique_id [string range $unique_id 1 end-1]
-    incr last_at_idx -1
 
     set bounce_domain [acs_mail_lite::address_domain]
     if { [string range $unique_id $last_at_idx+1 end-1] ne $bounce_domain } { 
