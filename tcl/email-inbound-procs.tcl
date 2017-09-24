@@ -313,7 +313,7 @@ ad_proc -public acs_mail_lite::inbound_prioritize {
 
     @param party_id associated with email (if any)
 
-    @param sujbect of email
+    @param subject of email
 
     @param object_id associated with email (if any)
 
@@ -1208,55 +1208,75 @@ ad_proc -private acs_mail_lite::inbound_queue_batch_pull {
 
 
 ad_proc -private acs_mail_lite::inbound_queue_pull {
-    -e_array_name:required
     -h_array_name:required
     -p_array_name:required
     -aml_email_id:required
     {-mark_processed_p "1"}
 } {
-    Puts email referenced by aml_email_id from the inbound queue into array of array_name for use by registered callbacks.
+    Puts email referenced by aml_email_id from the inbound queue into array of h_array_name and p_array_name for use by registered callbacks. 
 
-    When complete, marks the email in the queue as processed.
+    Arrays are repopulated with values in the same manner that
+    acs_mail_lite::inbounde_queue_insert recieves them. See below for details.
+    
+    When complete, marks the email in the queue as processed, if mark_processed_p is 1.
     
     Array content corresponds to these tables:
     <pre>
-    h_arr(name) value          acs_mail_lite_ie_headers
+    h_arr($name) $value         acs_mail_lite_ie_headers
+    
+    Some indexes match fields of table acs_mail_lite_from_external:
 
-    Some indexes correspond to fields of table acs_mail_lite_from_external:
-    h_arr(aml_email_id)    aml_email_id
-    h_arr(aml_to_addrs)    to_email_addrs email address from header 'to'
-    h_arr(aml_from_addrs)  from_email_addrs email address from header 'from'
-    h_arr(aml_priority)    priority
-    h_arr(aml_subject)     subject (normalized index reference).
-    h_arr(aml_msg_id)      email message-id or msg-id's cross-reference
-                             see acs_mail_lite_msg_id_map.msg_id
-    h_arr(aml_size_chars)    size of email
-    h_arr(aml_processed_p)   false
+    h_arr(aml_email_id)     assigned by acs_mail_lite::inbound_queue_insert
+    h_arr(aml_to)           to email including any label
+    h_arr(aml_to_addrs)     to_email_addrs
+    h_arr(aml_from)         from email including any label
+    h_arr(aml_from_addrs)   from_email_addrs
+    h_arr(aml_priority)     priority    
+    h_arr(aml_subject)      email subject (normalized index reference).
+    h_arr(aml_msg_id)       email message-id or msg-id's cross-reference
+                            see acs_mail_lite_msg_id_map.msg_id
+    h_arr(aml_size_chars)   size_chars
+    
+    Some headers are transferred from the email generation process.
+    See acs_mail_lite::unique_id_create for details:
 
-    some are from internal
-    h_arr(aml_package_id)  passed via acs_mail_lite::unique_id_create
-    h_arr(aml_party_id)    ditto
-    h_arr(aml_object_id)   ditto
-    h_arr(aml_other)       ditto, some text string
-    h_arr(aml_datetime_cs) ditto
-    h_arr(aml_package_ids_list) package_ids returned by proc in IncomingFilterProcName
+    h_arr(aml_package_id)
+    h_arr(aml_party_id)
+    h_arr(aml_object_id)
+    h_arr(aml_other)
+    
 
-    p_arr(&lt;section_id&gt;,&lt;field&gt;)  acs_mail_lite_ie_parts (content of a part)
-    p_arr(&lt;section_id&gt;,nv_list)  acs_mail_lite_part_nv_pairs
-    p_arr(section_id_list)     list of section_ids
+    Some headers are internally generated during input:
+    
+    h_arr(aml_type)         Type of email from acs_mail_lite::email_type
+    h_arr(aml_received_cs)  Time received in seconds since Tcl epoch 
+    h_arr(aml_datetime_cs)  Time unique_id generatd in seconds since Tcl epoch 
+    h_arr(aml_processed_p)  processed_p
+    h_arr(aml_priority)     a priority number assigned to email.
+
+    Email parts (of body) are kept in a separate array:
+
+    p_arr($section_id,<field>)  acs_mail_lite_ie_parts (content of a part)
+    p_arr($section_id,nv_list)  acs_mail_lite_part_nv_pairs
+    p_arr(section_id_list) list of section_ids
     
     
-     where index is section_id based on section_ref, and
-     where top most section_ref is a natural number as
-     there may be more than one tree.
-     
-     Specifically,
-    for p_arr, content is p_arr(&lt;section_id&gt;,content)
-    c_type is p_arr(&lt;section_id&gt;,c_type)
-    filename is p_arr(&lt;section_id&gt;,filename)
-    c_filepathname is p_arr(&lt;section_id&gt;,c_filepathname)
+    where index is section_id based on section_ref, and
+    where top most section_ref is a natural number as
+    there may be more than one tree.
+      
+    Specifically, for p_arr array:
 
-    array_name(header_nv_list) is a name value list of header names and values.
+    content        is  p_arr($section_id,content)
+    c_type         is  p_arr($section_id,c_type)
+    filename       is  p_arr($section_id,filename)
+    c_filepathname is  p_arr($section_id,c_filepathname)
+
+    where:
+    c_type is content-type header
+    filename is filename of an attachment in email
+    c_filepathname is the filepathname within the system.
+
     </pre>
 } {
     upvar 1 $h_array_name h_arr

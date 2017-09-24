@@ -686,7 +686,44 @@ aa_register_case -cats {api smoke} acs_mail_lite_inbound_procs_check {
                }
 
            }
+           aa_log "test default case"
+           set msg_id [acs_mail_lite::unique_id_create ]
+           set e_list [acs_mail_lite::unique_id_parse -message_id $msg_id]
+           foreach {n v} $e_list {
+               switch -- $n {
+                   object_id -
+                   package_id -
+                   party_id -
+                   datetime_cs -
+                   other {
+                       aa_equals "r710 test acs_mail_lite::unqiue_id $n has val ''" $v ""
+                   }
+                   datetime_not {
+                       set is_integer_p [string is wideinteger -strict $v]
+                       aa_true "r711 test acs_mail_lite::unique_id $n is integer" $is_integer_p
 
+                   }
+               }
+           }
+           aa_log "test passing blank case as external"
+               set msg_id [acs_mail_lite::unique_id_create -unique_id [mime::uniqueID]]
+               set e_list [acs_mail_lite::unique_id_parse -message_id $msg_id]
+           foreach {n v} $e_list {
+               switch -- $n {
+                   object_id -
+                   package_id -
+                   party_id -
+                   datetime_cs -
+                   other {
+                       aa_equals "r710 test acs_mail_lite::unqiue_id $n has val ''" $v ""
+                   }
+                   datetime_not {
+                       set is_integer_p [string is wideinteger -strict $v]
+                       aa_true "r711 test acs_mail_lite::unique_id $n is integer" $is_integer_p
+
+                   }
+               }
+           }
        }
 }
 
