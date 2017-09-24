@@ -1839,11 +1839,9 @@ ad_proc -private acs_mail_lite::inbound_email_context {
     # To make acs_mail_lite_send_msg_id_map more robust,
     # should it be designed to import other references via a table map
     # so external references can be used?   No.
-    # acs_mail_lite::unique_id_create is slower than mime::uniqueID, yet
-    # reading an indexed integer from db will be faster than indexed string.
-    # Leave updating other reference uses to the discretion of
-    # openacs core developers.
-    ##code Recommend replacing use of mime::uniqueID with acs_mail_lite::generate_message_id
+
+    # Replaced generic use of mime::uniqueID 
+    # with acs_mail_lite::unique_id_create
     # Don't assume acs_mail_lite::valid_signature works. It appears to check
     # an unknown form and is orphaned (not used).
 

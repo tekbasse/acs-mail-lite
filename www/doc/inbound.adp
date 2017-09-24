@@ -7,21 +7,24 @@
     Helper procs collect the email. 
     Current methods include via MailDir or IMAP.
 </p>
-
+<h2>An overview of inbound email processing in general</h2>
 <p>
     A scheduled procedure begins by checking for new incoming email.
     The interval is set by package parameter <code>IncomingScanQueue</code>.
   </p><p>
-    Email is flagged for further processing if ACS Mail Lite detects that the
-    email is responding to email sent via ACS Mail Lite.
-    It strips 
-    <code>message_id</code> and verifies 
-    the hashkey from replied or bounced emails.
+    ACS Mail Lite detects if an
+    email is responding to email sent from OpenACS (via ACS Mail Lite).
+    It verifies 
+    <code>message_id</code> or <code>originator</code> hashkey via
+    <code>acs_mail_lite::unique_id_parse</code> and identifies
+     bounced or reply emails.
     </p><p>
-    Then, the procedure parses each email flagged for final parsing.
+    Then, the message-id is cross-referenced 
+    for any parameters passed to the email, such as package_id or party_id. 
   </p><p>
-    Then it logs events that trigger any relevant callback registered by 
-    the package associated with each email.
+    Subsequently, an email is processed by callbacks
+    registered by 
+    a package associated with each email.
     This enables each package to deal with incoming email in its own way.
     For example, a social networking site could log an event 
     in a special table about subscribers.
