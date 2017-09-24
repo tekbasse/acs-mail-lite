@@ -1504,7 +1504,7 @@ ad_proc -private acs_mail_lite::unique_id_create {
     set last_at_idx [string last "@" $unique_id]
     if { $last_at_idx < 0 } {
         set unique_id $envelope_prefix
-        append unique_id [mime::uniqueID]
+        append unique_id [string range [mime::uniqueID] 1 end-1]
         set last_at_idx [string last "@" $unique_id]
     }
 
