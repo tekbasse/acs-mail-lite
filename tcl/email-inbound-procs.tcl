@@ -1495,7 +1495,7 @@ ad_proc -private acs_mail_lite::unique_id_create {
     if { [string match "<*>" $unique_id] } {
         set unique_id [string range $unique_id 1 end-1]
     }
-    set envelope_prefix [acs_mail_lite:bounce_prefix ]
+    set envelope_prefix [acs_mail_lite::bounce_prefix ]
     if { ![string match "${envelope_prefix}*" $unique_id ] } {
         set unique_id2 $envelope_prefix
         append unique_id2 $unique_id
