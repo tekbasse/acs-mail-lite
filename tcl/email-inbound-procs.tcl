@@ -1223,21 +1223,22 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
     h_arr(name) value          acs_mail_lite_ie_headers
 
     Some indexes correspond to fields of table acs_mail_lite_from_external:
-    h_arr(aml_email_id)   aml_email_id
-    h_arr(aml_to_addrs)   to_email_addrs email address from header 'to'
-    h_arr(aml_from_addrs) from_email_addrs email address from header 'from'
-    h_arr(aml_priority)   priority
-    h_arr(aml_subject)    subject (normalized index reference).
-    h_arr(aml_msg_id)     email message-id or msg-id's cross-reference
-                            see acs_mail_lite_msg_id_map.msg_id
-    h_arr(aml_size_chars)   size of email
-    h_arr(aml_processed_p)  false
+    h_arr(aml_email_id)    aml_email_id
+    h_arr(aml_to_addrs)    to_email_addrs email address from header 'to'
+    h_arr(aml_from_addrs)  from_email_addrs email address from header 'from'
+    h_arr(aml_priority)    priority
+    h_arr(aml_subject)     subject (normalized index reference).
+    h_arr(aml_msg_id)      email message-id or msg-id's cross-reference
+                             see acs_mail_lite_msg_id_map.msg_id
+    h_arr(aml_size_chars)    size of email
+    h_arr(aml_processed_p)   false
 
     some are from internal
-    h_arr(aml_package_id) passed via acs_mail_lite::unique_id_create
-    h_arr(aml_party_id)   ditto
-    h_arr(aml_object_id)  ditto
-    h_arr(aml_other)      ditto, some text string
+    h_arr(aml_package_id)  passed via acs_mail_lite::unique_id_create
+    h_arr(aml_party_id)    ditto
+    h_arr(aml_object_id)   ditto
+    h_arr(aml_other)       ditto, some text string
+    h_arr(aml_datetime_cs) ditto
     h_arr(aml_package_ids_list) package_ids returned by proc in IncomingFilterProcName
 
     p_arr(&lt;section_id&gt;,&lt;field&gt;)  acs_mail_lite_ie_parts (content of a part)
@@ -1905,7 +1906,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 
 
     #
-    # A legacy parameter from acs_mail_lit::parse_bounce_address
+    # A legacy parameter from acs_mail_lite::parse_bounce_address
     #
     set bounce_prefix [acs_mail_lite::bounce_prefix]
     set regexp_str "\[${bounce_prefix}\]-(\[0-9\]+)-(\[^-\]+)-(\[0-9\]*)\@"
@@ -1947,8 +1948,10 @@ ad_proc -private acs_mail_lite::inbound_email_context {
                                       -message_id $hv]
                 if { $h_arr(aml_datetime_cs) eq "" \
                          && [string match "${bounce_addrs}*" $hv] } {
+
+
                     ##code developers of OpenACS core:
-                    # Legacy case should be removed for strict
+                    # Legacy case should be removed for strict, secure
                     # handling of context info
                     
                     # Check legacy case
