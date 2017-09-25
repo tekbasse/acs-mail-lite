@@ -1256,26 +1256,34 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
 
     Email parts (of body) are kept in a separate array:
 
-    p_arr($section_id,<field>)  acs_mail_lite_ie_parts (content of a part)
-    p_arr($section_id,nv_list)  acs_mail_lite_part_nv_pairs
-    p_arr(section_id_list) list of section_ids
+    p_arr($section_ref,<field>)  acs_mail_lite_ie_parts (content of a part)
+    p_arr($section_ref,nv_list)  acs_mail_lite_part_nv_pairs
+    p_arr(section_ref_list) list of section_refs
     
     
-    where index is section_id based on section_ref, and
+    where index is section_ref based on section_ref, and
     where top most section_ref is a natural number as
     there may be more than one tree.
       
     Specifically, for p_arr array:
 
-    content        is  p_arr($section_id,content)
-    c_type         is  p_arr($section_id,c_type)
-    filename       is  p_arr($section_id,filename)
-    c_filepathname is  p_arr($section_id,c_filepathname)
+    content        is  p_arr($section_ref,content)
+    c_type         is  p_arr($section_ref,c_type)
+    filename       is  p_arr($section_ref,filename)
+    c_filepathname is  p_arr($section_ref,c_filepathname)
 
     where:
     c_type is content-type header
     filename is filename of an attachment in email
     c_filepathname is the filepathname within the system.
+
+    Each section may have headers:
+    
+    header value               is  p_arr($section_id,<header-name>)   
+    list of headers by section is  p_arr($section_id,name_list) 
+    list of section_refs       is  p_arr(section_ref_list) 
+    ##code these below
+
 
     </pre>
 } {
@@ -1283,18 +1291,43 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
     upvar 1 $p_array_name p_arr
 
     ##code
-    # an email is pulled from these tables
-    db_list_of_lists acs_mail_lite_from_external_r1 {
+    # This query may be redundant to some info in acs_mail_lite_ie_headers.
+    # acs_mail_lite_from_external
+    set x_list [db_list_of_lists acs_mail_lite_from_external_r1 {
         select priority, to_email_addrs, from_email_addrs,
         subject, msg_id,
         size_chars, received_cs, processed_p, release_p
         from acs_mail_lite_from_external
         where aml_email_id=:aml_email_id
+    }]
+    lassign $x_list h_arr(aml_priority) \
+        h_arr(aml_to_email_addrs) \
+        h_arr(aml_from_email_addrs) \
+        h_arr(aml_subject) \
+        h_arr(aml_msg_id) \
+        h_arr(aml_size_chars) \
+        h_arr(aml_received_cs) \
+        h_arr(aml_processed_p) \
+        h_arr(aml_release_p) 
+        
+    # collect from acs_mail_lite_ie_headers
+    set h_lists [db_list_of_lists acs_mail_lite_ie_headers_r1 {
+        select h_name, h_value
+        from acs_mail_lite_ie_headers
+        where aml_email_id=:aml_email_id } ]
+    foreach {n v} $h_lists {
+        set h_arr(${n}) "${v}"
     }
 
-    # acs_mail_lite_from_external
-    # acs_mail_lite_ie_headers
-    # acs_mail_lite_ie_parts
+    # collect from acs_mail_lite_ie_part_nv_pairs
+    set p_lists [db_list_of_lists acs_mail_lite_ie_part_nv_pairs_r1 {
+        select section_id, p_name, p_value
+        from acs_mail_lite_ie_part_nv_pairs
+        where aml_email_id=:aml_email_id } ]
+    foreach {s n v} $p_lists {
+        set section_ref [acs_mail_lite::seciton_ref_of $s]
+        set p_arr(${section_ref},${n}) "${v}"
+    }
 
 
     # email is removed from queue when

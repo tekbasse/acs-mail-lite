@@ -250,7 +250,7 @@ create table acs_mail_lite_ie_headers (
        -- Special case: h_name = struct means
        -- h_value contains entire value returned from ns_imap struct
        -- as a tcl list
-       h_hame text,
+       h_name text,
        h_value text
 );
 
