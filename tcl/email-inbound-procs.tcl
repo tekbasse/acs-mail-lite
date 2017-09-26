@@ -1196,7 +1196,7 @@ ad_proc -private acs_mail_lite::inbound_queue_insert {
 }
 
 
-ad_proc -private acs_mail_lite::inbound_queue_batch_pull {
+ad_proc -private acs_mail_lite::inbound_queue_pull {
 } {
     Identifies and processes highest priority inbound email.
 } {
@@ -1207,7 +1207,7 @@ ad_proc -private acs_mail_lite::inbound_queue_batch_pull {
 
 
 
-ad_proc -private acs_mail_lite::inbound_queue_pull {
+ad_proc -private acs_mail_lite::inbound_queue_pull_one {
     -h_array_name:required
     -p_array_name:required
     -aml_email_id:required
@@ -1279,8 +1279,8 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
 
     Each section may have headers:
     
-    header value               is  p_arr($section_id,<header-name>)   
-    list of headers by section is  p_arr($section_id,name_list) 
+    header value               is  p_arr($section_ref,<header-name>)   
+    list of headers by section is  p_arr($section_ref,name_value_list) 
     list of section_refs       is  p_arr(section_ref_list) 
     ##code these below
 
@@ -1319,14 +1319,33 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
         set h_arr(${n}) "${v}"
     }
 
+    # collect from acs_mail_lite_ie_parts
+    set p_lists [db_list_of_lists acs_mail_lite_ie_parts_r1 {
+        select section_id,c_type,filename,content,c_filepathname
+        from acs_mail_lite_ie_parts
+        where aml_email_id=:aml_email_id } ]
+    foreach row $p_lists {
+        set section_ref [acs_mail_lite::seciton_ref_of [lindex $row 0]]
+        set p_arr(${section_ref},c_type) [lindex $row 1]
+        set p_arr(${section_ref},filename) [lindex $row 2]
+        set p_arr(${section_ref},content) [lindex $row 3]
+        set p_arr(${section_ref},c_filepathname) [lindex $row 4]
+        if { $section_ref ni $p_arr(section_ref_list) } {
+            lappend p_arr(section_ref_list) $section_ref
+        }
+    }
+
     # collect from acs_mail_lite_ie_part_nv_pairs
     set p_lists [db_list_of_lists acs_mail_lite_ie_part_nv_pairs_r1 {
         select section_id, p_name, p_value
         from acs_mail_lite_ie_part_nv_pairs
         where aml_email_id=:aml_email_id } ]
-    foreach {s n v} $p_lists {
-        set section_ref [acs_mail_lite::seciton_ref_of $s]
-        set p_arr(${section_ref},${n}) "${v}"
+    foreach row $p_lists {
+        set section_ref [acs_mail_lite::seciton_ref_of [lindex $row 0]]
+        lappend p_arr(${section_ref},field_list) [lindex $row 1] [lindex $row 2]
+        if { $section_ref ni $p_arr(section_ref_list) } {
+            lappend p_arr(section_ref_list) $section_ref
+        }
     }
 
 
