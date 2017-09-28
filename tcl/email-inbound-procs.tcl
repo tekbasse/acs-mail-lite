@@ -1279,18 +1279,17 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
 
     Each section may have headers:
     
-    header value               is  p_arr($section_ref,<header-name>)   
+    To avoid any header-name collision with content, c_type etc,
+    headers are supplied in a name_value_list only:
+
     list of headers by section is  p_arr($section_ref,name_value_list) 
     list of section_refs       is  p_arr(section_ref_list) 
-    ##code these below
-
 
     </pre>
 } {
     upvar 1 $h_array_name h_arr
     upvar 1 $p_array_name p_arr
 
-    ##code
     # This query may be redundant to some info in acs_mail_lite_ie_headers.
     # acs_mail_lite_from_external
     set x_list [db_list_of_lists acs_mail_lite_from_external_r1 {
@@ -1340,9 +1339,13 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
         select section_id, p_name, p_value
         from acs_mail_lite_ie_part_nv_pairs
         where aml_email_id=:aml_email_id } ]
+    set reserved_fields_ul [list content c_type filename c_filename]
     foreach row $p_lists {
-        set section_ref [acs_mail_lite::seciton_ref_of [lindex $row 0]]
-        lappend p_arr(${section_ref},field_list) [lindex $row 1] [lindex $row 2]
+        set section_ref [acs_mail_lite::section_ref_of [lindex $row 0]]
+        set name [lindex $row 1]
+        set value [lindex $row 2]
+        lappend p_arr(${section_ref},name_value_list) $name $value
+        
         if { $section_ref ni $p_arr(section_ref_list) } {
             lappend p_arr(section_ref_list) $section_ref
         }
