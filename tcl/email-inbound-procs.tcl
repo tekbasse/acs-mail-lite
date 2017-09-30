@@ -1036,161 +1036,165 @@ ad_proc -private acs_mail_lite::inbound_queue_insert {
         # email goes into queue tables:
 
         # This data is expected to be available at same moment
-        ##code db_trans.. is uncommented for error checking during dev
-        #db_transaction {
-        set id [db_nextval acs_mail_lite_in_id_seq]
 
-        # acs_mail_lite_ie_headers
-        set h_names_list [array names h_arr]
-        set to_email_addrs ""
-        set from_email_addrs ""
-        set subject ""
-        set msg_id ""
-        set size_chars ""
-        set received_cs ""
-        # sub set of header names
-        foreach h_name $h_names_list {
-            set h_value $h_arr(${h_name}) 
-            switch -nocase -- $h_name {
-                x-openacs-from -
-                aml_from_addrs -
-                from {
-                    if { ![info exists h_arr(aml_from_addrs)] } {
-                        set from_email_addrs [acs_mail_lite::parse_email_address \
-                                                  -email $h_value ]
-                        set h_arr(aml_from_addrs) $from_email_addrs
-                    } else {
-                        set from_email_addrs $h_arr(aml_from_addrs)
-                    }
-                }
-                x-openacs-to -
-                aml_to_addrs -
-                to {
-                    if { ![info exists h_arr(aml_to_addrs)] } {
-                        set h_quoted [ad_quotehtml $h_value]
-                        set h_arr(aml_to) $h_quoted
-                        set to_email_addrs [acs_mail_lite::parse_email_address \
-                                                -email $h_quoted ]
-                        set h_arr(aml_to_addrs) $to_email_addrs
-                    } else {
-                        set to_email_addrs $h_arr(aml_to_addrs)
-                    }
-                }
-                aml_msg_id {
-                    set msg_id $h_value
-                }
-                x-openacs-subject -
-                aml_subject -
-                subject {
-                    set subject $h_value
-                }
-                x-openacs-size -
-                aml_size_chars -
-                size {
-                    if { ![info exists h_arr(aml_size_chars) ] } {
-                        if { [string is wideinteger -strict $h_value] } {
-                            set size_chars $h_value
+        db_transaction {
+            set id [db_nextval acs_mail_lite_in_id_seq]
+
+            # acs_mail_lite_ie_headers
+            set h_names_list [array names h_arr]
+            set to_email_addrs ""
+            set from_email_addrs ""
+            set subject ""
+            set msg_id ""
+            set size_chars ""
+            set received_cs ""
+            # sub set of header names
+            foreach h_name $h_names_list {
+                set h_value $h_arr(${h_name}) 
+                switch -nocase -- $h_name {
+                    x-openacs-from -
+                    aml_from_addrs -
+                    from {
+                        if { ![info exists h_arr(aml_from_addrs)] } {
+                            set fr_addrs [acs_mail_lite::parse_email_address \
+                                                      -email $h_value ]
+                            set h_arr(aml_from_addrs) $fr_addrs
+                        } else {
+                            set fr_addrs $h_arr(aml_from_addrs)
                         }
-                    } else {
-                        set size_chars $h_arr(ams_size_chars)
+                    }
+                    x-openacs-to -
+                    aml_to_addrs -
+                    to {
+                        if { ![info exists h_arr(aml_to_addrs)] } {
+                            set h_quoted [ad_quotehtml $h_value]
+                            set h_arr(aml_to) $h_quoted
+                            set to_addrs [acs_mail_lite::parse_email_address \
+                                                    -email $h_quoted ]
+                            set h_arr(aml_to_addrs) $to_addrs
+                        } else {
+                            set to_addrs $h_arr(aml_to_addrs)
+                        }
+                    }
+                    aml_msg_id {
+                        set msg_id $h_value
+                    }
+                    x-openacs-subject -
+                    aml_subject -
+                    subject {
+                        set subject $h_value
+                    }
+                    x-openacs-size -
+                    aml_size_chars -
+                    size {
+                        if { ![info exists h_arr(aml_size_chars) ] } {
+                            if { [string is wideinteger -strict $h_value] } {
+                                set size_chars $h_value
+                            }
+                        } else {
+                            set size_chars $h_arr(ams_size_chars)
+                        }
+                    }
+                    aml_received_cs { 
+                        set received_cs $h_value
+                    }
+                    aml_priority {
+                        set priority $h_value
                     }
                 }
-                aml_received_cs { 
-                    set received_cs $h_value
+                
+                if { $priority eq "" } {
+                    set priority [dict get \
+                                      [acs_mail_lite::sched_parameters] mpri_max]
                 }
-                aml_priority {
-                    set priority $h_value
+
+                db_dml acs_mail_lite_ie_headers_w1 {
+                    insert into acs_mail_lite_ie_headers 
+                    (aml_email_id,h_name,h_value)
+                    values (:id,:h_name,:h_value)
                 }
             }
             
-            if { $priority eq "" } {
-                set priority [dict get \
-                                  [acs_mail_lite::sched_parameters] mpri_max]
-            }
-
-            db_dml acs_mail_lite_ie_headers_w1 {
-                insert into acs_mail_lite_ie_headers 
-                (aml_email_id,h_name,h_value)
-                values (:id,:h_name,:h_value)
-            }
-        }
-        
-        # acs_mail_lite_from_external 
-        set false 0
-        #set processed_p 0
-        #set release_p 0
-        db_dml acs_mail_lite_from_external_w1 {
-            insert into acs_mail_lite_from_external
-            (aml_email_id,
-             priority,
-             to_email_addrs,
-             from_email_addrs,
-             subject,
-             msg_id,
-             size_chars,
-             received_cs,
-             processed_p,
-             release_p)
-            values (:id,
-                    :priority,
-                    :to_email_addrs,
-                    :from_email_addrs,
-                    :subject,
-                    :msg_id,
-                    :size_chars,
-                    :received_cs,
-                    :false,
-                    :false)
-        }
-
-
-
-        set parts_list [list c_type filename content c_filepathname]
-        foreach section_id $p_arr(section_id_list) {
-
-        # acs_mail_lite_ie_parts
-            foreach p $parts_list {
-                set $p ""
-                if { [info exists p_arr(${section_id},${p}) ] } {
-                    set $p $p_arr(${section_id},${p})
-                } 
-            }
-            db_dml acs_mail_lite_ie_parts_w1 {
-                insert into acs_mail_lite_ie_parts
+            # acs_mail_lite_from_external 
+            set false 0
+            #set processed_p 0
+            #set release_p 0
+            db_dml acs_mail_lite_from_external_w1 {
+                insert into acs_mail_lite_from_external
                 (aml_email_id,
-                 section_id,
-                 c_type,
-                 filename,
-                 content,
-                 c_filepathname)
-                values 
-                (:id,
-                 :section_id,
-                 :c_type,
-                 :filename,
-                 :content,
-                 :c_filepathname)
+                 priority,
+                 to_email_addrs,
+                 from_email_addrs,
+                 subject,
+                 msg_id,
+                 size_chars,
+                 received_cs,
+                 processed_p,
+                 release_p)
+                values (:id,
+                        :priority,
+                        :to_addrs,
+                        :fr_addrs,
+                        :subject,
+                        :msg_id,
+                        :size_chars,
+                        :received_cs,
+                        :false,
+                        :false)
             }
 
-            # acs_mail_lite_ie_part_nv_pairs
-            foreach {p_name p_value} $p_arr(${section_id},nv_list) {
-                db_dml acs_mail_lite_ie_part_mv_pairs_w1 {
-                    insert into acs_mail_lite_ie_part_nv_pairs
+
+
+            set parts_list [list c_type filename content c_filepathname]
+            foreach section_id $p_arr(section_id_list) {
+
+                # acs_mail_lite_ie_parts
+                foreach p $parts_list {
+                    set $p ""
+                    if { [info exists p_arr(${section_id},${p}) ] } {
+                        set $p $p_arr(${section_id},${p})
+                    } 
+                }
+                db_dml acs_mail_lite_ie_parts_w1 {
+                    insert into acs_mail_lite_ie_parts
                     (aml_email_id,
                      section_id,
-                     p_name,
-                     p_value)
-                   values
+                     c_type,
+                     filename,
+                     content,
+                     c_filepathname)
+                    values 
                     (:id,
                      :section_id,
-                     :p_name,
-                     :p_value)
+                     :c_type,
+                     :filename,
+                     :content,
+                     :c_filepathname)
+                }
+
+                # acs_mail_lite_ie_part_nv_pairs
+                foreach {p_name p_value} $p_arr(${section_id},nv_list) {
+                    db_dml acs_mail_lite_ie_part_mv_pairs_w1 {
+                        insert into acs_mail_lite_ie_part_nv_pairs
+                        (aml_email_id,
+                         section_id,
+                         p_name,
+                         p_value)
+                        values
+                        (:id,
+                         :section_id,
+                         :p_name,
+                         :p_value)
+                    }
                 }
             }
-        }
-        
+            
 
-        #}
+        } on_error {
+            ns_log Error "acs_mail_lite::inbound_queue_insert \
+ Unable to insert email. Headers: '[array get h_arr]' Error: ${errmsg}"
+
+        }
     }
     return $id
 }
@@ -1200,8 +1204,15 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
 } {
     Identifies and processes highest priority inbound email.
 } {
-
+    ##code
     # calls acs_mail_lite::inbound_queue_pull once per email
+
+    # email is removed from queue when
+    # set acs_mail_lite_from_external.processed_p 1
+
+    # When all the callbacks are processed, 
+    # set acs_mail_lite_from_external.release_p 1
+
 
 }
 
@@ -1213,12 +1224,14 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
     -aml_email_id:required
     {-mark_processed_p "1"}
 } {
-    Puts email referenced by aml_email_id from the inbound queue into array of h_array_name and p_array_name for use by registered callbacks. 
+    Puts email referenced by aml_email_id from the inbound queue into array
+    of h_array_name and p_array_name for use by registered callbacks. 
 
     Arrays are repopulated with values in the same manner that
     acs_mail_lite::inbounde_queue_insert recieves them. See below for details.
     
-    When complete, marks the email in the queue as processed, if mark_processed_p is 1.
+    When complete, marks the email in the queue as processed, 
+    if mark_processed_p is 1.
     
     Array content corresponds to these tables:
     <pre>
@@ -1350,13 +1363,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
             lappend p_arr(section_ref_list) $section_ref
         }
     }
-
-
-    # email is removed from queue when
-    # set acs_mail_lite_from_external.processed_p 1
-
-    # When all the callbacks are processed, 
-    # set acs_mail_lite_from_external.release_p 1
+    return 1
 }
 
 ad_proc -private acs_mail_lite::inbound_queue_release {
@@ -1367,8 +1374,34 @@ ad_proc -private acs_mail_lite::inbound_queue_release {
     
 } {
     # To flag 'release', set acs_mail_lite_from_external.release_p 1
-    ##code
-
+ 
+    set aml_ids_list [db_list {
+        select aml_email_id from acs_mail_lite_from_external
+        where release_p='1' }]
+    foreach aml_email_id $aml_ids_list {
+        db_transaction {
+            db_dml acs_mail_lite_from_external_dn {
+                delete from acs_mail_lite_from_external
+                where aml_email_id=:aml_email_id
+            }
+            db_dml acs_mail_lite_ie_headers_dn {
+                delete from acs_mail_lite_ie_headers
+                where aml_email_id=:aml_email_id
+            }
+            db_dml acs_mail_lite_ie_parts_dn {
+                delete from acs_mail_lite_ie_parts
+                where aml_email_id=:aml_email_id
+            }
+            db_dml acs_mail_lite_ie_part_nv_pairs_dn {
+                delete from acs_mail_lite_ie_part_nv_pairs
+                where aml_email_id=:aml_email_id
+            }
+        } on_error {
+            ns_log Error "acs_mail_lite::inbound_queue_release. \
+ Unable to release aml_mail_id '${aml_email_id}'. Error is: ${errmsg}"
+        }
+    }
+    return 1
 }
 
 
@@ -2109,7 +2142,7 @@ ad_proc acs_mail_lite::bounce_ministry {
     } else {
         set msg ""
     }
-return 1
+    return 1
 }
 
 #            
