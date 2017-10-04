@@ -14,7 +14,7 @@ namespace eval acs_mail_lite {}
 # other inbound email paradigms with minimal amount
 # of re-factoring of code.
 
-## code
+##code
 # Use acs_mail_lite::imap_check_incoming
 # as a template for creating a generic version:
 # acs_mail_lite::check_incoming
@@ -1204,6 +1204,39 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
 } {
     Identifies and processes highest priority inbound email.
 } {
+    set error_p 0
+    
+    # Get scheduling parameters
+    set start_cs [clock seconds]
+    # The value of si_dur_per_cycle_s is used
+    # to keep about 1 inbound_queue_pull active at a time.
+    # This is an artificial limit.
+    # For faster processing of queue, remove this
+    # scheduling math, and query the queue before processing
+    # each inbound email to avoid collision of atempts
+    # to process email more than once.
+    set si_dur_per_cycle_s \
+        [nsv_get acs_mail_lite si_dur_per_cycle_s ]
+    set stop_cs [expr { $start_cs + $si_dur_per_cycle_s - 1 } ]
+
+    # ct = count
+    set start_ct 0
+    # sort only what we need. Process in 20 email chunks
+    set email_max_ct 20
+    set i 0
+
+    #while..
+
+    # ols = ordered lists
+    set queue_ols [db_list acs_mail_lite_from_external_rN {
+        select aml_email_id from acs_mail_lite_from_external
+        where processed_p <>'1' 
+        and release_p <>'1'
+        order by priority
+        limit :email_max_ct } ]
+
+
+
     ##code
     # calls acs_mail_lite::inbound_queue_pull once per email
 
