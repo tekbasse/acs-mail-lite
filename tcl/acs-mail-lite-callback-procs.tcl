@@ -90,13 +90,25 @@ ad_proc -public -callback acs_mail_lite::incoming_email -impl acs-mail-lite {
     @error
 } {
     upvar $array email
-    ##code
+    ##code this in acs_mail_lite::bounce_ministry
     # for email_queue, header info is already parsed
-    set to [acs_mail_lite::parse_email_address -email $email(to)]
+    if { [info exists email(aml_to_addrs)] } {
+        set to $email(aml_to_addrs)
+    } else {
+        set to [acs_mail_lite::parse_email_address -email $email(to)]
+    }
     ns_log Debug "acs_mail_lite::incoming_email -impl acs-mail-lite called. Recepient $to"
 
-    lassign [acs_mail_lite::parse_bounce_address -bounce_address $to] user_id package_id signature
-    
+    if { ![info exists email(aml_user_id)] } {
+        # Traditional call parses here. Queue case is pre-parsed.
+        lassign [acs_mail_lite::parse_bounce_address -bounce_address $to] user_id package_id signature
+    } else {
+        set user_id $email(aml_user_id)
+        set package_id $email(aml_package_id)
+        # signature could come from a number of headers. Pre-parsing
+        # makes signature obsolete here.
+        set signature ""
+    }
     ##code THis logic needs to be revised depending on type
     # If no user_id found or signature invalid, ignore message
     if {$user_id eq ""} {

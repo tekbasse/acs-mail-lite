@@ -1249,6 +1249,12 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                 -p_array_name p_arr \
                 -aml_email_id $aml_email_id
             ##code callbacks first calls acs_mail_lite::bounce_ministry
+            set bounced_p [acs_mail_lite::bounce_ministry]
+            if { !$bounced_p } {
+                # call a callback like the one that calls 
+                # acs_mail_lite::incoming_object_email / 
+
+            }
             #set error_p flag
 
             # Email is removed from queue when
@@ -2171,7 +2177,14 @@ ad_proc acs_mail_lite::bounce_ministry {
     # would bounce back again if not expected, and therefore never
     # report back.
 
+    # The traditional way used: 
+    # acs_mail_lite::check_bounces
+    # from acs_mail_lite::incoming_email
+    # in which, if there is a bounce, calls: 
+    # acs_mail_lite::record_bounce
 
+
+   
     set b_ol [acs_mail_lite::parse_bounce_address \
                   -bounce_address $to]
     set user_id ""
