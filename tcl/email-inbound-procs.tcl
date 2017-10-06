@@ -1211,42 +1211,63 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
     # The value of si_dur_per_cycle_s is used
     # to keep about 1 inbound_queue_pull active at a time.
     # This is an artificial limit.
-    # For faster processing of queue, remove this
-    # scheduling math, and query the queue before processing
-    # each inbound email to avoid collision of atempts
+    # For parallel processing of queue, remove this
+    # scheduling check, and query the queue with each iteration.
+    # That is, query the queue before processing
+    # each inbound email to avoid collision of attempts
     # to process email more than once.
     set si_dur_per_cycle_s \
         [nsv_get acs_mail_lite si_dur_per_cycle_s ]
-    set stop_cs [expr { $start_cs + $si_dur_per_cycle_s - 1 } ]
+    set stop_cs [expr { $start_cs + int( $si_dur_per_cycle_s * .8 ) } ]
 
     # ct = count
-    set start_ct 0
+    set pull_ct 0
     # sort only what we need. Process in 20 email chunks
     set email_max_ct 20
-    set i 0
+    set pull_p 1
+    while { $pull_p && [clock seconds ] < $stop_cs } {
 
-    #while..
+        # ols = ordered lists
+        set chunk_ols [db_list acs_mail_lite_from_external_rN {
+            select aml_email_id from acs_mail_lite_from_external
+            where processed_p <>'1' 
+            and release_p <>'1'
+            order by priority
+            limit :email_max_ct } ]
 
-    # ols = ordered lists
-    set queue_ols [db_list acs_mail_lite_from_external_rN {
-        select aml_email_id from acs_mail_lite_from_external
-        where processed_p <>'1' 
-        and release_p <>'1'
-        order by priority
-        limit :email_max_ct } ]
+        set chunck_len [llength $chunk_ols]
+        if { $chunk_len < 1} {
+            set pull_p 0
+        }
+        set i 0
+        while { $i < $chunck_len && $pull_p && [clock seconds ] < $stop_cs } {
+            array unset h_arr
+            array unset p_arr
+            set aml_email_id [lindex $chunk_ols $i]
+            acs_mail_lite::inbound_queue_pull_one \
+                -h_array_name h_arr \
+                -p_array_name p_arr \
+                -aml_email_id $aml_email_id
+            ##code callbacks first calls acs_mail_lite::bounce_ministry
+            #set error_p flag
 
+            # Email is removed from queue when
+            # set acs_mail_lite_from_external.processed_p 1.
+            # Do not release if there was an error.
+            # set acs_mail_lite_from_external.release_p error_p
+            db_dml acs_mail_lite_from_external_wproc {
+                update acs_mail_lite_from_external
+                set processed_p='1'
+                and release_p=:error_p
+                where acs_email_id=:acs_email_id
+            }
 
+            incr i
+        }
+        
+    }
 
-    ##code
-    # calls acs_mail_lite::inbound_queue_pull once per email
-
-    # email is removed from queue when
-    # set acs_mail_lite_from_external.processed_p 1
-
-    # When all the callbacks are processed, 
-    # set acs_mail_lite_from_external.release_p 1
-
-
+   return 1
 }
 
 
