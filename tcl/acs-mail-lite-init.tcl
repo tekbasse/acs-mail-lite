@@ -47,9 +47,11 @@ ad_schedule_proc -thread t \
     $si_dur_per_cycle_s acs_mail_lite::inbound_queue_pull
 
 ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 1 41] acs_mail_lite::inbound_queue_release
-# above was
-# acs_mail_lite::imap_check_incoming was acs_mail_lite::check_bounces:
-# ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces
+# above was three scheduled procs were combined in one:
+# acs_mail_lite::load_mails -queue_dir $queue_dir
+
+# acs_mail_lite::check_bounces
+ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces
 
 
 

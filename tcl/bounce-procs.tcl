@@ -124,7 +124,25 @@ namespace eval acs_mail_lite {
         set max_days_to_bounce [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter MaxDaysToBounce -default 3]
         set notification_interval [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter NotificationInterval -default 7]
         set max_notification_count [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter MaxNotificationCount -default 4]
-        set notification_sender [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter NotificationSender -default "reminder@[address_domain]"]
+        set notification_sender [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter NotificationSender -default ""]
+        if { $notification_sender eq "" } {
+            # Use the most specific default available
+            set fixed_sender [parameter::get -parameter "FixedSenderEmail" \
+                                  -package_id $mail_package_id]
+            if { $fixed_sender ne "" } {
+                set notification_sender $fixed_sender
+            } elseif { [acs_mail_lite::utils::valid_email_p [ad_system_owner]] } {
+                set notification_sender [ad_system_owner]
+            } else {
+                # Set to an email address that is required to exist
+                # to avoid email loops and other issues
+                # per RFC 5321 section 4.5.1 
+                # https://tools.ietf.org/html/rfc5321#section-4.5.1
+                # The somewhat unique capitalization may be useful
+                # for identifyng source in diagnostic context.
+                set notification_sender "PostMastER@[address_domain]"
+            }
+        }
 
         # delete all bounce-log-entries for users who received last email
         # X days ago without any bouncing (parameter)
@@ -152,7 +170,10 @@ namespace eval acs_mail_lite {
             array set user $notification_list
             set user_id $user(user_id)
 	    set href [export_vars -base [ad_url]/register/restore-bounce {user_id}]
-            set body "Dear $user(name),\n\nDue to returning mails from your email account, we currently do not send you any email from our system. To reenable your email account, please visit\n$href"
+            set body "Dear $user(name),\n\n\
+ Due to returning mails from your email account, \n \
+ we currently do not send you any email from our system.\n\n \
+ To re-enable your email notifications, please visit\n${href}"
 
             send -to_addr $notification_list -from_addr $notification_sender -subject $subject -body $body -valid_email
             ns_log Notice "Bounce notification send to user $user_id"

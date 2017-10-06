@@ -2178,10 +2178,12 @@ ad_proc acs_mail_lite::bounce_ministry {
     # report back.
 
     # The traditional way used: 
-    # acs_mail_lite::check_bounces
-    # from acs_mail_lite::incoming_email
+    # code in acs_mail_lite::load_emails 
     # in which, if there is a bounce, calls: 
     # acs_mail_lite::record_bounce
+
+    # and later batches some admin via
+    # acs_mail_lite::check_bounces
 
 
    
