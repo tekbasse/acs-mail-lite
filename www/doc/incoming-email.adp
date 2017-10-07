@@ -17,15 +17,24 @@
 
   <h2>Processing incoming e-mail</h2>
   <p>
-    A sweeper procedure like <a  href='http://openacs.org/api-doc/proc-view?proc=acs_mail_lite::load_mails&amp;amp;source_p=1'>acs_mail_lite::load_mails</a> should:
+    A sweeper procedure like <a  href='http://openacs.org/api-doc/proc-view?proc=acs_mail_lite::load_mails&amp;amp;source_p=1'>acs_mail_lite::load_mails</a> or <a  href='http://openacs.org/api-doc/proc-view?proc=acs_mail_lite::inbound_queue_pull&amp;amp;source_p=1'>acs_mail_lite::inbound_queue_pull</a>should:
   </p>
 
   <ol>
-	<li>scan the e-mails which are in the IncomingMaildir directory on a regular basis.</li>
+	<li>scan the e-mails on a regular basis.</li>
 	<li>check if any email came from an auto mailer.</li>
 	<li>Parse new ones, and</li>
 	<li>process them by firing off callbacks.</li>
   </ol>
+ 
+  <h3>notifications package</h3>
+  <p>Return email can be processed directly via notifications package.
+    Forums package uses this method. See usage of notification::reply::get
+    in forums/tcl/forum-reply-procs.tcl. notification::reply::get is
+    defined in notifications/tcl/notification-reply-docs.tcl.
+    To use this method, install the notifications package, and 
+    read documentation in notifications package.
+  </p>
 
 <h2>Release Notes</h2>
 
