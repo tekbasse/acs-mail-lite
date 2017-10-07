@@ -2,6 +2,9 @@
   <property name="title">@title;noquote@</property>
   <property name="context">@context;noquote@</property>
   <h1>@title@</h1>
+  <p><strong>The information on this page is volatile and likely changed.</strong>
+    Refer to API documentation for specifics on existing system.</p>
+
 
   <p>
     Incoming E-Mail in OpenACS works with the latest version of acs-mail-lite in a general fashion using callbacks.
@@ -23,6 +26,11 @@
 	<li>Parse new ones, and</li>
 	<li>process them by firing off callbacks.</li>
   </ol>
+
+<h2>Release Notes</h2>
+
+<p>Please file bugs in the <a href="http://openacs.org/bugtracker/openacs/">Bug Tracker</a>.</p>
+
   <h3>email filters</h3>
   <p>
     Vinod has made a check for auto mailers by using procmail as follows.

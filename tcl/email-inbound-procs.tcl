@@ -1255,7 +1255,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                 -h_array_name h_arr \
                 -p_array_name p_arr \
                 -aml_email_id $aml_email_id
-            ##code callbacks first calls acs_mail_lite::bounce_ministry
+            
             set processed_p 0
             set bounced_p [acs_mail_lite::bounce_ministry]
             if { !$bounced_p } {
@@ -1266,7 +1266,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                 # object_id@domain is unconventional 
                 # and may break if someone
                 # uses an email beginning with a number.
-                # Also, this could be spoofed..
+                # Also, 'from' header could be spoofed..
                 # This practice should be deprecated in favor of signed 
                 # acs_mail_lite::unqiue_id_create.
                 # For now, we warn whenver this is used.
@@ -1284,7 +1284,10 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                 if { !$processed_p } {
                     # Execute all callbacks for this email
                     # As an example, see
-                    # notification::reply::get in forums/tcl/forum-reply-procs.tcl
+                    # notification::reply::get 
+                    #  in forums/tcl/forum-reply-procs.tcl
+                    #  which is defined in file:
+                    # notifications/tcl/notification-reply-procs.tcl
 
                     set status callback acs_mail_lite::incoming_email -array h_arr
                 }
@@ -2182,7 +2185,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
                     }
                 }
                 # prefix = "aml_" as in cname becomes:
-                #  aml_package_id aml_party_id aml_object_id aml_other
+                #  al_package_id aml_party_id aml_object_id aml_other aml_datetime_cs
                 foreach {n v} $context_list {
                     set cname $prefix
                     append cname $n
@@ -2244,7 +2247,7 @@ ad_proc acs_mail_lite::bounce_ministry {
                       aml_type \
                       aml_to_addrs \
                       aml_from_addrs \
-                      aml_received_cs ]
+                      aml_datetime_cs ]
     foreach idx $aml_list {
         if { ![info exists h_arr(${idx})] } {
             set h_arr(aml_package_id) ""
@@ -2261,6 +2264,7 @@ ad_proc acs_mail_lite::bounce_ministry {
         if { $party_id_from_addrs ne "" } {
             set user_id $party_id_from_addrs 
             if { ![acs_mail_lite::bouncing_user_p -user_id $user_id ] } {
+
                 # Following literally from acs_mail_lite::record_bounce
                 ns_log Debug "acs_mail_lite::bounce_ministry.2264 \
   Bouncing email from user '${user_id}'"
@@ -2269,27 +2273,27 @@ ad_proc acs_mail_lite::bounce_ministry {
                 if { ![db_resultrows]} {
                     db_dml insert_bounce {}
                 }
+                # end code from acs_mail_lite::record_bounce
 
                 if { $h_arr(aml_party_id) ne $user_id \
-                         || $h_arr(aml_received_cs) eq "" } {
+                         || $h_arr(aml_datetime_cs) eq "" } {
                     # Log it, because it might be a false positive.
-                    # Existence of aml_received_cs means unique_id was signed.
+                    # Existence of aml_datetime_cs means unique_id was signed.
                     # See acs_mail_lite::unique_id_parse
                     ns_log Warning "acs_mail_lite::bounce_ministry.2275 \
  Bounced email apparently from user_id '${user_id}' \
- headers: '[array get h_arr]'"
+ with headers: '[array get h_arr]'"
 
                 }
             }
+            
         } else {
-            ##code check logic here
-            # Not from a recognized email address
+            # This is probably a bounce, but not from a recognized party
             # Log it, because it might help with email related issues.
             ns_log Warning "acs_mail_lite::bounce_ministry.2287 \
   email_type '$h_arr(aml_type)' ignored. headers: '[array get h_arr]'"
 
-
-        }            
+        }
     }
    
 
