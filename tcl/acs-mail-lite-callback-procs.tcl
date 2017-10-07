@@ -109,7 +109,10 @@ ad_proc -public -callback acs_mail_lite::incoming_email -impl acs-mail-lite {
         # makes signature obsolete here.
         set signature ""
     }
-    ##code THis logic needs to be revised depending on type
+    # The above adaptions make this proc usable with newer versions of
+    # code in the legacy paradigm.
+    # Sadly, this bounces all cases with a user_id so it is not
+    # usable for the new inbound email callback scheme.
     # If no user_id found or signature invalid, ignore message
     if {$user_id eq ""} {
       ns_log Debug "acs_mail_lite::incoming_email impl acs-mail-lite: No equivalent user found for $to"

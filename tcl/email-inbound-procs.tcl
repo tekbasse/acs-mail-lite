@@ -1283,21 +1283,24 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                 }
                 if { !$processed_p } {
                     # Execute all callbacks for this email
-                    # As an example, see
+                    
+                    # Forums uses notifications without callbacks:
                     # notification::reply::get 
                     #  in forums/tcl/forum-reply-procs.tcl
                     #  which is defined in file:
                     # notifications/tcl/notification-reply-procs.tcl
 
-                    set status callback acs_mail_lite::incoming_email -array h_arr
+                    #Callback acs_mail_lite::incoming_email bounces everything
+                    # with a user_id.
+                    # Its code has been added to acs_mail_lite::bounce_ministry
+                    # A new callback intended to be compatible with
+                    # notification::reply::get (if possible) is invoked here
+                    ##code
+                    set status [callback acs_mail_lite::reply::get -array h_arr]
                 }
 
-        }
-
-                # call a callback like the one that calls 
-                # acs_mail_lite::incoming_object_email / 
-
             }
+            ##code based on feedback from callback
             #set error_p flag
 
             # Email is removed from queue when
