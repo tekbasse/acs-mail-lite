@@ -90,7 +90,7 @@ ad_proc -public -callback acs_mail_lite::incoming_email -impl acs-mail-lite {
     @error
 } {
     upvar $array email
-    ##code this in acs_mail_lite::bounce_ministry
+
     # for email_queue, header info is already parsed
     if { [info exists email(aml_to_addrs)] } {
         set to $email(aml_to_addrs)

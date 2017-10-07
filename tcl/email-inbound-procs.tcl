@@ -484,44 +484,51 @@ ad_proc -public acs_mail_lite::email_type {
     {-reply_too_fast_s "10"}
     {-check_subject_p "0"}
 } {
+    <p>
     Scans email's subject, from and headers for actionable type.
+    </p><p>
     Returns actionable type and saves same type in header_arr_name(aml_type),
     and saves some normalized header info
     to reduce redundant processing downstream. See code comments for details.
-    
-
+    </p><p>
     Actional types: \
         'auto_gen' 'auto_reply', 'bounce', 'in_reply_to' or 
     empty string indicating 'other' type.
+    </p>
+    <ul><li>
     'auto_reply' may be a Delivery Status Notification for example.
+    </li><li>
     'bounce' is a specific kind of Delivery Status Notification.
+    </li><li>
     'in_reply_to' is an email reporting to originate from local email,
     which needs to be tested further to see if OpenACS needs to act on
     it versus a reply to a system administrator email for example.
+    </li><li>
     'auto_gen' is an auto-generated email that does not qualify as 'auto_reply', 'bounce', or 'in_reply_to'
-    'other' refers to email that the system does not recognize as a reply
-    of any kind.
-
-    If not a qualifying type, returns empty string.
-
-    Currently, only additional header added, since it is used in this proc:
-
+    </li><li>
+    '' (Empty string) refers to email that the system does not recognize as a reply
+    of any kind. If not a qualifying type, returns empty string.
+    </li></ul>
+    Adds these index to headers array:
+    <ul><li>
     received_cs: the recevied time of email in tcl clock epoch time.
-
-    If additional headers not calculated, they are have value of empty string.
-
-
+    </li><li>
+    aml_type:  the same value returned by this proc.
+    </li></ul>
+    <p>
+    If additional headers not calculated, they have value of empty string.
+    </p><p>
     If headers and header_arr_name provided, only header_arr_name will be used, if header_arr_name contains at least one value.
-
+    </p><p>
     If check_subject_p is set 1, \
     checks for common subjects identifying autoreplies. \
         This is not recommended to rely on exclusively. \
         This feature provides a framework for expaning classification of \
         emails for deployment routing purposes.
-
+    </p><p>
     If array includes keys from 'ns_imap struct', such as internaldate.*, \
         then adds header with epoch time quivilent to header index received_cs
-
+    </p>
     @param subject of email
     @param from of email
     @param headers of email, a block of text containing all headers and values
@@ -1249,8 +1256,41 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                 -p_array_name p_arr \
                 -aml_email_id $aml_email_id
             ##code callbacks first calls acs_mail_lite::bounce_ministry
+            set processed_p 0
             set bounced_p [acs_mail_lite::bounce_ministry]
             if { !$bounced_p } {
+
+                # following from acs_mail_lite::load_mail
+                set pot_object_id [lindex [split $h_arr(aml_to_addrs) "@"] 0]
+                ##code  OpenACS Developers:
+                # object_id@domain is unconventional 
+                # and may break if someone
+                # uses an email beginning with a number.
+                # Also, this could be spoofed..
+                # This practice should be deprecated in favor of signed 
+                # acs_mail_lite::unqiue_id_create.
+                # For now, we warn whenver this is used.
+                if { [ad_var_type_check_number_p $pot_object_id] } {
+                    if { [acs_object::object_p -id h_arr(aml_object_id)] } {
+                        ns_log Warning "acs_mail_lite::inbound_queue_pull \
+ Accepted insecure email object_id '${pot_object_id}' \
+ array get h_arr '[array get h_arr]'. See code comments."
+                        callback acs_mail_lite::incoming_object_email \
+                            -array h_arr \
+                            -object_aid $pot_object_id
+                        set processed_p 1
+                    }
+                }
+                if { !$processed_p } {
+                    # Execute all callbacks for this email
+                    # As an example, see
+                    # notification::reply::get in forums/tcl/forum-reply-procs.tcl
+
+                    set status callback acs_mail_lite::incoming_email -array h_arr
+                }
+
+        }
+
                 # call a callback like the one that calls 
                 # acs_mail_lite::incoming_object_email / 
 
@@ -2141,7 +2181,8 @@ ad_proc -private acs_mail_lite::inbound_email_context {
                         }
                     }
                 }
-                
+                # prefix = "aml_" as in cname becomes:
+                #  aml_package_id aml_party_id aml_object_id aml_other
                 foreach {n v} $context_list {
                     set cname $prefix
                     append cname $n
@@ -2160,58 +2201,99 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 
 ad_proc acs_mail_lite::bounce_ministry {
     -header_array_name:required
-    {-array_names_list ""}
 } {
     Check if this email is notifying original email bounced.
-    If is a bounced notification, handle it.
+    If is a bounced notification, process it.
 
-    Returns 1 if bounced, otherwise returns 0
+    Returns 1 if bounced or an auto generated reply that 
+    should be ignored, otherwise returns 0
+
+    Expects header_array to have been previously processed by these procs:
+
+    @see acs_mail_lite::email_type
+    @see acs_mail_lite::inbound_email_context
 } {
-    ##code
+    upvar 1 $header_array_name h_arr
+    # This is called ministry, because it is expected to grow in complexity
+    # as bounce policy becomes more mature.
+
+    # The traditional OpenACS MailDir way: 
+    # code in acs_mail_lite::load_mails 
+    # in which, if there is a bounce, calls: 
+    # acs_mail_lite::record_bounce
+    # and later batches some admin via
+    # acs_mail_lite::check_bounces
+    # This approach likely does not work for 
+    # standard email accounts where a FixedSenderEmail is expected and
+    # a dynamic (unstatic) email
+    # would bounce back again and therefore never be reported in system.
+
+    # Specfics of the old way:
+    # acs_mail_lite::record_bounce which calls:
+    # acs_mail_lite::bouncing_user_p -user_id $h_arr(aml_user_id)
+
     # bounces are checked from the inbound queue
     # before checking other cases that may trigger callbacks
 
-    # bounce_ordered_list = b_ol
-    # MailDir incoming email api likely does not work for 
-    # standard email accounts where a dynamic (unstatic) email
-    # would bounce back again if not expected, and therefore never
-    # report back.
 
-    # The traditional way used: 
-    # code in acs_mail_lite::load_emails 
-    # in which, if there is a bounce, calls: 
-    # acs_mail_lite::record_bounce
+    set aml_list [list \
+                      aml_package_id \
+                      aml_party_id \
+                      aml_object_id \
+                      aml_other \
+                      aml_type \
+                      aml_to_addrs \
+                      aml_from_addrs \
+                      aml_received_cs ]
+    foreach idx $aml_list {
+        if { ![info exists h_arr(${idx})] } {
+            set h_arr(aml_package_id) ""
+        }
+    }
 
-    # and later batches some admin via
-    # acs_mail_lite::check_bounces
+    set ignore_p 0
+    if { $h_arr(aml_type) ne "" && $h_arr(aml_type) ne "in_reply_to" } {
+        set ignore_p 1
+        # Record bounced email?
+        set party_id_from_addrs [party::get_by_email \
+                                     -email $h_arr(aml_from_addrs)]
+        
+        if { $party_id_from_addrs ne "" } {
+            set user_id $party_id_from_addrs 
+            if { ![acs_mail_lite::bouncing_user_p -user_id $user_id ] } {
+                # Following literally from acs_mail_lite::record_bounce
+                ns_log Debug "acs_mail_lite::bounce_ministry.2264 \
+  Bouncing email from user '${user_id}'"
+                # record the bounce in the database
+                db_dml record_bounce {}
+                if { ![db_resultrows]} {
+                    db_dml insert_bounce {}
+                }
+
+                if { $h_arr(aml_party_id) ne $user_id \
+                         || $h_arr(aml_received_cs) eq "" } {
+                    # Log it, because it might be a false positive.
+                    # Existence of aml_received_cs means unique_id was signed.
+                    # See acs_mail_lite::unique_id_parse
+                    ns_log Warning "acs_mail_lite::bounce_ministry.2275 \
+ Bounced email apparently from user_id '${user_id}' \
+ headers: '[array get h_arr]'"
+
+                }
+            }
+        } else {
+            ##code check logic here
+            # Not from a recognized email address
+            # Log it, because it might help with email related issues.
+            ns_log Warning "acs_mail_lite::bounce_ministry.2287 \
+  email_type '$h_arr(aml_type)' ignored. headers: '[array get h_arr]'"
 
 
+        }            
+    }
    
-    set b_ol [acs_mail_lite::parse_bounce_address \
-                  -bounce_address $to]
-    set user_id ""
-    set package_id ""
-    set object_id ""
-    lassign $b_ol user_id package_id scratch
 
-    set m_idx [lsearch -nocase -exact \
-                   $headers_list \
-                   original-message-id]
-    if { ${m_idx} < 0 } {
-        set m_idx [lsearch -nocase -exact \
-                       $headers_list \
-                       original-msg-id]
-    }
-    if { ${m_idx} > -1 } {
-        set mn [lindex $headers_list $m_idx]
-        set h_m_id $hdrs_arr(${mn})
-        set m_id [acs_mail_lite::unique_id_parse \
-                      ]
-        ##code add xref from db and set pkg_id etc
-    } else {
-        set msg ""
-    }
-    return 1
+    return $ignore_p
 }
 
 #            
