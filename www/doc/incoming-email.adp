@@ -7,17 +7,12 @@
 
 
   <p>
-    Incoming E-Mail in OpenACS works with the latest version of acs-mail-lite in a general fashion using callbacks.
+    Incoming E-Mail in OpenACS works with the latest version of acs-mail-lite in a general fashion using callbacks to interface with individual package features.
   </p>
-
-  <p>
-    We will take a look on what needs to be done to get incoming e-mail working and then continue on to see how packages can benefit.
-  </p>
-
 
   <h2>Processing incoming e-mail</h2>
   <p>
-    A sweeper procedure like <a  href='http://openacs.org/api-doc/proc-view?proc=acs_mail_lite::load_mails&amp;amp;source_p=1'>acs_mail_lite::load_mails</a> or <a  href='http://openacs.org/api-doc/proc-view?proc=acs_mail_lite::inbound_queue_pull&amp;amp;source_p=1'>acs_mail_lite::inbound_queue_pull</a>should:
+    A sweeper procedure like <a  href='http://openacs.org/api-doc/proc-view?proc=acs_mail_lite::load_mails&amp;amp;source_p=1'>acs_mail_lite::load_mails</a> or <a  href='http://openacs.org/api-doc/proc-view?proc=acs_mail_lite::inbound_queue_pull&amp;amp;source_p=1'>acs_mail_lite::inbound_queue_pull</a> should:
   </p>
 
   <ol>
@@ -28,12 +23,16 @@
   </ol>
  
   <h3>notifications package</h3>
-  <p>Return email can be processed directly via notifications package.
+  <p>Return email can be processed via notifications package.
     Forums package uses this method. See usage of notification::reply::get
     in forums/tcl/forum-reply-procs.tcl. notification::reply::get is
     defined in notifications/tcl/notification-reply-docs.tcl.
     To use this method, install the notifications package, and 
     read documentation in notifications package.
+  </p><p>
+    Note: Notifications package requires ACS-Mail-Lite package.
+    ACS-Mail-Lite is the most direct way of interfacing with email
+    send and receive.
   </p>
 
 <h2>Release Notes</h2>

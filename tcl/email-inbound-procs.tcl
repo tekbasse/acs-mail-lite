@@ -14,7 +14,7 @@ namespace eval acs_mail_lite {}
 # other inbound email paradigms with minimal amount
 # of re-factoring of code.
 
-##code
+##code OpenACS Developers wanting to adapt code to other than IMAP:
 # Use acs_mail_lite::imap_check_incoming
 # as a template for creating a generic version:
 # acs_mail_lite::check_incoming
@@ -1269,6 +1269,9 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                 # Also, 'from' header could be spoofed..
                 # This practice should be deprecated in favor of signed 
                 # acs_mail_lite::unqiue_id_create.
+                # For emails originating elsewhere, another authentication
+                # method, such as a pre-signed unique-id in message
+                # content could be added as well.
                 # For now, we warn whenver this is used.
                 if { [ad_var_type_check_number_p $pot_object_id] } {
                     if { [acs_object::object_p -id h_arr(aml_object_id)] } {
@@ -1284,7 +1287,11 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                 if { !$processed_p } {
                     # Execute all callbacks for this email
                     
-                    # Forums uses notifications without callbacks:
+                    # Forums uses callbacks via notifications
+                    # See callback 
+                    # acs_mail_lite::incoming_email -imp notifications 
+                    # in notifications/tcl/notification-callback-procs.tcl
+                    # and
                     # notification::reply::get 
                     #  in forums/tcl/forum-reply-procs.tcl
                     #  which is defined in file:
@@ -1292,7 +1299,8 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
 
                     #Callback acs_mail_lite::incoming_email bounces everything
                     # with a user_id.
-                    # Its code has been added to acs_mail_lite::bounce_ministry
+                    # Its useful code has been added to
+                    # acs_mail_lite::bounce_ministry.
                     # A new callback intended to be compatible with
                     # notification::reply::get (if possible) is invoked here
                     ##code
