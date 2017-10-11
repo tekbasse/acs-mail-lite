@@ -1337,6 +1337,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
     -p_array_name:required
     -aml_email_id:required
     {-mark_processed_p "1"}
+    {-legacy_format_p "0"}
 } {
     Puts email referenced by aml_email_id from the inbound queue into array
     of h_array_name and p_array_name for use by registered callbacks. 
@@ -1412,11 +1413,15 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
     list of headers by section is  p_arr($section_ref,name_value_list) 
     list of section_refs       is  p_arr(section_ref_list) 
 
-    </pre>
+    For direct compatibility with legacy email systems that used:
+    </pre><p>
+    acs_mail_lite::email_parse, set proc parameter legacy_format_p 1.
+    </p>
+    @see acs_mail_lite::email_parse
 } {
     upvar 1 $h_array_name h_arr
     upvar 1 $p_array_name p_arr
-
+##codd legacy_format_p changes according to incoming-mail-procs.tcl parse_email
     # This query may be redundant to some info in acs_mail_lite_ie_headers.
     # acs_mail_lite_from_external
     set x_list [db_list_of_lists acs_mail_lite_from_external_r1 {
