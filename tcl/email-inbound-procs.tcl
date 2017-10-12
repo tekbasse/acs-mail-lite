@@ -1337,7 +1337,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
     -p_array_name:required
     -aml_email_id:required
     {-mark_processed_p "1"}
-    {-legacy_format_p "0"}
+    {-legacy_array_name ""}
 } {
     Puts email referenced by aml_email_id from the inbound queue into array
     of h_array_name and p_array_name for use by registered callbacks. 
@@ -1415,13 +1415,22 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
 
     For direct compatibility with legacy email systems that used:
     </pre><p>
-    acs_mail_lite::email_parse, set proc parameter legacy_format_p 1.
+    acs_mail_lite::email_parse, a compatible array is passed
+    to legacy_array_name, if parameter is used.
     </p>
     @see acs_mail_lite::email_parse
 } {
     upvar 1 $h_array_name h_arr
     upvar 1 $p_array_name p_arr
-##codd legacy_format_p changes according to incoming-mail-procs.tcl parse_email
+    if { $legacy_array_name ne "" } {
+        upvar 1 $legacy_array_name l_arr
+        set build_l_arr_p 1
+        # Save data in l_arr according to acs_mail_lite::parse_email
+        # in incoming-mail-procs.tcl
+    } else {
+        set build_l_arr_p 0
+    }
+
     # This query may be redundant to some info in acs_mail_lite_ie_headers.
     # acs_mail_lite_from_external
     set x_list [db_list_of_lists acs_mail_lite_from_external_r1 {
@@ -1440,14 +1449,37 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
         h_arr(aml_received_cs) \
         h_arr(aml_processed_p) \
         h_arr(aml_release_p) 
-        
+
     # collect from acs_mail_lite_ie_headers
     set h_lists [db_list_of_lists acs_mail_lite_ie_headers_r1 {
         select h_name, h_value
         from acs_mail_lite_ie_headers
         where aml_email_id=:aml_email_id } ]
+    set h_names_ul [list ]
     foreach {n v} $h_lists {
         set h_arr(${n}) "${v}"
+        lappend h_names_ul $n
+    }
+
+    if { $build_l_arr_p } {
+        set l_headers_ul [array get h_arr]
+        lappend l_headers_ul message-id $h_arr(aml_msg_id)
+        lappend l_headers_ul subject $h_arr(aml_subject)
+        lappend l_headers_ul from $h_arr(aml_from_email_addrs)
+        lappend l_headers_ul to $h_arr(aml_to_email_addrs)
+        # provide lowercase of some headers if they exist
+        set to_lc_list [list date references in-reply-to return-path]
+        foreach tol $to_lc_list {
+            set tol_idx [lsearch -exact -nocase $h_names_ul $tol ]
+            if { $tol > -1 } {
+                set tol_ref [lindex $h_names_ul $tol_idx]
+                lappend l_headers_ul $tol $h_arr(${tol_ref})
+            } 
+        }
+        if { $h_arr(received_cs) ne "" } {
+            lappend l_headers_ul received [clock format $h_arr(received_cs) ]
+        }
+        set l_arr(headers) $l_headers_ul
     }
 
     # collect from acs_mail_lite_ie_parts
@@ -1465,23 +1497,65 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
             lappend p_arr(section_ref_list) $section_ref
         }
     }
-
     # collect from acs_mail_lite_ie_part_nv_pairs
-    set p_lists [db_list_of_lists acs_mail_lite_ie_part_nv_pairs_r1 {
+    set nvp_lists [db_list_of_lists acs_mail_lite_ie_part_nv_pairs_r1 {
         select section_id, p_name, p_value
         from acs_mail_lite_ie_part_nv_pairs
         where aml_email_id=:aml_email_id } ]
     set reserved_fields_ul [list content c_type filename c_filename]
-    foreach row $p_lists {
+    foreach row $nvp_lists {
         set section_ref [acs_mail_lite::section_ref_of [lindex $row 0]]
         set name [lindex $row 1]
         set value [lindex $row 2]
-        lappend p_arr(${section_ref},name_value_list) $name $value
-        
+        if { $name ni $reserved_fields_ul } {
+            lappend p_arr(${section_ref},name_value_list) $name $value
+        }
         if { $section_ref ni $p_arr(section_ref_list) } {
             lappend p_arr(section_ref_list) $section_ref
         }
     }
+    if { $build_l_arr_p } {
+        # Legacy approach assumes "application/octet-stream"
+        # for all attachments and
+        # base64 for encoding of all files.
+        #
+        # Encoding has already been handled for files before queing.
+
+        # Legacy approach replaces nested parts with flat list
+        # from parse_email:
+        #   The bodies consists of a list with two elements: 
+        #     content-type and content.
+        #   The files consists of a list with three elements:
+        #     content-type, filename and content.
+
+        set bodies_list [list]
+        set files_list [list]
+        set default_encoding [encoding system]
+        foreach part $p_arr(section_ref_list) {
+
+            lappend bodies_list [list \
+                                     $p_arr(${section_ref},c_type) \
+                                     $p_arr(${section_ref},content) ]
+            # check for local filename
+            if { $p_arr(${section_ref},c_filepathname) ne "" } {
+                # Since this is saved as a file and already decoded, 
+                # guess content_type from file
+                # instead of assuming content type is same
+                # as type used in email transport.
+                set content_type [ns_guesstype $p_arr(${section_ref},c_filepathname)]
+                
+                lappend files_list [list \
+                                        $content_type \
+                                        $default_encoding \
+                                        $p_arr(${section_ref},filename) \
+                                        $p_arr(${section_ref},c_filepathname) ]
+                                    
+            }
+        }
+        set l_arr(bodies) $bodies_list
+        set l_arr(files) $files_list
+    }
+
     return 1
 }
 
