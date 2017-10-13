@@ -1242,12 +1242,12 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
             order by priority
             limit :email_max_ct } ]
 
-        set chunck_len [llength $chunk_ols]
+        set chunk_len [llength $chunk_ols]
         if { $chunk_len < 1} {
             set pull_p 0
         }
         set i 0
-        while { $i < $chunck_len && $pull_p && [clock seconds ] < $stop_cs } {
+        while { $i < $chunk_len && $pull_p && [clock seconds ] < $stop_cs } {
             array unset h_arr
             array unset p_arr
             set aml_email_id [lindex $chunk_ols $i]
