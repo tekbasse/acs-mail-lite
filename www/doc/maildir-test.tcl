@@ -55,7 +55,12 @@ foreach msg $messages_list {
             set datetime_cs [expr { [clock seconds] - $age_s } ]
         }
     }
-        
+
+    set property_names_list [mime::getproperty $m_id -names]
+    set property_list [mime::getproperty $m_id]
+
+
+    # following group are redundant to mime::getproperty $m_id
     set params_list [mime::getproperty $m_id params]
     set encoding_s [mime::getproperty $m_id encoding]
     set content_s [mime::getproperty $m_id content]
@@ -64,6 +69,7 @@ foreach msg $messages_list {
 
     if { [string match "multipart/*" $content_s] \
              || [string match -nocase "inline*" $content_s ] } {
+        # or 'parts' exists in property_list
 
         set part_ids_list [mime::getproperty $m_id parts]
 
@@ -81,8 +87,6 @@ foreach msg $messages_list {
 
 
 
-    set property_names_list [mime::getproperty $m_id -names]
-    set property_list [mime::getproperty $m_id]
 
 
 

@@ -10,7 +10,6 @@ ad_library {
 namespace eval acs_mail_lite {}
 
 
-
 ad_proc -private acs_mail_lite::maildir_email_parse {
     -headers_arr_name
     -parts_arr_name
@@ -51,12 +50,17 @@ ad_proc -private acs_mail_lite::maildir_email_parse {
     # Due to the hierarchical nature of email, this proc is recursive.
     # To see examples of struct list to build, see www/doc/imap-notes.txt
     # and www/doc/maildir-test.tcl
+    # reference mime procs:
+    # https://www.tcl.tk/community/tcl2004/Tcl2003papers/kupries-doctools/tcllib.doc/mime/mime.html
 
     upvar 1 $headers_arr_name h_arr
     upvar 1 $parts_arr_name p_arr
     upvar 1 __max_txt_bytes __max_txt_bytes
     set has_parts_p 0
     set section_n_v_list [list ]
+    # rfc 822 date time format regexp expression
+    set r822 {[^a-z]([a-z][a-z][a-z][ ,]+[0-9]+ [a-z][a-z][a-z][ ]+[0-9][0-9][0-9][0-9][ ]+[0-9][0-9][:][0-9][0-9][:][0-9][0-9][ ]+[\+\-][0-9]+)[^0-9]}
+
     if { ![info exists __max_txt_bytes] } {
         set sp_list [acs_mail_lite::sched_parameters]
         set __max_txt_bytes [dict get $sp_list max_blob_chars]
@@ -83,8 +87,6 @@ ad_proc -private acs_mail_lite::maildir_email_parse {
  message file '${msg}'"
                     set error_p 1
                 } else {
-                    # rfc 822 date time format regexp
-                    set r822 {[^a-z]([a-z][a-z][a-z][ ,]+[0-9]+ [a-z][a-z][a-z][ ]+[0-9][0-9][0-9][0-9][ ]+[0-9][0-9][:][0-9][0-9][:][0-9][0-9][ ]+[\+\-][0-9]+)[^0-9]}
                     # For acs_mail_lite::inbond_cache_hit_p, 
                     # make a uid if there is not one. 
                     set uid_ref ""
@@ -95,6 +97,7 @@ ad_proc -private acs_mail_lite::maildir_email_parse {
                     # A header returns multiple values in a list
                     # if header name is repeated in email.
                     set h_list [mime::getheader $m_id]
+                    # headers_list 
                     set headers_list [list ]
                     foreach {h v} $h_list {
                         switch -nocase -- $h {
@@ -137,165 +140,154 @@ ad_proc -private acs_mail_lite::maildir_email_parse {
                     }
                     lappend headers_list "aml_received_cs" [file mtime $file]
                     lappend headers_list "uid" $uid_val
-                    # add parts
-                    ##code What??
-                    # need to see what mime procs really return.
-                    # https://www.tcl.tk/community/tcl2004/Tcl2003papers/kupries-doctools/tcllib.doc/mime/mime.html
-                    set all_parts_list [list ]
-                    set section_ref 1
-                    if { [string first "multipart" $content] != -1 } {
-                        foreach child_part[mime::getproperty $mime_id parts]
-                    } else {
-                        set parts_list [list part.${section_ref} $mime_id]
-                    }
 
-                    foreach part $parts_list {
-                        if [mime::getproperty $part content] eq "multipart/alternative" } {
-                            foreach child_part [mime::getproperty $part parts] {
-                                lappend str
-                                
-
-
-                                if { [string range $section_ref 0 0] eq "." } {
-                                    set section_ref [string range $section_ref 1 end]
-                                } 
-                                ns_log Dev "acs_mail_lite::maildir_email_parse.706 \
-msgno '${msgno}' section_ref '${section_ref}'"
-
-                                # Assume headers and names are unordered
-                                
-
-
-
-                                foreach {n v} $struct_list {
-                                    if { [string match {part.[0-9]*} $n] } {
-                                        set has_parts_p 1
-                                        set subref $section_ref
-                                        append subref [string range $n 4 end]
-                                        acs_mail_lite::maildir_email_parse \
-                                            -headers_arr_name h_arr \
-                                            -parts_arr_name p_arr \
-                                            -conn_id $conn_id \
-                                            -msgno $msgno \
-                                            -struct_list $v \
-                                            -section_ref $subref
+                    # Append property_list to to headers_list
+                    set prop_list [mime::getproperty $m_id]
+                    #set prop_names_list /mime::getproperty $m_id -names/
+                    foreach {n v} $prop_list {
+                        switch -nocase -exact -- $n {
+                            params {
+                                # extract name as header filename
+                                foreach {m w} {
+                                    if { [string -nocase match "*name"] } {
+                                        lappend headers_list "filename" $w
                                     } else {
-                                        switch -exact -nocase -- $n {
-                                            bytes {
-                                                set bytes $v
-                                            }
-                                            disposition.filename {
-                                                set filename $v
-                                            }
-                                            type {
-                                                set type $v
-                                            }
-                                            
-                                            default {
-                                                # do nothing
-                                            }
-                                        }
-                                        if { $section_ref eq "" } {
-                                            set h_arr(${n}) ${v}
-                                        } else {
-                                            lappend section_n_v_list ${n} ${v}
-                                        }
+                                        lappend headers_list $m $w
                                     }
                                 }
+                            }
+                            default {
+                                lappend headers_list $n $v
+                            }
+                        }
+                    }
 
-                                if { $section_ref eq "" && !$has_parts_p } {
-                                    # section_ref defaults to '1'
-                                    set section_ref "1"
+                    set section_ref 1
+                    set subref_ct 0
+                    set type ""
+                    # Assume headers and names are unordered
+                    foreach {n v} $headers_list {
+                        if { [string -nocase match {parts} $n] } {
+                            set has_parts_p 1
+                            foreach part_id $v {
+                                incr subref_ct
+                                set subref $section_ref
+                                append subref "." $subref_ct
+                                acs_mail_lite::maildir_email_parse \
+                                    -headers_arr_name h_arr \
+                                    -parts_arr_name p_arr \
+                                    -part_id $part_id \
+                                    -section_ref $subref
+                            }
+                        } else {
+                            switch -exact -nocase -- $n {
+                                size {
+                                    set bytes $v
                                 }
-
-                                set section_id [acs_mail_lite::section_id_of $section_ref]
-                                ns_log Dev "acs_mail_lite::maildir_email_parse.746 \
-msgno '${msgno}' section_ref '${section_ref}' section_id '${section_id}'"
-
-                                # Add content of an email part
-                                set p_arr(${section_id},nv_list) $section_n_v_list
-                                set p_arr(${section_id},c_type) $type
-                                lappend p_arr(section_id_list) ${section_id}
-
-                                if { [info exists bytes] && $bytes > $__max_txt_bytes \
-                                         && ![info exists filename] } {
-                                    set filename "blob.txt"
+                                # content-type
+                                content {
+                                    set type $v
                                 }
-                                
-                                if { [info exists filename ] } {
-                                    set filename2 [clock microseconds]
-                                    append filename2 "-" $filename
-                                    set filepathname [file join [acs_root_dir] \
-                                                          acs-mail-lite \
-                                                          $filename2 ]
-                                    set p_arr(${section_id},filename) $filename
-                                    set p_arr(${section_id},c_filepathname) $filepathname
-                                    if { $filename eq "blob.txt" } {
-                                        ns_log Dev "acs_mail_lite::maildir_email_parse.775 \
+                                default {
+                                    # do nothing
+                                }
+                            }
+                            if { $section_ref eq "1" } {
+                                set h_arr(${n}) ${v}
+                            } else {
+                                lappend section_n_v_list ${n} ${v}
+                            }
+                        }
+                    }
+                    
+                    set section_id [acs_mail_lite::section_id_of $section_ref]
+                    ns_log Dev "acs_mail_lite::maildir_email_parse.746 \
+msg '${msg}' section_ref '${section_ref}' section_id '${section_id}'"
+                    
+                    # Add content of an email part
+                    set p_arr(${section_id},nv_list) $section_n_v_list
+                    set p_arr(${section_id},c_type) $type
+                    lappend p_arr(section_id_list) ${section_id}
+                    
+                    if { [info exists bytes] && $bytes > $__max_txt_bytes \
+                             && ![info exists filename] } {
+                        set filename "blob.txt"
+                    }
+                    
+                    if { [info exists filename ] } {
+                        set filename2 [clock microseconds]
+                        append filename2 "-" $filename
+                        set filepathname [file join [acs_root_dir] \
+                                              acs-mail-lite \
+                                              $filename2 ]
+                        set p_arr(${section_id},filename) $filename
+                        set p_arr(${section_id},c_filepathname) $filepathname
+                        if { $filename eq "blob.txt" } {
+                            ns_log Dev "acs_mail_lite::maildir_email_parse.775 \
  ns_imap body '${conn_id}' '${msgno}' '${section_ref}' \
  -file '${filepathname}'"
-                                        ns_imap body $conn_id $msgno ${section_ref} \
-                                            -file $filepathname
-                                    } else {
-                                        ns_log Dev "acs_mail_lite::maildir_email_parse.780 \
+                            ns_imap body $conn_id $msgno ${section_ref} \
+                                -file $filepathname
+                        } else {
+                            ns_log Dev "acs_mail_lite::maildir_email_parse.780 \
  ns_imap body '${conn_id}' '${msgno}' '${section_ref}' \
  -file '${filepathname}' -decode"
 
-                                        ns_imap body $conn_id $msgno ${section_ref} \
-                                            -file $filepathname \
-                                            -decode
-                                    } 
-                                } elseif { $section_ref ne "" } {
-                                    # text content
-                                    set p_arr(${section_id},content) [ns_imap body $conn_id $msgno $section_ref]
-                                    ns_log Dev "acs_mail_lite::maildir_email_parse.792 \
+                            ns_imap body $conn_id $msgno ${section_ref} \
+                                -file $filepathname \
+                                -decode
+                        } 
+                    } elseif { $section_ref ne "" } {
+                        # text content
+                        set p_arr(${section_id},content) [ns_imap body $conn_id $msgno $section_ref]
+                        ns_log Dev "acs_mail_lite::maildir_email_parse.792 \
  text content '${conn_id}' '${msgno}' '${section_ref}' \
  $p_arr(${section_id},content)'"
-                                    
-                                } else {
-                                    set p_arr(${section_id},content) ""
-                                    # The content for this case
-                                    # has been verified to be redundant.
-                                    # It is mostly the last section/part of message.
-                                    #
-                                    # If diagnostics urge examining these cases, 
-                                    # Set debug_p 1 to allow the following code to 
-                                    # to compress a message to recognizable parts without 
-                                    # flooding the log.
-                                    set debug_p 0
-                                    if { $debug_p } {
-                                        set msg_txt [ns_imap text $conn_id $msgno ]
-                                        # 72 character wide lines * x lines
-                                        set msg_start_max [expr { 72 * 20 } ]
-                                        set msg_txtb [string range $msg_txt 0 $msg_start_max]
-                                        if { [string length $msg_txt] \
-                                                 > [expr { $msg_start_max + 400 } ] } {
-                                            set msg_txte [string range $msg_txt end-$msg_start_max end]
-                                        } elseif { [string length $msg_txt] \
-                                                       > [expr { $msg_start_max + 144 } ] } {
-                                            set msg_txte [string range $msg_txt end-144 end]
-                                        } else {
-                                            set msg_txte ""
-                                        }
-                                        ns_log Dev "acs_mail_lite::maildir_email_parse.818 IGNORED \
+                        
+                    } else {
+                        set p_arr(${section_id},content) ""
+                        # The content for this case
+                        # has been verified to be redundant.
+                        # It is mostly the last section/part of message.
+                        #
+                        # If diagnostics urge examining these cases, 
+                        # Set debug_p 1 to allow the following code to 
+                        # to compress a message to recognizable parts without 
+                        # flooding the log.
+                        set debug_p 0
+                        if { $debug_p } {
+                            set msg_txt [ns_imap text $conn_id $msgno ]
+                            # 72 character wide lines * x lines
+                            set msg_start_max [expr { 72 * 20 } ]
+                            set msg_txtb [string range $msg_txt 0 $msg_start_max]
+                            if { [string length $msg_txt] \
+                                     > [expr { $msg_start_max + 400 } ] } {
+                                set msg_txte [string range $msg_txt end-$msg_start_max end]
+                            } elseif { [string length $msg_txt] \
+                                           > [expr { $msg_start_max + 144 } ] } {
+                                set msg_txte [string range $msg_txt end-144 end]
+                            } else {
+                                set msg_txte ""
+                            }
+                            ns_log Dev "acs_mail_lite::maildir_email_parse.818 IGNORED \
  ns_imap text '${conn_id}' '${msgno}' '${section_ref}' \n \
  msg_txte '${msg_txte}'"
-                                    } else {
-                                        ns_log Dev "acs_mail_lite::maildir_email_parse.822 ignored \
+                        } else {
+                            ns_log Dev "acs_mail_lite::maildir_email_parse.822 ignored \
  ns_imap text '${conn_id}' '${msgno}' '${section_ref}'"
-                                    }
-                                }
-
-                            }
-                            return $error_p
                         }
+                    }
+
+                }
+                    return $error_p
+                }
 
 
-                    #            
-                    # Local variables:
-                    #    mode: tcl
-                    #    tcl-indent-level: 4
-                    #    indent-tabs-mode: nil
-                    # End:
+                #            
+                # Local variables:
+                #    mode: tcl
+                #    tcl-indent-level: 4
+                #    indent-tabs-mode: nil
+                # End:
 
 
