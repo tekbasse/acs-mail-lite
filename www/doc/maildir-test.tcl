@@ -1,11 +1,11 @@
 
 set content "www/test/test2.tcl start<br>"
 
-set messages_list [glob "/home/nsadmin/Maildir/new/*"]
+set messages_list [glob -nocomplain "/home/nsadmin/Maildir/new/*"]
 set s " : "
 
 
-set var_list [list msg m_id c_type header_names_list headers_list params_list encoding_s size_list content_s part_ids_list body_parts_list ]
+set var_list [list msg m_id c_type header_names_list headers_list params_list encoding_s size_list content_s part_ids_list body_parts_list datetime_cs ]
 
 set var2_list [list part_id p_header_names_list p_headers_list p_params_list p_encoding_s p_size_s p_content_s p_property_names_list p_property_list ]
 
@@ -16,6 +16,23 @@ foreach msg $messages_list {
     set header_names_list [mime::getheader $m_id -names]
     # a header returns multiple values in a list, if header element is repeated in email.
     set headers_list [mime::getheader $m_id]
+
+    set r_idx [lsearch -nocase $header_names_list "received"]
+    if { $r_idx > -1 } {
+        set r_nam [lindex $header_names_list $r_idx]
+        array set h_arr $headers_list
+        if { [llength $h_arr(${r_nam}) ] > 1 } {
+            set received_str [lindex $h_arr(${r_nam}) 0 ]
+        } else {
+            set received_str $h_arr(${r_nam})
+        }
+        if { [regexp -nocase -- {([a-z][a-z][a-z][ ,]+[0-9]+ [a-z][a-z][a-z][ ]+[0-9][0-9][0-9][0-9][ ]+[0-9][0-9][:][0-9][0-9][:][0-9][0-9][ ]+[\+\-][0-9]+)[^0-9]} $received_str match received_ts] } {
+            set age_s [mime::parsedatetime $received_ts rclock]
+            ns_log Notice "maildir-test.tcl.30 rclock $age_s"
+            set datetime_cs [expr { [clock seconds] - $age_s } ]
+        }
+    }
+        
     set params_list [mime::getproperty $m_id params]
     set encoding_s [mime::getproperty $m_id encoding]
     set content_s [mime::getproperty $m_id content]

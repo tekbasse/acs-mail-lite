@@ -51,8 +51,7 @@ ad_proc -private acs_mail_lite::maildir_email_parse {
     # 3.4    # part 4 of ref 3
     # 2    #   part 1 of ref 2
 
-    # Due to the hierarchical nature of email and original (ns_imap struct) 
-    # this proc is recursive.
+    # Due to the hierarchical nature of email, this proc is recursive.
     # To see examples of struct list to build, see www/doc/imap-notes.txt
 
     upvar 1 $headers_arr_name h_arr
@@ -73,7 +72,7 @@ ad_proc -private acs_mail_lite::maildir_email_parse {
                 ns_log Error "maildir_email_parse.71 could not parse \
  message file '${file}'"
                 set error_p 1
-            }
+            } else {
             # get content type (per parse_email)
             set content [mime::getproptery $mime_id content]
             
@@ -114,7 +113,7 @@ ad_proc -private acs_mail_lite::maildir_email_parse {
                 }
                 lappend struct_list $h $v
             }
-           
+            lappend headers_list aml_received_cs [file mtime $file]
             # add parts
             ##code What??
             # need to see what mime procs really return.

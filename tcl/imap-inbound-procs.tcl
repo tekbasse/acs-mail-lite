@@ -612,8 +612,8 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                                 set hdrs_arr(aml_size_chars) ""
                             }
                             
-                            if { [info exists hdrs_arr(aml_received_cs)] } {
-                                set hdrs_arr(aml_received_cs) $hdrs_arr(aml_received_cs)
+                            if { [info exists hdrs_arr(received_cs)] } {
+                                set hdrs_arr(aml_received_cs) $hdrs_arr(received_cs)
                             } else {
                                 set hdrs_arr(aml_received_cs) ""
                             }
