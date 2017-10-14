@@ -1,13 +1,36 @@
+ad_page_contract {
+    Provies a framework for manually testing acs_mail_lite procs
+    A dummy mailbox value provided to show example of what is expected.
+} {
+    {mail_dir ""}
+}
+set user_id [ad_conn user_id]
+set package_id [ad_conn package_id]
+set admin_p [permission::permission_p \
+                 -party_id $user_id \
+                 -object_id $package_id \
+                 -privilege admin ]
+if { !$admin_p } {
+    set content "Requires admin permission"
+    ad_script_abort
+}
 
-set content "www/test/test2.tcl start<br>"
+set content "www/doc/maildir-test start<br>"
 
-set messages_list [glob -nocomplain "/home/nsadmin/Maildir/new/*"]
+if { $mail_dir eq "" } {
+    # assume Ubuntu linux install based on installation script
+    set mail_dir "/home/nsadmin/Maildir"
+}
+if { ![string match {/new/*} $mail_dir] } {
+    append mail_dir "/new/*"
+}
+set messages_list [glob -nocomplain $mail_dir]
 set s " : "
 
 
-set var_list [list msg m_id c_type header_names_list headers_list params_list encoding_s size_list content_s part_ids_list body_parts_list datetime_cs ]
+set var_list [list msg m_id c_type header_names_list headers_list part_ids_list body_parts_list datetime_cs property_names_list property_list body_parts_list ]
 
-set var2_list [list part_id p_header_names_list p_headers_list p_params_list p_encoding_s p_size_s p_content_s p_property_names_list p_property_list ]
+set var2_list [list part_id p_header_names_list p_headers_list p_property_names_list p_property_list p_body_parts_list ]
 
 foreach msg $messages_list {
     
@@ -37,7 +60,7 @@ foreach msg $messages_list {
     set encoding_s [mime::getproperty $m_id encoding]
     set content_s [mime::getproperty $m_id content]
     ns_log Notice "maildir-test.tcl.22 m_id '${m_id}' content_s '${content_s}'"
-    set size_list [mime::getproperty $m_id size]
+    set size_s [mime::getproperty $m_id size]
 
     if { [string match "multipart/*" $content_s] \
              || [string match -nocase "inline*" $content_s ] } {
@@ -46,9 +69,12 @@ foreach msg $messages_list {
 
     } else {
         # this is a leaf
-        set body_parts_list [mime::getbody $m_id]
-        set bpl [string range $body_parts_list 0 120]
-        lappend bpl ".. .." [string range $body_parts_list end-120 end]
+#        set body_parts_list [mime::getbody $m_id]
+        set body_parts_list [mime::buildmessage $m_id]
+        set bpl "<pre>"
+        append bpl [string range $body_parts_list 0 240]
+        append bpl "<br>.. ..<br>" [string range $body_parts_list end-120 end]
+        append bpl "</pre>"
         set body_parts_list $bpl
     }
 
@@ -74,8 +100,9 @@ foreach msg $messages_list {
             set p_headers_list [mime::getheader $part_id]
             set p_property_names_list [mime::getproperty $part_id -names]
             set p_property_list [mime::getproperty $part_id ]
+            # includes params size content encoding
+            # params is like flags in IMAP
             set p_params_list [mime::getproperty $part_id params]
-            set p_encoding_s [mime::getproperty $part_id encoding]
             set p_content_s [mime::getproperty $part_id content]
             ns_log Notice "maildir-test.tcl.63 part_id '${part_id}' p_content_s '${p_content_s}'"
             set p_size_s [mime::getproperty $part_id size]
@@ -86,13 +113,17 @@ foreach msg $messages_list {
 
             } else {
                 # this is a leaf
-                set p_body_parts_list [mime::getbody $part_id]
-                set bpl [string range $p_body_parts_list 0 120]
-                lappend bpl ".. .." [string range $p_body_parts_list end-120 end]
+                set p_encoding_s [mime::getproperty $part_id encoding]
+#                set p_body_parts_list [mime::getbody $part_id]
+                set p_body_parts_list [mime::buildmessage $part_id]
+                set bpl "<pre>"
+                append bpl [string range $p_body_parts_list 0 240]
+                append bpl "<br>.. ..<br>" [string range $p_body_parts_list end-120 end]
+                append bpl "</pre>"
                 set p_body_parts_list $bpl
             }
             
-            append content "part_id '${part_id}'<br>"
+#            append content "part_id '${part_id}'<br>"
             foreach var $var2_list {
                 if { [info exists $var] } {
                     append content $var $s [set $var] " <br><br>"
