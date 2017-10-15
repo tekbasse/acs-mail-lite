@@ -752,6 +752,7 @@ msgno '${msgno}' section_ref '${section_ref}'"
                         set bytes $v
                     }
                     disposition.filename {
+                        regsub -all -nocase -- {[^0-9a-zA-Z\-.,\_]} $v {_} v
                         set filename $v
                     }
                     type {
