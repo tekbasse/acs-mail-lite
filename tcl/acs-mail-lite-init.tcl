@@ -8,6 +8,10 @@ ad_library {
 
 }
 
+#
+# outbound
+#
+
 # Default interval is about one minute (reduce lock contention with other jobs scheduled at full minutes)
 ad_schedule_proc -thread t 61 acs_mail_lite::sweeper
 
@@ -18,11 +22,22 @@ ad_schedule_proc -thread t 61 acs_mail_lite::sweeper
 nsv_set acs_mail_lite send_mails_p 0
 nsv_set acs_mail_lite check_bounce_p 0
 
+# Redefine ns_sendmail as a wrapper for acs_mail_lite::send
+#ns_log Notice "acs-mail-lite: renaming acs_mail_lite::sendmail to ns_sendmail"
+#rename ns_sendmail _old_ns_sendmail
+#rename acs_mail_lite::sendmail ns_sendmail
 
+
+
+#
+# inbound 
+#
+# acs_mail_lite::load_mails -queue_dir $queue_dir
 
 set inbound_queue_dir [file join [acs_root_dir] acs-mail-lite ]
 file mkdir $inbound_queue_dir
-# scan incoming = si_
+# imap scan incoming = si_
+# maildir scan incoming = sj_
 # Scan incoming start time in clock seconds.
 set si_start_time_cs [clock seconds]
 # Scan incoming estimated duration pur cycle in seconds
@@ -54,18 +69,13 @@ ad_schedule_proc -thread t \
     $si_dur_per_cycle_s acs_mail_lite::inbound_queue_pull
 
 ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 1 41] acs_mail_lite::inbound_queue_release
-# above was three scheduled procs were combined in one:
-# acs_mail_lite::load_mails -queue_dir $queue_dir
 
-# acs_mail_lite::check_bounces
+
+
+# acs_mail_lite::check_bounces 
 ad_schedule_proc -thread t -schedule_proc ns_schedule_daily [list 0 25] acs_mail_lite::check_bounces
 
 
-
-# Redefine ns_sendmail as a wrapper for acs_mail_lite::send
-#ns_log Notice "acs-mail-lite: renaming acs_mail_lite::sendmail to ns_sendmail"
-#rename ns_sendmail _old_ns_sendmail
-#rename acs_mail_lite::sendmail ns_sendmail
 
 # Local variables:
 #    mode: tcl

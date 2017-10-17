@@ -276,7 +276,7 @@ ad_proc -private acs_mail_lite::imap_conn_go {
         }
     }
     
-    if { !$prior_conn_exists_p } {
+    if { !$prior_conn_exists_p && $host ne "" } {
         if { "ssl" in $fl_list } {
             set ssl_p 1
         } else {
