@@ -122,6 +122,67 @@ ad_proc -public -callback acs_mail_lite::incoming_email -impl acs-mail-lite {
     }
 }
 
+ad_proc -public -callback acs_mail_lite::email_inbound {
+    -headers_array_name:required
+    -parts_array_name:required
+    -package_id
+} {
+    Callback that is executed for inbound e-mails that are queued.
+} -
+
+
+ad_proc -public -callback acs_mail_lite::email_inbound -impl acs-mail-lite {
+    -headers_array_name:required
+    -parts_array_name:required
+    -package_id
+} {
+    Implementation of acs_mail_lite::email_inbound for acs-mail-lite. 
+    <br><br>
+    This proc is called whenever an inbound email is pulled from the queue.
+    <br><br>
+    System-wide bounces, vacation notices and other noise have already been
+    filtered out.
+    <br><br>
+    A package developer should just need to confirm input for their specific
+    package. 
+    <br><br>
+    <code>package_id</code>, <code>object_id</code> and <code>party_id</code>
+    are passed in headers via a signed unique_id. 
+    Values default to empty string. Header indexes may not exist for all cases.
+    <ul><li>
+    aml_package_id contains package_id
+    </li><li>
+    aml_object_id contains object_id
+    </li><li>
+    aml_party_id contains party_id (usually same as user_id) 
+    </li><li>
+    aml_other contains other data useful as input
+    </li><li>
+    aml_datetime_cs contains approximate system time in seconds since epoch when email was sent.
+    </li><li>
+    aml_received_cs contains approximate system time in seconds since epoch when email was received.
+    </li></ul>
+
+    @creation-date 2017-10-17
+
+    @param headers_array_name  An array with all headers.
+    @param parts_array_name   An array with files and bodies. 
+    @see acs_mail_lite::inbound_queue_pull_one
+
+    @param package_id   The package_id of package that sent the original email.
+
+    Not all inbound email are expected to be replies.
+} {
+    upvar $headers_array_name headers_arr
+    upvar $parts_array_name parts_arr
+
+    # This proc based loosely on acs_mail_lite::incoming_email
+
+    ns_log Debug "acs_mail_lite::email_inbound -impl acs-mail-lite called. Sender $headers_arr(aml_from_addrs)"
+
+    return 1
+}
+
 
 # Local variables:
 #    mode: tcl

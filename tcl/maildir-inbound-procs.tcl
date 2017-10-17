@@ -145,10 +145,11 @@ ad_proc -private acs_mail_lite::maildir_check_incoming {
             }
         }
         # remove active_cs from sj_actives_list
-        set sj_actives_list [nsv_get acs_mail_lite sj_actives_list]
         set sj_idx [lsearch -integer -exact $sj_actives_list $active_cs]
+        # We call nsv_get within nsv_set to reduce chances of dropping
+        # a new list entry.
         nsv_set acs_mail_lite sj_actives_list \
-            [lreplace $sj_actives_list $sj_idx $sj_idx]
+            [lreplace [nsv_get acs_mail_lite sj_actives_list] $sj_idx $sj_idx]
 
     }
     # end if !$error

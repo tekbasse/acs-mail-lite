@@ -1211,7 +1211,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
 } {
     Identifies and processes highest priority inbound email.
 } {
-    set error_p 0
+
     
     # Get scheduling parameters
     set start_cs [clock seconds]
@@ -1226,7 +1226,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
     set si_dur_per_cycle_s \
         [nsv_get acs_mail_lite si_dur_per_cycle_s ]
     set stop_cs [expr { $start_cs + int( $si_dur_per_cycle_s * .8 ) } ]
-
+    set aml_package_id [apm_package_id_from_key "acs-mail-lite"]
     # ct = count
     set pull_ct 0
     # sort only what we need. Process in 20 email chunks
@@ -1250,6 +1250,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
         while { $i < $chunk_len && $pull_p && [clock seconds ] < $stop_cs } {
             array unset h_arr
             array unset p_arr
+            set error_p 0
             set aml_email_id [lindex $chunk_ols $i]
             acs_mail_lite::inbound_queue_pull_one \
                 -h_array_name h_arr \
@@ -1303,22 +1304,30 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                     # acs_mail_lite::bounce_ministry.
                     # A new callback intended to be compatible with
                     # notification::reply::get (if possible) is invoked here
-                    ##code
-                    set status [callback acs_mail_lite::reply::get -array h_arr]
+                    if { ![info exists h_arr(aml_package_id) ] } {
+                        set h_arr(aml_package_id) $aml_package_id
+                    }
+                    set status [callback -catch acs_mail_lite::email_inbound \
+                                    -header_array_name h_arr \
+                                    -parts_array_name p_arr \
+                                    -package_id $h_arr(aml_package_id)]
+                    if { [string match -nocase "*error*" $status] } {
+                        set error_p 1
+                    }
+                                
                 }
 
             }
-            ##code based on feedback from callback
-            #set error_p flag
 
             # Email is removed from queue when
             # set acs_mail_lite_from_external.processed_p 1.
             # Do not release if there was an error.
-            # set acs_mail_lite_from_external.release_p error_p
+            # set acs_mail_lite_from_external.release_p !$error_p
+            set not_error_p [expr ! $error_p]
             db_dml acs_mail_lite_from_external_wproc {
                 update acs_mail_lite_from_external
                 set processed_p='1'
-                and release_p=:error_p
+                and release_p=:not_error_p
                 where acs_email_id=:acs_email_id
             }
 
@@ -2298,7 +2307,7 @@ ad_proc -private acs_mail_lite::inbound_email_context {
                     }
                 }
                 # prefix = "aml_" as in cname becomes:
-                #  al_package_id aml_party_id aml_object_id aml_other aml_datetime_cs
+                #  aml_package_id aml_party_id aml_object_id aml_other aml_datetime_cs
                 foreach {n v} $context_list {
                     set cname $prefix
                     append cname $n
