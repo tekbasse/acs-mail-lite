@@ -638,7 +638,7 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                             
                             acs_mail_lite::inbound_email_context \
                                 -header_array_name hdrs_arr \
-                                -headers_list $headers_list
+                                -header_name_list $headers_list
                             
                             acs_mail_lite::inbound_prioritize \
                                 -header_array_name hdrs_arr

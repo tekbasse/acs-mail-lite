@@ -50,7 +50,9 @@ create index acs_mail_lite_from_external_release_p_idx
 
 
 -- Some services are offered between sessions of importing incoming email.
--- A unique ID provided by acs_mail_lite_email_uid_map.uid_ext is designed to
+-- A unique ID provided by 
+-- acs_mail_lite_email_uid_id_map.uid_ext 
+-- is designed to
 -- support UIDs for each email that are consistent between import sessions
 -- from external source, such as specified by IMAP4 rfc3501 
 -- https://tools.ietf.org/html/rfc3501
@@ -78,7 +80,7 @@ create index acs_mail_lite_from_external_release_p_idx
 
 -- Can we recognize if another user accesses the same email account
 -- and arbitrarily selects some prior messages to unread?
--- Yes. The purpose of acs_mail_lite_uid_map is to act as a log 
+-- Yes. The purpose of acs_mail_lite_email_uid_id_map is to act as a log 
 -- of prior processed messages.
 -- If total new messages is a significant percentage of all messages
 -- and service has been working for a week or more,

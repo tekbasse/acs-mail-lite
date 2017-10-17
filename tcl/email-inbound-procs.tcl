@@ -1720,31 +1720,31 @@ ad_proc -private acs_mail_lite::inbound_cache_hit_p {
     can be made locally to be equivallent in use.
 } {
     set hit_p 0
-    set src_ext_id $mailbox_host_name
-    append src_ext_id "-" $uidvalidity
+    set src_ext $mailbox_host_name
+    append src_ext "-" $uidvalidity
     set aml_src_id ""
-    db_0or1row acs_mail_lite_email_src_ext_id_map_r1 \
-        -cache_key aml_in_src_id_${src_ext_id} {
+    db_0or1row -cache_key aml_in_src_id_${src_ext} \
+        acs_mail_lite_email_src_ext_id_map_r1 {
             select aml_src_id from acs_mail_lite_email_src_ext_id_map
-            where src_ext=:src_ext_id }
+            where src_ext=:src_ext }
     if { $aml_src_id eq "" } {
         set aml_src_id [db_nextval acs_mail_lite_in_id_seq]
         db_dml acs_mail_lite_email_src_ext_id_map_c1 {
-            insert into acs_mail_lite_src_ext_id_map
+            insert into acs_mail_lite_email_src_ext_id_map
             (aml_src_id,src_ext)
-            values (:aml_src_id,:src_ext_id)
+            values (:aml_src_id,:src_ext)
         }
     }
     set aml_email_id ""
     db_0or1row acs_mail_lite_email_uid_id_map_r1 {
         select aml_email_id from acs_mail_lite_email_uid_id_map
         where uid_ext=:email_uid
-        and src_ext_id=:src_ext_id
+        and src_ext_id=:aml_src_id
     }
     if { $aml_email_id eq "" } {
         set aml_email_id [db_nextval acs_mail_lite_in_id_seq]
         db_dml acs_mail_lite_email_uid_id_map_c1 {
-            insert into acs_mail_lite_uid_id_map
+            insert into acs_mail_lite_email_uid_id_map
             (aml_email_id,uid_ext,src_ext_id)
             values (:aml_email_id,:email_uid,:aml_src_id)
         }
@@ -2042,8 +2042,8 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 } {
     upvar 1 $header_array_name h_arr
     if { $header_name_list eq "" } {
-        set hn_list [array names h_arr]
-    }
+        set header_name_list [array names h_arr]
+    } 
 
     # Here are some procs that help create a message-id or orginator
     # or generated unique ids from inbound email headers
@@ -2250,14 +2250,14 @@ ad_proc -private acs_mail_lite::inbound_email_context {
 
     set context_list [list ]
     set check_list_len [llength $check_list]
-    set header_i 0
+    set header_id 0
     set prefix "aml_"
     set h_arr(aml_datetime_cs) ""
 
     # Check headers for signed context
     while { $header_id < $check_list_len && $h_arr(aml_datetime_cs) eq "" } {
         set header [lindex $check_list $header_id]
-        set h_idx [lsearch -exact -nocase $hn_list $header]
+        set h_idx [lsearch -exact -nocase $header_name_list $header]
         if { $h_idx > -1 } {
             set h_name [lindex $check_list $h_idx] 
 

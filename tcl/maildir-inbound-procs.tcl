@@ -126,7 +126,7 @@ ad_proc -private acs_mail_lite::maildir_check_incoming {
                         
                         acs_mail_lite::inbound_email_context \
                             -header_array_name hdrs_arr \
-                            -headers_list $headers_list
+                            -header_name_list $headers_list
                         
                         acs_mail_lite::inbound_prioritize \
                             -header_array_name hdrs_arr
@@ -143,6 +143,10 @@ ad_proc -private acs_mail_lite::maildir_check_incoming {
                         ns_log Notice "acs_mail_lite::maildir_check_incoming \
  inserted to queue aml_email_id '${id}'"
                     }
+
+                    # Move the message into MailDir/cur for other mail handling
+                    file copy $msg $curdir
+                    file delete $msg
                 }
             }
         }
@@ -218,88 +222,89 @@ ad_proc -private acs_mail_lite::maildir_email_parse {
         set sp_list [acs_mail_lite::sched_parameters]
         set __max_txt_bytes [dict get $sp_list max_blob_chars]
     }
-    
-    if {[catch {set m_id [mime::initialize -file ${message_fpn}] } errmsg] } {
-        ns_log Error "maildir_email_parse.71 could not parse \
+    if { $message_fpn ne "" } {
+        if {[catch {set m_id [mime::initialize -file ${message_fpn}] } errmsg] } {
+            ns_log Error "maildir_email_parse.71 could not parse \
  message file '${message_fpn}' error: '${errmsg}'"
-        set error_p 1
-    } else {
-        # For acs_mail_lite::inbond_cache_hit_p, 
-        # make a uid if there is not one. 
-        set uid_ref ""
-        # Do not use email file's tail, 
-        # because tail is unique to system not email.
-        # See http://cr.yp.to/proto/maildir.html
-        
-        # A header returns multiple values in a list
-        # if header name is repeated in email.
-        set h_list [mime::getheader $m_id]
-        # headers_list 
-        set headers_list [list ]
-        foreach {h v} $h_list {
-            switch -nocase -- $h {
-                uid {
-                    if { $h ne "uid" } {
-                        lappend struct_list "uid" $v
+            set error_p 1
+        } else {
+            # For acs_mail_lite::inbond_cache_hit_p, 
+            # make a uid if there is not one. 
+            set uid_ref ""
+            # Do not use email file's tail, 
+            # because tail is unique to system not email.
+            # See http://cr.yp.to/proto/maildir.html
+            
+            # A header returns multiple values in a list
+            # if header name is repeated in email.
+            set h_list [mime::getheader $m_id]
+            # headers_list 
+            set headers_list [list ]
+            foreach {h v} $h_list {
+                switch -nocase -- $h {
+                    uid {
+                        if { $h ne "uid" } {
+                            lappend struct_list "uid" $v
+                        }
+                        set uid_ref "uid"
+                        set uid_val $v
                     }
-                    set uid_ref "uid"
-                    set uid_val $v
-                }
-                message-id -
-                msg-id {
-                    if { $uid_ref ne "uid"} {
-                        if { $uid_ref ne "message-id" } {
-                            # message-id is not required
-                            # msg-id is an alternate 
-                            # Fallback to most standard uid
-                            set uid_ref [string tolower $h]
-                            set uid_val $v
+                    message-id -
+                    msg-id {
+                        if { $uid_ref ne "uid"} {
+                            if { $uid_ref ne "message-id" } {
+                                # message-id is not required
+                                # msg-id is an alternate 
+                                # Fallback to most standard uid
+                                set uid_ref [string tolower $h]
+                                set uid_val $v
+                            }
                         }
                     }
-                }
-                received {
-                    if { [llength $v ] > 1 } {
-                        set v0 [lindex $v 0]
-                    } else {
-                        set v0 $v
-                    }
-                    if { [regexp -nocase -- $re822 $v0 match r_ts] } {
-                        set age_s [mime::parsedatetime $r_ts rclock]
-                        set dt_cs [expr { [clock seconds] - $age_s } ]
-                        lappend headers_list "aml_datetime_cs" $dt_cs
-                    }
-                }
-                default { 
-                    # do nothing
-                }
-            }
-            lappend headers_list $h $v
-        }
-        lappend headers_list "aml_received_cs" [file mtime ${message_fpn}]
-        lappend headers_list "uid" $uid_val
-        
-        # Append property_list to to headers_list
-        set prop_list [mime::getproperty $m_id]
-        #set prop_names_list /mime::getproperty $m_id -names/
-        foreach {n v} $prop_list {
-            switch -nocase -exact -- $n {
-                params {
-                    # extract name as header filename
-                    foreach {m w} $v {
-                        if { [string match -nocase "*name" $m] } {
-                            regsub -all -nocase -- {[^0-9a-zA-Z-.,\_]} $w {_} w
-                            if { $w eq "" } {
-                                set w "untitled"
-                            } 
-                            set filename $w
-                            lappend headers_list "filename" $w
+                    received {
+                        if { [llength $v ] > 1 } {
+                            set v0 [lindex $v 0]
                         } else {
-                            lappend headers_list $m $w
+                            set v0 $v
+                        }
+                        if { [regexp -nocase -- $re822 $v0 match r_ts] } {
+                            set age_s [mime::parsedatetime $r_ts rclock]
+                            set dt_cs [expr { [clock seconds] - $age_s } ]
+                            lappend headers_list "aml_datetime_cs" $dt_cs
                         }
                     }
+                    default { 
+                        # do nothing
+                    }
                 }
-                default {
-                    lappend headers_list $n $v
+                lappend headers_list $h $v
+            }
+            lappend headers_list "aml_received_cs" [file mtime ${message_fpn}]
+            lappend headers_list "uid" $uid_val
+            
+            # Append property_list to to headers_list
+            set prop_list [mime::getproperty $m_id]
+            #set prop_names_list /mime::getproperty $m_id -names/
+            foreach {n v} $prop_list {
+                switch -nocase -exact -- $n {
+                    params {
+                        # extract name as header filename
+                        foreach {m w} $v {
+                            if { [string match -nocase "*name" $m] } {
+                                regsub -all -nocase -- {[^0-9a-zA-Z-.,\_]} $w {_} w
+                                if { $w eq "" } {
+                                    set w "untitled"
+                                } 
+                                set filename $w
+                                lappend headers_list "filename" $w
+                            } else {
+                                lappend headers_list $m $w
+                            }
+                        }
+                    }
+                    default {
+                        lappend headers_list $n $v
+                    }
                 }
             }
         }
@@ -308,6 +313,7 @@ ad_proc -private acs_mail_lite::maildir_email_parse {
         }
         set subref_ct 0
         set type ""
+        
         # Assume headers and names are unordered
         foreach {n v} $headers_list {
             if { [string match -nocase {parts} $n] } {
