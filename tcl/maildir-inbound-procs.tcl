@@ -33,7 +33,7 @@ ad_proc -private acs_mail_lite::maildir_check_incoming {
         # only one of acs_mail_lite::maildir_check_incoming process at a time.
         set cycle_start_cs [clock seconds]
         nsv_lappend acs_mail_lite sj_actives_list $cycle_start_cs
-        set si_actives_list [nsv_get acs_mail_lite sj_actives_list]
+        set sj_actives_list [nsv_get acs_mail_lite sj_actives_list]
         
         set active_cs [lindex $sj_actives_list end]
         set concurrent_ct [llength $sj_actives_list]
@@ -81,13 +81,12 @@ ad_proc -private acs_mail_lite::maildir_check_incoming {
                                          $uidvalidity \
                                          $mail_dir_fullpath ]
 
-
                     if { !$processed_p } {
                         
                         set type [acs_mail_lite::email_type \
                                       -header_arr_name hdrs_arr ]
                         
-                        set headers_list [array get hdrs_arr]
+                        set headers_list [array names hdrs_arr]
                         # Create some standardized header indexes aml_*
                         # with corresponding values 
                         set size_idx [lsearch -nocase -exact \
@@ -145,6 +144,12 @@ ad_proc -private acs_mail_lite::maildir_check_incoming {
                 }
             }
         }
+        # remove active_cs from sj_actives_list
+        set sj_actives_list [nsv_get acs_mail_lite sj_actives_list]
+        set sj_idx [lsearch -integer -exact $sj_actives_list $active_cs]
+        nsv_set acs_mail_lite sj_actives_list \
+            [lreplace $sj_actives_list $sj_idx $sj_idx]
+
     }
     # end if !$error
     

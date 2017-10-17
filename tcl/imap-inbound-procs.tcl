@@ -681,7 +681,13 @@ ad_proc -private acs_mail_lite::imap_check_incoming {
                 
             }
             # end if !$error
-            
+
+            # remove active_cs from si_actives_list
+            set si_actives_list [nsv_get acs_mail_lite si_actives_list]
+            set si_idx [lsearch -integer -exact $si_actives_list $active_cs]
+            nsv_set acs_mail_lite si_actives_list \
+                [lreplace $si_actives_list $si_idx $si_idx]
+
         } else {
             nsv_set acs_mail_lite si_configured_p 0
         }

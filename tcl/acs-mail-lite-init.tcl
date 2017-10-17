@@ -11,10 +11,10 @@ ad_library {
 # Default interval is about one minute (reduce lock contention with other jobs scheduled at full minutes)
 ad_schedule_proc -thread t 61 acs_mail_lite::sweeper
 
-if {$queue_dir ne ""} {
+#if {$queue_dir ne ""} {
     # if BounceMailDir is set then handle incoming mail
-    ad_schedule_proc -thread t 120 acs_mail_lite::load_mails -queue_dir $queue_dir
-}
+#    ad_schedule_proc -thread t 120 acs_mail_lite::load_mails -queue_dir $queue_dir
+#}
 nsv_set acs_mail_lite send_mails_p 0
 nsv_set acs_mail_lite check_bounce_p 0
 
@@ -42,8 +42,14 @@ if { [db_table_exists acs_mail_lite_ui] } {
 }
 ad_schedule_proc -thread t \
     $si_dur_per_cycle_s acs_mail_lite::imap_check_incoming
+
+# offset next cycle start
+after 314
 ad_schedule_proc -thread t \
-    $si_dur_per_cycle_s acs_mail_lite::maildirx_check_incoming
+    $si_dur_per_cycle_s acs_mail_lite::maildir_check_incoming
+
+# offset next cycle start
+after 314
 ad_schedule_proc -thread t \
     $si_dur_per_cycle_s acs_mail_lite::inbound_queue_pull
 

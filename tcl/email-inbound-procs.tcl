@@ -1568,7 +1568,7 @@ ad_proc -private acs_mail_lite::inbound_queue_release {
 } {
     # To flag 'release', set acs_mail_lite_from_external.release_p 1
  
-    set aml_ids_list [db_list {
+    set aml_ids_list [db_list acs_mail_lite_from_external_rn {
         select aml_email_id from acs_mail_lite_from_external
         where release_p='1' }]
     foreach aml_email_id $aml_ids_list {
