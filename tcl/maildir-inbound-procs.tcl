@@ -63,7 +63,7 @@ ad_proc -private acs_mail_lite::maildir_check_incoming {
                 set error_p [acs_mail_lite::maildir_email_parse \
                                  -headers_arr_name hdrs_arr \
                                  -parts_arr_name parts_arr \
-                                 -message_filepath $msg]
+                                 -message_fpn $msg]
                 if { $error_p } {
                     ns_log Notice "acs_mail_lite::maildir_check_incoming \
  could not process message file '${msg}'. Messaged moved to MailDir/cur/."

@@ -1323,7 +1323,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
             # set acs_mail_lite_from_external.processed_p 1.
             # Do not release if there was an error.
             # set acs_mail_lite_from_external.release_p !$error_p
-            set not_error_p [expr ! $error_p]
+            set not_error_p [expr { ! $error_p } ]
             db_dml acs_mail_lite_from_external_wproc {
                 update acs_mail_lite_from_external
                 set processed_p='1'
