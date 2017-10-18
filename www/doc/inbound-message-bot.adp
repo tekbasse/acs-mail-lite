@@ -4,26 +4,35 @@
   <h1>@title@</h1>
 
   <p>
-    Incoming E-Mail Bot is designed to handle more email faster
+    Inbound Message Bot is designed to handle more email faster
     while making available more email content in a consistent, useful way.
-    It <a href="/api-doc/proc-view?version_id=774&proc=acs_mail_lite::inbound_prioritize">prioritizes incoming email using a variety of indicators</a>
+    It <a href="/api-doc/proc-view?version_id=774&proc=acs_mail_lite::inbound_prioritize">prioritizes incoming messages using a variety of indicators</a>
     into a queue for processing and triggering callbacks.
   </p>
   <p>
-    Incoming E-mail Bot works with the latest version of acs-mail-lite
+    Inbound Message Bot works with the latest version of acs-mail-lite
     in a general fashion using callbacks.
   </p>
-  <p>The first implementation of E-Mail Bot uses IMAP or MailDir
-    See 
-    <a href="/api-doc/proc-view?proc=acs_mail_lite::imap_check_incoming&source_p=1">acs_mail_lite::imap_check_incoming</a> and 
-    <a href="/api-doc/proc-view?proc=acs_mail_lite::maildir_check_incoming&source_p=1">acs_mail_lite::maildir_check_incoming</a> 
-    for details.
-</p><p>
+<p>
     The code is general enough to adapt to any message sources.
     It's anticipated that links could be make to social networks for example.
   </p>
+  <p>The first implementation of Message Bot handles email imported from IMAP or MailDir. These can be operated simultaneously.</p>
+<ul>
+  <li>
+    See <a href="maildir-install">MailDir installation notes</a> to install.
+    For details of operation, see
+    <a href="/api-doc/proc-view?proc=acs_mail_lite::maildir_check_incoming&source_p=1">acs_mail_lite::maildir_check_incoming</a>.
+
+  </li><li>
+   See <a href="imap-install">IMAP installation notes</a> to install. 
+    For details of operation, see 
+    <a href="/api-doc/proc-view?proc=acs_mail_lite::imap_check_incoming&source_p=1">acs_mail_lite::imap_check_incoming</a>.
+  </li>
+</ul>
+<h3>Overview of operation</h3>
   <p>
-    New email can be processed by setting the package parameter 
+    New messages can be processed by setting the package parameter 
     <code>IncomingFilterProcName</code> to
     the name of a custom filter that examines headers 
     of each email and assigns a
@@ -45,5 +54,7 @@
   <p>
     When callbacks are finished, email is marked as 'read' by
     the importing procedure, and deleted from the import queue
-    at a regular interval.
+    at a regular interval. An error in one of the callbacks will
+    prevent an email from being deleted without concern that
+    the email will be re-processed by other callback implementations.
   </p>

@@ -17,7 +17,9 @@
     In both cases, email is added to the same queue for processing via callbacks.
   </p>
   <p>These procs provide an overview of inbound email processing in general.</p>
-  <h3>Overview</h3>
+    <p>
+     Legacy <a href="incoming-email">Incoming E-mail up to oacs-5-9 for package developers</a>
+</p>  <h3>Overview</h3>
   <p>
     A scheduled procedure begins by checking for new incoming email.
     The interval is set by package parameter <code>IncomingScanRate</code>.

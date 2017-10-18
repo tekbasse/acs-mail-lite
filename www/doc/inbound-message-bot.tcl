@@ -1,2 +1,2 @@
-set title "Incoming E-mail Bot for package developers"
+set title "Inbound Message Bot"
 set context [list [list index "Documentation"] $title]

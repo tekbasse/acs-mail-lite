@@ -3,8 +3,8 @@ Development notes and change log
 
 Documentation changes are too numerous to deliniate.
 General strategy is to separate into topics of:
-setup, inbound email configuration, outbound email configuration,
-and inbound email for package developers
+setup, installation, inbound email, outbound email, legacy info and notes.
+
 
 Portions of the following sources have been added to ACS Mail Lite docs:
 
@@ -25,11 +25,23 @@ where N is a natural number.
 New parameters added to new section: IMAP
 
 Parameters
-                                 IMAPHost
-                                 IMAPPassword
-                                 IMAPPort
-                                 IMAPTimeout
-                                 IMAPUser
-                                 IncomingFilterProcName
-                                 ExternalSource default is blank. Value is prefixed to value of table.name: default acs_mail_lite_email_uid_map.src_ext value. Suggest setting to mailbox.host before use, or leave blank. Changing value resets memory of prior processed emails. To avoid re-processing prior email, do not change once a service is in use. Restart server after changing value for it to take effect.
+        IMAPHost
+        IMAPPassword
+        IMAPPort (always same until.. it isn't)
+        IMAPTimeout
+        IMAPUser
+        IncomingFilterProcName
+        ExternalSource default is blank. 
 
+Utility pages (requires admin permission)
+
+        imap-test              For testing nsimap API
+        maildir-test           For testing maildir API
+        maildir-actives-reset  For reseting concurrency check if
+                               acs_mail_lite::maildir_check_incoming errors.
+
+IMAP
+        imap-notes.txt contains notes to help with imap implementation and 
+         to be added to nsimap package 
+
+other files:

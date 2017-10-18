@@ -2,251 +2,7 @@
   <property name="title">@title;noquote@</property>
   <property name="context">@context;noquote@</property>
   <h1>@title@</h1>
-<h3>Public API</h3>
-<table cellspacing="0" cellpadding="0">
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::address_domain">acs_mail_lite::address_domain</a></strong></td>
-    <td>Propose removing. Redundant code. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::autoreply_p">acs_mail_lite::autoreply_p</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Parse the subject, from and body to determin if the email is an auto reply
-	Typical autoreplies are &#34;Out of office&#34; messages.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::bounce_address">acs_mail_lite::bounce_address</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Composes a bounce address&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::bouncing_email_p">acs_mail_lite::bouncing_email_p</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Checks if email address is bouncing mail&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::bouncing_user_p">acs_mail_lite::bouncing_user_p</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Checks if email address of user is bouncing mail&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::generate_message_id">acs_mail_lite::generate_message_id</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Generate an id suitable as a Message-Id: header for an email.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::get_package_id">acs_mail_lite::get_package_id</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::get_parameter">acs_mail_lite::get_parameter</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Returns an apm-parameter value of this package&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::parse_bounce_address">acs_mail_lite::parse_bounce_address</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>This takes a reply address, checks it for consistency,
-        and returns a list of user_id, package_id and bounce_signature found&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::parse_email">acs_mail_lite::parse_email</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>An email is splitted into several parts: headers, bodies and files lists and all headers directly.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::parse_email_address">acs_mail_lite::parse_email_address</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Extracts the email address out of a mail address (like Joe User &lt;joe@user.com&gt;)&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::record_bounce">acs_mail_lite::record_bounce</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Records that an email bounce for this user&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::scan_replies">acs_mail_lite::scan_replies</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Scheduled procedure that will scan for bounced mails&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::send">acs_mail_lite::send</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Prepare an email to be send with the option to pass in a list
-        of file_ids as well as specify an html_body and a mime_type.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::utils::build_body">acs_mail_lite::utils::build_body</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Encode the body using quoted-printable and build the alternative
-    part if necessary
-
-    Return a list of message tokens&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::utils::build_date">acs_mail_lite::utils::build_date</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Depending on the available mime package version, it uses either
-    the mime::parsedatetime to do it or local code (parsedatetime is
-    buggy in mime &lt; 1.5.2 )&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::utils::build_subject">acs_mail_lite::utils::build_subject</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Encode the subject, using quoted-printable, of an email message 
-    and trim long lines.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::utils::valid_email_p">acs_mail_lite::utils::valid_email_p</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Checks if the email is valid.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::valid_signature">acs_mail_lite::valid_signature</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Validates if provided signature matches message_id&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=callback::acs_mail_lite::email_form_elements::contract">callback::acs_mail_lite::email_form_elements::contract</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=callback::acs_mail_lite::files::contract">callback::acs_mail_lite::files::contract</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=callback::acs_mail_lite::incoming_email::contract">callback::acs_mail_lite::incoming_email::contract</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Callback that is executed for incoming e-mails if the email is *NOT* like $object_id@servername&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=callback::acs_mail_lite::incoming_email::impl::acs-mail-lite">callback::acs_mail_lite::incoming_email::impl::acs-mail-lite</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Implementation of the interface acs_mail_lite::incoming_email for acs-mail-lite.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=callback::acs_mail_lite::incoming_object_email::contract">callback::acs_mail_lite::incoming_object_email::contract</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Callback that is executed for incoming e-mails if the email is like $object_id@servername&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=callback::acs_mail_lite::send::contract">callback::acs_mail_lite::send::contract</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Callback for executing code after an email has been send using the send mechanism.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=ns_sendmail">ns_sendmail</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Replacement for ns_sendmail for backward compability.&nbsp;</td>
-  </tr>
-  
-</table>
-
-  <h3>Private procs</h3>
-  <table cellspacing="0" cellpadding="0">
-  
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::after_upgrade">acs_mail_lite::after_upgrade</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>After upgrade callback for acs-mail-lite&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::bounce_prefix">acs_mail_lite::bounce_prefix</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::check_bounces">acs_mail_lite::check_bounces</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Daily proc that sends out warning mail that emails
-        are bouncing and disables emails if necessary&nbsp;</td>
-  </tr>
-
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::get_address_array">acs_mail_lite::get_address_array</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Checks if passed variable is already an array of emails,
-        user_names and user_ids.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::load_mails">acs_mail_lite::load_mails</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Scans for incoming email.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::log_mail_sending">acs_mail_lite::log_mail_sending</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Logs mail sending time for user&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::mail_dir">acs_mail_lite::mail_dir</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::message_interpolate">acs_mail_lite::message_interpolate</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Interpolates a set of values into a string.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::send_immediately">acs_mail_lite::send_immediately</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Prepare an email to be send immediately with the option to pass in a list
-        of file_ids as well as specify an html_body and a mime_type.&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::smtp">acs_mail_lite::smtp</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Send messages via SMTP&nbsp;</td>
-  </tr>
-  
-  <tr valign="top">
-    <td class="wide"><strong><a href="/api-doc/proc-view?source_p=1&version_id=&amp;proc=acs_mail_lite::sweeper">acs_mail_lite::sweeper</a></strong></td>
-    <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
-    <td>Send messages in the acs_mail_lite_queue table.&nbsp;</td>
-  </tr>
-  
-</table>
-
+<p>Notes in preparation for adding IMAP to legacy bounce MailDir paradigm</p>
   <h3>New procs</h3>
   <p>For imap, each begin of a process should not assume a connection exists or doesn't exist. Check connection using 'imap ping' before login.
     This should help re-correct any connection drop-outs due to intermittent or one-time connection issues.
@@ -258,10 +14,6 @@
     The overlapping references would likely cause issues, since each connection would expect to process
     the duplicates as if they are not duplicates.
   </p>
-  <h4>nsv inter-procedure array acs_mail_lite indexes</h4>
-  <pre>example usage:
-    nsv_set acs_mail_lite scan_incoming_active_p 0
-  </pre>
 <h3>variables useful while exploring new processes like forecasting and scheduling</h3>
   <dl>
     <dt>scan_in_active_p</dt>
@@ -327,12 +79,14 @@
     What if one of the callbacks converts a pdf into a png and annotates it for a web view and takes a few minutes?
     What if the next 5 emails have callbacks that take 5 to 15 minutes to process each waiting on an external service?
   </p>
-  <p>The process needs to be split into at least two to handle all cases. Using this paradigm, parallel processes could be invoked without significantly changing the paradigm.
+  <p>The process needs to be split into at least two to handle all cases. 
   </p><p>
     The first process collects incoming email and puts it into a system standard format with a minimal amount of effort sufficient for use by callbacks. The goal of this process is to keep up with incoming email to all mail available to the system at the earliest possible moment.
   </p><p>
-    The second process should render a prioritized stack of imported email that have not been processed. First prioritizing new entries, perhaps re-prioritizing any callbacks that error or sampling re-introducing prior errant callbacks etc. then continuing to process the stack. 
-  </p>
+    The second process should render a prioritized queue of imported email that have not been processed. First prioritizing new entries, perhaps re-prioritizing any callbacks that error or sampling re-introducing prior errant callbacks etc. then continuing to process the stack. 
+  </p><p>
+Using this paradigm, parallel processes could be invoked for the queue without significantly changing the paradigm.
+</p>
   <p>To reduce overhead on low volume systems, these processes should be scheduled to minimize concurrent operation.
   </p>
   <p>Priorities should offer 3 levels of performance. Colors designate priority to discern from other email priority schemes:</p>
@@ -403,7 +157,8 @@ set equation = int( $midpoint + ($time_priority + size_priority) / 2)
     Set ProcessFolderName by parameter If empty, Default is hostname of ad_url ie:
     [util::split_location [ad_url] protoVar ProcessFolderName portVar]
     If folder does not exist, create it. ProcessFolderName only needs checked if name has changed.
-    </p>
+    </p><p>
+    MailDir marks email as 'read' by moving from '/new' dir to '/cur' directory. ACS Mail Lite implementations should be consistent as much as possible, and so mark emails in IMAP as 'read' also.
 
   <h4>
     Email attachments
@@ -412,4 +167,4 @@ set equation = int( $midpoint + ($time_priority + size_priority) / 2)
    Since messages are not immediately deleted, create a table of attachment url references. Remove attachments older than AttachmentLife parameter seconds.
    Set default to 30 days old (2592000 seconds).
    Unless ProcessFolderName is Trash, email attachments can be recovered by original email in ProcessFolderName.
-    </p>
+No. Once callbacks are processed, assume any transfer of attachments has occurred, so that processed email can be purged.    </p>

@@ -19,17 +19,16 @@
   <h2>Contents</h2>
   <ul>
     <li>
-      <a href="setup">ACS Mail Lite setup</a>
+      <a href="setup">ACS Mail Lite setup and configuration</a>
     </li><li>
-      <a href="imap-install">IMAP installation notes</a>
-    </li><li>
-      <a href="inbound">Incoming E-mail to version OpenACS 5.9</a>
-    </li><li>
-      <a href="incoming-email">Incoming E-mail to oacs-5-9 for package developers</a>
-    </li><li>
-      <a href="incoming-email-bot">Incoming E-mail Bot</a>
+      <a href="inbound-message-bot">Inbound Message Bot</a>
     </li><li>
       <a href="outbound">Outgoing E-mail</a>
+    </li><li>
+      <a href="inbound">Legacy Incoming E-mail (to version OpenACS 5.9)</a>
+    </li>
+    <li>
+      <a href="glossary">Glossary</a>
     </li>
   </ul>
   

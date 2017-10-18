@@ -1,2 +1,2 @@
-set title "Setup and configuration"
+set title "Install Postfix MailDir"
 set context [list [list index "Documentation"] $title]
