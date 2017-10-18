@@ -17,7 +17,17 @@
   </p><p>
     If sending fails, mail to send is put in the outgoing queue
     again. The queue is processed every few minutes.
-  </p><p>
+  </p>
+  <h2>A legacy description of the process</h2>
+<p>
+Acs Mail Lite handles sending of email via sendmail or smtp
+and includes a bounce management system for invalid email
+accounts.
+</p><p>
+When called to send a mail, the mail will either get sent immediately
+or placed in an outgoing queue (changeable via parameter) which
+will be processed every few minutes.
+</p><p>
     Each outbound email contains an
     "<code>X-Envelope-From &lt;address@IncomingDomain&gt;</code>" header.
     The address part consists of values from package parameter
@@ -27,29 +37,20 @@
     package instance that is sending the email.
     The address components are separated by a dash ("-").
     <code>IncomingDomain</code> refers to the value of package parameter <code>IncomingDomain</code>.
-  </p>
-  <h2>A legacy description of the process</h2>
-Acs Mail Lite handles sending of email via sendmail or smtp
-and includes a bounce management system for invalid email
-accounts.
-<p>
-When called to send a mail, the mail will either get sent immediately
-or placed in an outgoing queue (changeable via parameter) which
-will be processed every few minutes.
-<p>
+  </p><p>
 ACS Mail Lite uses either sendmail (you have to provide the
 location of the binary as a parameter) or SMTP to send the mail.
 If the sending fails, the mail will be placed in the outgoing queue
 again and be given another try a few minutes later when processing
 the queue again.
-<p>
+</p><p>
 Each email contains an X-Envelope-From address constructed as
 follows:<br>
 The address starts with "bounce" (can be changed by a parameter)
 followed by the user_id, a hashkey and the package_id of the
 package instance that sent the email, separated by "-". The
 domain name of this address can be changed with a parameter.
-<p>
+</p><p>
 The system checks every 2 minutes (configurable) in a certain
 maildirectory (configurable) for newly bounced emails, so the
 mailsystem will have to place every mail to an address beginning
@@ -64,10 +65,11 @@ particular package-key. This enables each package to deal with
 bouncing mails on their own - probably logging this in special tables.
 ACS Mail Lite then logs the event of a bounced mail of that
 user.
-<p>
+</p><p>
 Every day a procedure is run that checks if an email account
 has to be disabled from receiving any more mail. This is done
 the following way:
+</p>
 <ul>
 <li>If a user received his last mail X days ago without any further
 bounced mail then his bounce-record gets deleted since it can

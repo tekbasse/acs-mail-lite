@@ -6,13 +6,16 @@
     Acs Mail Lite provides a standard way for OpenACS packages to send and receive email.
   </p>
   <h2>features</h2>
-  <p>API for sending email</p>
-  <p>Outgoing email processed via SMTP or system's sendmail agent.</p>
-  <p>Bounce detection for outgoing email</p>
-  <p>API for receiving email</p>
-  <p>Callback hooks to other packages triggered by replies to sent email</p>
-  <p>Callback hooks to other packages triggered by incoming email events identified by filters</p>
-  <p>Incoming email processed via IMAP4 or system's MailDir facility.</p>
+<ul>
+  <li>API for sending email</li>
+  <li>Outgoing email processed via SMTP or system's sendmail agent.</li>
+  <li>Bounce detection for outgoing email</li>
+  <li>Incoming email processed via IMAP4 or system's MailDir facility.</li>
+  <li>API for receiving email via custom method</li>
+  <li>Callback hooks to other packages triggered by replies to sent email</li>
+  <li>Callback hooks to other packages triggered by incoming email events</li>
+</ul>
+
   <h2>Contents</h2>
   <ul>
     <li>

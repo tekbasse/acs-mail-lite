@@ -27,7 +27,8 @@
   </ol>
   <p>
   <h3>IMAP</h3>
-
+  <p>After <a href="imap-install">installing nsimap</a>, setup consists of filling out the relevant parameters in the acs-mail-lite package, mainly: BounceDomain, FixedSenderEmail and the IMAP section.
+</p>
   <h3>postfix MailDir on Linux OS</h3>
   <p>
     Here is a how-to guide setting up a system using postfix in a Linux OS.
@@ -47,7 +48,7 @@
 	<li>OS: Linux</li>
 	<li>email user: service0</li>
 	<li>email&#39;s home dir: /home/service0</li>
-	<li>email user&#39;s mail dir: /home/service0/mail</li>
+	<li>email user&#39;s mail dir: /home/service0/MailDir</li>
   </ul>
 
   <p>
@@ -75,7 +76,7 @@
 
     <a  href='http://www.postfix.org/postconf.5.html#virtual_maps'>virtual_maps</a>=regexp:/etc/postfix/virtual
 
-    home_mailbox=mail/</pre>
+    home_mailbox=MailDir/</pre>
 
 
 
@@ -115,7 +116,7 @@
 	</li>
 	<li>Configure ACS Mail Lite parameters
 	  <code>BounceDomain: www.yourserver.com<br />
-	    BounceMailDir: /home/service0/mail<br />
+	    BounceMailDir: /home/service0/MailDir<br />
 	    EnvelopePrefix: bounce<br />
 	    <br />
 	    The EnvelopePrefix is for bounce e-mails only.<br />
