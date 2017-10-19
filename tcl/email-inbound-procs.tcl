@@ -1279,9 +1279,9 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                         ns_log Warning "acs_mail_lite::inbound_queue_pull \
  Accepted insecure email object_id '${pot_object_id}' \
  array get h_arr '[array get h_arr]'. See code comments."
-                        callback acs_mail_lite::incoming_object_email \
+                        callback -catch acs_mail_lite::incoming_object_email \
                             -array h_arr \
-                            -object_aid $pot_object_id
+                            -object_id $pot_object_id
                         set processed_p 1
                     }
                 }
@@ -1310,13 +1310,16 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                     set status [callback -catch acs_mail_lite::email_inbound \
                                     -header_array_name h_arr \
                                     -parts_array_name p_arr \
-                                    -package_id $h_arr(aml_package_id)]
-                    if { [string match -nocase "*error*" $status] } {
+                                    -package_id $h_arr(aml_package_id) \
+                                    -object_id $h_arr(aml_object_id) \
+                                    -party_id $h_arr(aml_party_id) \
+                                    -other $h_arr(aml_other) \
+                                    -datetime_cs $h_arr(aml_datetime_cs)]
+                    
+                    if { [lsearch -exact $status "0"] > -1 } {
                         set error_p 1
                     }
-                                
                 }
-
             }
 
             # Email is removed from queue when

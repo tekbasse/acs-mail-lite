@@ -125,62 +125,115 @@ ad_proc -public -callback acs_mail_lite::incoming_email -impl acs-mail-lite {
 ad_proc -public -callback acs_mail_lite::email_inbound {
     -headers_array_name:required
     -parts_array_name:required
-    -package_id
+    {-package_id ""}
+    {-object_id ""}
+    {-party_id ""}
+    {-other ""}
+    {-datetime_cs ""}
 } {
     Callback that is executed for inbound e-mails that are queued.
+    package_id, object_id, party_id, other, and datetime_cs are populated 
+    only when information provided via a signed unique_id via
+    acs_mail_lite::unique_id_create
 } -
 
 
 ad_proc -public -callback acs_mail_lite::email_inbound -impl acs-mail-lite {
     -headers_array_name:required
     -parts_array_name:required
-    -package_id
+    {-package_id ""}
+    {-object_id ""}
+    {-party_id ""}
+    {-other ""}
+    {-datetime_cs ""}
 } {
-    Implementation of acs_mail_lite::email_inbound for acs-mail-lite. 
-    <br><br>
-    This proc is called whenever an inbound email is pulled from the queue.
-    <br><br>
-    System-wide bounces, vacation notices and other noise have already been
-    filtered out.
-    <br><br>
-    A package developer should just need to confirm input for their specific
-    package. 
-    <br><br>
-    <code>package_id</code>, <code>object_id</code> and <code>party_id</code>
-    are passed in headers via a signed unique_id. 
-    Values default to empty string. Header indexes may not exist for all cases.
-    <ul><li>
-    aml_package_id contains package_id
-    </li><li>
-    aml_object_id contains object_id
-    </li><li>
-    aml_party_id contains party_id (usually same as user_id) 
-    </li><li>
-    aml_other contains other data useful as input
-    </li><li>
-    aml_datetime_cs contains approximate system time in seconds since epoch when email was sent.
-    </li><li>
-    aml_received_cs contains approximate system time in seconds since epoch when email was received.
-    </li></ul>
+    Example Implementation of acs_mail_lite::email_inbound.
+    This is where documentation for callback goes.
 
     @creation-date 2017-10-17
 
-    @param headers_array_name  An array with all headers.
-    @param parts_array_name   An array with files and bodies. 
+    @param headers_array_name  An array with all email headers.
+    @param parts_array_name   An array with info on files and bodies. 
     @see acs_mail_lite::inbound_queue_pull_one
 
     @param package_id   The package_id of package that sent the original email.
+    @param object_id
+    @param party_id
+    @param other
+    @param datetime_cs
 
     Not all inbound email are expected to be replies.
 } {
     upvar $headers_array_name headers_arr
     upvar $parts_array_name parts_arr
+    set no_errors_p 1
+    # ------------------- Do Not change code above this line in your copy ---
+    # Use this callback implementation as a template for other packages.
+    # Be sure to change 'impl acs-mail-lite' to a reference relevant to 
+    # package implementation is used in. 
+    # For example: -impl super-package-now-with-email
+    #
+    # This proc is called whenever an inbound email is pulled from the queue.
+    #
+    # System-wide bounces, vacation notices and other noise have already been
+    # filtered out.
+    #
+    # A package developer should just need to confirm input for their specific
+    # package. 
+    #
+    # When supplied, package_id, object_id and party_id, other and datetime_cs
+    # are passed in headers via a signed unique_id. 
+    # Values default to empty string. 
 
-    # This proc based loosely on acs_mail_lite::incoming_email
+    # headers_arr is an array of header values indexed by header name.
+    # header names are in original upper and lower case, which may
+    # have some significance in filtering cases. Although case should
+    # should not be relied on for obtaining a value.
+    # Some header indexes are created by ACS Mail Lite procs during 
+    # processing. For example these indexes may be populated via
+    # a unique id header created using acs_mail_lite::unique_id_create :
+    #
+    # aml_package_id contains package_id
+    # 
+    # aml_object_id contains object_id
+    # 
+    # aml_party_id contains party_id (usually same as user_id) 
+    # 
+    # aml_other contains other data useful as input
+    # 
+    # aml_datetime_cs contains approx time in seconds since epoch when sent.
+    #
+    #
+    # Other header names, and a description of their values, includes:
+    #
+    # aml_received_cs approx time in seconds since epoch when email received.
+    # aml_subject     contains subject value.
+    # aml_to          contents of 'to' header
+    # aml_to_addrs    email address of 'to' header
+    # aml_from        contents of 'from' header
+    # aml_from_addrs  email address of 'from' header
+
+    # For other created headers, see: acs_mail_lite::inbound_queue_pull_one
+    # Header indexes may not exist for all cases.
+    #
+
+    # parts_arr  is an array that contains all the information about attached
+    # or inline files and body contents. 
+    # For details, see acs_mail_lite::inbound_queue_pull_one
+    #
+
+    # Important: If your implementation has an error,
+    # set no_errors_p to 0, so that the email remains
+    # in the queue for later examination, even though it is also
+    # marked as 'processed' so it will not be re-processed later.
+    # 
 
     ns_log Debug "acs_mail_lite::email_inbound -impl acs-mail-lite called. Sender $headers_arr(aml_from_addrs)"
 
-    return 1
+
+
+    # ------------------- Do Not change code below this line in your copy ---
+    return $no_errors_p
 }
 
 
