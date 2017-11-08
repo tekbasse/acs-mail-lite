@@ -222,15 +222,13 @@ ad_proc -public -callback acs_mail_lite::email_inbound -impl acs-mail-lite {
     # For details, see acs_mail_lite::inbound_queue_pull_one
     #
 
+    ns_log Debug "acs_mail_lite::email_inbound -impl acs-mail-lite called. Sender $headers_arr(aml_from_addrs)"
+
     # Important: If your implementation has an error,
     # set no_errors_p to 0, so that the email remains
     # in the queue for later examination, even though it is also
     # marked as 'processed' so it will not be re-processed later.
     # 
-
-    ns_log Debug "acs_mail_lite::email_inbound -impl acs-mail-lite called. Sender $headers_arr(aml_from_addrs)"
-
-
 
     # ------------------- Do Not change code below this line in your copy ---
     return $no_errors_p

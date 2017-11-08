@@ -17,7 +17,7 @@
 
   <ul>
 	<li>hostname: www.yourserver.com</li>
-	<li>oacs user: service0</li>
+	<li>oacs server user: service0</li>
 	<li>OS: Linux</li>
 	<li>email user: service0</li>
 	<li>email's home dir: /home/service0</li>
@@ -30,7 +30,9 @@
     This user is only used for running the OpenACS website. 
     Follow strict configuration guidelines to avoid email looping back unchecked.
   </p>
-
+  <p>The oacs server user needs to have read and write permissions to email user's mail dir. 
+For test cases, one may use a common OS user for <code>oacs server user</code> and <code>email user</code>. 
+For more strict server configurations, use a different OS user for each, and grant permission for <code>oacs server user</code> to access files and directories in <code>email user's mail dir</code>.
   <p>
     For Postfix, the email user and oacs user do not have to be the same. 
     Furthermore, Postfix makes distinctions between <a  href='http://www.postfix.org/VIRTUAL_README.html'>virtual users and user aliases</a>.
