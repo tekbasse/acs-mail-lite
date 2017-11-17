@@ -14,10 +14,10 @@
     in a general fashion using callbacks.
   </p>
 <p>
-    The code is general enough to adapt to any message sources.
-    It's anticipated that links could be make to social networks for example.
+    The code is general enough to adapt to any message sources,
+    such as social network apps for example.
   </p>
-  <p>The first implementation of Message Bot handles email imported from IMAP or MailDir. These can be operated simultaneously.</p>
+  <p>The first implementation of Message Bot handles email imported from IMAP or MailDir. These can operate concurrently.</p>
 <ul>
   <li>
     See <a href="maildir-install">MailDir installation notes</a> to install.
