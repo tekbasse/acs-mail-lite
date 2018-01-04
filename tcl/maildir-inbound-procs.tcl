@@ -34,7 +34,7 @@ ad_proc -private acs_mail_lite::maildir_check_incoming {
         set cycle_start_cs [clock seconds]
         nsv_lappend acs_mail_lite sj_actives_list $cycle_start_cs
         set sj_actives_list [nsv_get acs_mail_lite sj_actives_list]
-        ns_log Notice "acs_mail_lite::maildir_check_incoming.37. start\
+        ns_log Notice "acs_mail_lite::maildir_check_incoming.37. start \
  sj_actives_list '${sj_actives_list}'"
         
         set active_cs [lindex $sj_actives_list end]
