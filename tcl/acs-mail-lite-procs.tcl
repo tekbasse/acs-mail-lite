@@ -449,9 +449,9 @@ namespace eval acs_mail_lite {
 
 
         # Set the message_id
-        # message-id gets signed if user_id or package_id not defaults        
+        # message-id gets signed if parameter defaults not passed
         set message_id [acs_mail_lite::unique_id_create \
-                            -message_id $message_id \
+                            -object_id $object_id \
                             -package_id $package_id \
                             -party_id $rcpt_id]
 
