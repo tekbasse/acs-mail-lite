@@ -3,7 +3,7 @@ ad_library {
     Provides API for importing email under a varitey of deployment conditions.
     
     @creation-date 19 Jul 2017
-    @cvs-id $Id: $
+    @cvs-id $Id$
 
 }
 
@@ -550,7 +550,7 @@ ad_proc -public acs_mail_lite::email_type {
     # https://www.iana.org/assignments/auto-submitted-keywords/auto-submitted-keywords.xhtml
     # and rfc3834 https://www.ietf.org/rfc/rfc3834.txt
 
-    # Do NOT use x-auto-response-supress
+    # Do NOT use x-auto-response-suppress
     # per: https://stackoverflow.com/questions/1027395/detecting-outlook-autoreply-out-of-office-emails
 
     # header cases: 
@@ -579,7 +579,7 @@ ad_proc -public acs_mail_lite::email_type {
         array set h_arr [list ]
     }
 
-    if { $headers ne "" && [llength [array names h_arr]] < 1 } {
+    if { $headers ne "" && [array size h_arr] < 1 } {
         #  To remove subject from headers to search, 
         #  incase topic uses a reserved word,
         #  we rebuild the semblence of array returned by ns_imap headers.
@@ -674,7 +674,7 @@ ad_proc -public acs_mail_lite::email_type {
         set from_email ""
         if { $fr_idx > -1 } {
             set fr_h [lindex $hn_list $fr_idx]
-            set from [ad_quotehtml $h_arr(${fr_h})]
+            set from [ns_quotehtml $h_arr(${fr_h})]
             set h_arr(aml_from) $from
             set from_email [string tolower \
                                 [acs_mail_lite::parse_email_address \
@@ -816,7 +816,15 @@ ad_proc -public acs_mail_lite::email_type {
                 # or a system hosted same as OpenACS sent it.
                 
                 set dt_h [lindex $hn_list $dt_idx]
-                set dte_cs [ns_imap parsedate $h_arr(${dt_h})]
+                # Cannot use optional ns_imap parsedate here. May not exist.
+                # rfc5322 section 3.3: multiple spaces in date is acceptable
+                # but not for tcl clock scan -format
+                regsub -all -- {[ ][ ]*} $h_arr(${dt_h}) { } dt_spaced
+                # rfc5322 section 3.3: obs-zone breaks clock scan format too
+                set dt_spaced_tz_idx [string first " (" $dt_spaced]
+                set dt_spaced [string trim [string range $dt_spaced 0 ${dt_spaced_tz_idx} ]]
+                set dte_cs [clock scan $dt_spaced -format "%a, %d %b %G %H:%M:%S %z"]
+
                 set diff 1000
                 if { $dte_cs ne "" && $dti_cs ne "" } {
                     set diff [expr { abs( $dte_cs - $dti_cs ) } ]
@@ -933,7 +941,7 @@ ad_proc -public acs_mail_lite::email_type {
                 set fr_idx [lsearch -glob -nocase $hn_list {subject}]
                 if { $fr_idx > -1 } {
                     set subject $h_arr(${subject})
-                    set h_arr(aml_subject) [ad_quotehtml $subject]
+                    set h_arr(aml_subject) [ns_quotehtml $subject]
                 }
             }
             
@@ -1074,7 +1082,7 @@ ad_proc -private acs_mail_lite::inbound_queue_insert {
                     aml_to_addrs -
                     to {
                         if { ![info exists h_arr(aml_to_addrs)] } {
-                            set h_quoted [ad_quotehtml $h_value]
+                            set h_quoted [ns_quotehtml $h_value]
                             set h_arr(aml_to) $h_quoted
                             set to_addrs [acs_mail_lite::parse_email_address \
                                                     -email $h_quoted ]
@@ -1316,7 +1324,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull {
                                     -other $h_arr(aml_other) \
                                     -datetime_cs $h_arr(aml_datetime_cs)]
                     
-                    if { [lsearch -exact $status "0"] > -1 } {
+                    if {"0" in $status} {
                         set error_p 1
                     }
                 }
@@ -1355,7 +1363,7 @@ ad_proc -private acs_mail_lite::inbound_queue_pull_one {
     of h_array_name and p_array_name for use by registered callbacks. 
 
     Arrays are repopulated with values in the same manner that
-    acs_mail_lite::inbounde_queue_insert recieves them. See below for details.
+    acs_mail_lite::inbounde_queue_insert receives them. See below for details.
     
     When complete, marks the email in the queue as processed, 
     if mark_processed_p is 1.

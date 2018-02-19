@@ -3,7 +3,7 @@ ad_library {
     Provides API for importing email via nsimap
     
     @creation-date 19 Jul 2017
-    @cvs-id $Id: $
+    @cvs-id $Id$
 
 }
 

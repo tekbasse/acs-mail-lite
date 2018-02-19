@@ -4,7 +4,7 @@ ad_library {
     
     @author Eric Lorenzo (eric@openforce.net)
     @creation-date 22 March 2002
-    @cvs-id $Id: acs-mail-lite-procs.tcl,v 1.92.2.7 2016/01/11 16:14:37 gustafn Exp $
+    @cvs-id $Id$
 
 }
 
@@ -315,7 +315,7 @@ namespace eval acs_mail_lite {
             return
         }
 
-        with_finally -code {
+        ad_try {
             db_foreach get_queued_messages {} {
                 # check if record is already there and free to use
                 set return_id [db_string get_queued_message {} -default -1]
@@ -324,7 +324,7 @@ namespace eval acs_mail_lite {
                     set locking_server [ad_url]
                     db_dml lock_queued_message {}
                     # send the mail
-                    set err [catch {
+                    ad_try {
                         acs_mail_lite::send_immediately \
                             -to_addr $to_addr \
                             -cc_addr $cc_addr \
@@ -342,19 +342,18 @@ namespace eval acs_mail_lite {
                             -no_callback_p $no_callback_p \
                             -extraheaders $extraheaders \
                             -use_sender_p $use_sender_p        
-                    } errMsg]
-                    if {$err} {
-                        ns_log Error "Could not send queued mail (message $return_id): $errMsg"
+                    } on error {errorMsg} {
+                        ad_log Error "Could not send queued mail (message $return_id): $errorMsg"
                         # release the lock (MS not now)
                         # set locking_server ""
                         # db_dml lock_queued_message {}    
-                    } else {
+                    } on ok {r} {
                         # mail was sent, delete the queue entry
                         db_dml delete_queue_entry {}
                     }
                 }
             }
-        } -finally {
+        } finally {
             nsv_incr acs_mail_lite send_mails_p -1
         }
     }
@@ -385,35 +384,20 @@ namespace eval acs_mail_lite {
         multiple "TO" recipients as well as CC
         and BCC recipients. Runs entirely off MIME and SMTP to achieve this. 
 
-        
         @param to_addr List of e-mail addresses to send this mail to. 
-
         @param from_addr E-Mail address of the sender.
-
         @param reply_to E-Mail address to which replies should go. Defaults to from_addr
-
         @param subject of the email
-
         @param body Text body of the email
-
         @param cc_addr List of CC Users e-mail addresses to send this mail to.
-
         @param bcc_addr List of CC Users e-mail addresses to send this mail to.
-
         @param package_id Package ID of the sending package
-
         @param file_ids List of file ids (items or revisions) to be send as attachments. This will only work with files stored in the file-storage.
-        
         @param filesystem_files List of regular files on the filesystem to be send as attachments.
-        
         @param delete_filesystem_files_p Decides if we want files specified by the 'file' parameter to be deleted once sent.
-
         @param mime_type MIME Type of the mail to send out. Can be "text/plain", "text/html".
-
         @param extraheaders List of keywords and their values passed in for headers. Interesting ones are: "Precedence: list" to disable autoreplies and mark this as a list message. This is as list of lists !!
-
         @param no_callback_p Indicates if callback should be executed or not. If you don't provide it it will execute callbacks.
-
         @param use_sender_p Boolean indicating that from_addr should be used regardless of fixed-sender parameter
         @param object_id Object id that caused this email to be sent
     } {
@@ -428,7 +412,7 @@ namespace eval acs_mail_lite {
         set fixed_sender [parameter::get -parameter "FixedSenderEmail" \
                               -package_id $mail_package_id]
 
-        
+
         if { $fixed_sender ne "" && !$use_sender_p} {
             set from_addr $fixed_sender
         }
@@ -456,12 +440,56 @@ namespace eval acs_mail_lite {
                             -party_id $rcpt_id]
 
 
-        # Build the originator address to be used as enveloppe sender
-        # and originator etc. 
-        set orginator [bounce_address -user_id $rcpt_id \
-                            -package_id $package_id \
-                            -message_id $message_id]
+        # Set originator header
+        set originator_email [parameter::get -parameter "OriginatorEmail" \
+                              -package_id $mail_package_id]
 
+        # Decision based firstly on parameter,
+        # and then on other values that most likely could be substituted
+        # with initial choice, and while meeting definition
+        # of originator header according to rfc 2822 section 3.6.2
+        # https://tools.ietf.org/html/rfc2822#section-3.6.2
+        # A value must be provided.
+        switch -exact -- $originator_email {
+            fixed_sender {
+                if { $fixed_sender ne "" } {
+                    set originator $fixed_sender
+                } elseif { $from_addr ne "" } {
+                    set originator $from_addr
+                } else {
+                    set originator $message_id
+                }
+            }
+            from_address {
+                if { $from_addr ne "" } {
+                    set originator $from_addr
+                } elseif { $fixed_sender ne "" } {
+                    set originator $fixed_sender
+                } else {
+                    set originator $message_id
+                }
+            }
+            message_id {
+                set originator $message_id
+            }
+            reply_to {
+                if { $reply_to ne "" } {
+                    set originator $reply_to
+                } elseif { $from_addr ne "" } {
+                    set originator $from_addr
+                } else {
+                    set originator $message_id
+                }
+            }
+            bounce_address -
+            default {
+                # Build the originator address to be used as envelope sender
+                # and originator etc. 
+                set originator [bounce_address -user_id $rcpt_id \
+                                   -package_id $package_id \
+                                   -message_id $message_id]
+            }
+        }
 
         # Set the date
         set message_date [acs_mail_lite::utils::build_date]
@@ -489,7 +517,7 @@ namespace eval acs_mail_lite {
             db_foreach get_file_info {} {
                 lappend tokens [mime::initialize \
                                     -param [list name [ns_quotehtml $title]] \
-                                    -header [list "Content-Disposition" "attachment; filename=\"$name\""] \
+                                    -header [list Content-Disposition "attachment; filename=\"$name\""] \
                                     -header [list Content-Description $title] \
                                     -canonical $mime_type \
                                     -file "[cr_fs_path]$filename"]
@@ -522,7 +550,7 @@ namespace eval acs_mail_lite {
 		set mime_type [cr_filename_to_mime_type $name]
                 lappend tokens [mime::initialize \
                                     -param [list name $name] \
-                                    -header [list "Content-Disposition" "attachment; filename=\"$name\""] \
+                                    -header [list Content-Disposition "attachment; filename=\"$name\""] \
                                     -header [list Content-Description $name] \
                                     -canonical $mime_type \
                                     -file $f]
@@ -540,7 +568,7 @@ namespace eval acs_mail_lite {
 
         # Set the subject
         if { $subject ne "" } {
-            set encoded_subject [acs_mail_lite::utils::build_subject $subject]
+            set encoded_subject [acs_mail_lite::utils::build_subject -- $subject]
             mime::setheader $tokens Subject $encoded_subject
         }
 
@@ -552,7 +580,7 @@ namespace eval acs_mail_lite {
         # Rollout support
         set delivery_mode [parameter::get -package_id [get_package_id] -parameter EmailDeliveryMode -default default]
 
-        switch $delivery_mode {
+        switch -- $delivery_mode {
             log {
                 set send_mode "log"
                 set notice "logging email instead of sending"
@@ -610,7 +638,7 @@ namespace eval acs_mail_lite {
             lappend headers_list [list DCC [join $bcc_addr ","]]
         }
 
-        set originator $message_id
+
 
         set errorMsg ""
         set status ok
@@ -668,7 +696,7 @@ namespace eval acs_mail_lite {
 	# could need to look at files for their own purposes.
         if {[string is true $delete_filesystem_files_p]} {
 	    foreach f $filesystem_files {
-		file delete $f
+		file delete -- $f
 	    }
 	}
         if {$status ne "ok"} {
@@ -706,7 +734,7 @@ namespace eval acs_mail_lite {
         {bcc {}}
     } {
 
-        Replacement for ns_sendmail for backward compability.
+        Replacement for ns_sendmail for backward compatibility.
 
     } {
 

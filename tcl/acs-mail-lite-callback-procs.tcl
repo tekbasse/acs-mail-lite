@@ -7,7 +7,7 @@ ad_library {
     @author Malte Sussdorff (sussdorff@sussdorff.de)
     @creation-date 2005-06-15
     @arch-tag: d9aec4df-102d-4b0d-8d0e-3dc470dbe783
-    @cvs-id $Id: acs-mail-lite-callback-procs.tcl,v 1.23.2.2 2016/01/08 21:17:10 gustafn Exp $
+    @cvs-id $Id$
 }
 
 ad_proc -public -callback acs_mail_lite::send {
@@ -97,7 +97,7 @@ ad_proc -public -callback acs_mail_lite::incoming_email -impl acs-mail-lite {
     } else {
         set to [acs_mail_lite::parse_email_address -email $email(to)]
     }
-    ns_log Debug "acs_mail_lite::incoming_email -impl acs-mail-lite called. Recepient $to"
+    ns_log Debug "acs_mail_lite::incoming_email -impl acs-mail-lite called. Recipient $to"
 
     if { ![info exists email(aml_user_id)] } {
         # Traditional call parses here. Queue case is pre-parsed.

@@ -1,6 +1,6 @@
 ad_page_contract {
     The page restores a user from the deleted state.
-    @cvs-id $Id: restore-bounce.tcl,v 1.1.12.3 2016/05/20 19:55:32 gustafn Exp $
+    @cvs-id $Id$
 } {
     {return_url:localurl {[ad_pvt_home]}}
 }

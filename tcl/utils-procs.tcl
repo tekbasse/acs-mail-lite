@@ -7,7 +7,7 @@ ad_library {
     @author Emmanuelle Raffenne (eraffenne@gmail.com)
     @creation-date 2007-12-16
     @arch-tag: 820de9a9-533f-4fc3-b11d-2c9fb616a620
-    @cvs-id $Id: utils-procs.tcl,v 1.4.10.2 2016/12/17 18:07:35 gustafn Exp $
+    @cvs-id $Id$
 }
 
 namespace eval acs_mail_lite {}
@@ -164,7 +164,7 @@ ad_proc acs_mail_lite::utils::build_body {
                                    -canonical "text/plain" \
                                    -param [list charset $charset] \
                                    -encoding "quoted-printable" \
-                                   -string [ad_html_to_text "$body"]]
+                                   -string [ad_html_to_text -- $body]]
         
         set message_token [mime::initialize \
                                -canonical "multipart/alternative" \

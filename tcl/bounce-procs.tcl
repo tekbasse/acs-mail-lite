@@ -1,16 +1,17 @@
 ad_library {
 
     Provides a simple API for reliably sending email.
-    
+
     @author Eric Lorenzo (eric@openforce.net)
     @creation-date 22 March 2002
-    @cvs-id $Id: bounce-procs.tcl,v 1.11.2.1 2015/09/10 08:21:31 gustafn Exp $
+    @cvs-id $Id$
 
 }
 
 package require mime 1.4
 package require smtp 1.4
 package require base64 2.3.1
+
 namespace eval acs_mail_lite {
 
     #---------------------------------------
@@ -19,7 +20,7 @@ namespace eval acs_mail_lite {
     } {
         return [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter "EnvelopePrefix"]
     }
-    
+
     #---------------------------------------
     ad_proc -public bouncing_email_p {
         -email:required
@@ -77,7 +78,7 @@ namespace eval acs_mail_lite {
         }
         return $ba
     }
-    
+
     #---------------------------------------
     ad_proc -public -deprecated parse_bounce_address {
         -bounce_address:required
@@ -94,7 +95,7 @@ namespace eval acs_mail_lite {
             ns_log Debug "acs-mail-lite: bounce address not found for $bounce_address"
             return ""
         }
-    	return [list $user_id $package_id $signature]
+        return [list $user_id $package_id $signature]
     }
 
     #---------------------------------------
@@ -107,28 +108,28 @@ namespace eval acs_mail_lite {
             return
         }
 
-        with_finally -code {
+        ad_try  {
             ns_log Debug "acs-mail-lite: about to load qmail queue for [mail_dir]"
             load_mails -queue_dir [mail_dir]
-        } -finally {
+        } finally {
             nsv_incr acs_mail_lite check_bounce_p -1
         }
     }
 
     #---------------------------------------
-    ad_proc -private check_bounces { } {
+    ad_proc -private check_bounces {} {
         Daily proc that sends out warning mail that emails
         are bouncing and disables emails if necessary
     } {
-        set max_bounce_count [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter MaxBounceCount -default 10]
-        set max_days_to_bounce [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter MaxDaysToBounce -default 3]
-        set notification_interval [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter NotificationInterval -default 7]
-        set max_notification_count [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter MaxNotificationCount -default 4]
-        set notification_sender [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter NotificationSender -default ""]
+        set package_id [apm_package_id_from_key "acs-mail-lite"]
+        set max_bounce_count [parameter::get -package_id $package_id -parameter MaxBounceCount -default 10]
+        set max_days_to_bounce [parameter::get -package_id $package_id -parameter MaxDaysToBounce -default 3]
+        set notification_interval [parameter::get -package_id $package_id -parameter NotificationInterval -default 7]
+        set max_notification_count [parameter::get -package_id $package_id -parameter MaxNotificationCount -default 4]
+        set notification_sender [parameter::get -package_id $package_id -parameter NotificationSender -default "reminder@[address_domain]"]
         if { $notification_sender eq "" } {
             # Use the most specific default available
-            set fixed_sender [parameter::get -parameter "FixedSenderEmail" \
-                                  -package_id $mail_package_id]
+            set fixed_sender [parameter::get -package_id $package_id -parameter "FixedSenderEmail"]
             if { $fixed_sender ne "" } {
                 set notification_sender $fixed_sender
             } elseif { [acs_mail_lite::utils::valid_email_p [ad_system_owner]] } {
@@ -169,7 +170,7 @@ namespace eval acs_mail_lite {
             set notification_list [util_ns_set_to_list -set $notification]
             array set user $notification_list
             set user_id $user(user_id)
-	    set href [export_vars -base [ad_url]/register/restore-bounce {user_id}]
+            set href [export_vars -base [ad_url]/register/restore-bounce {user_id}]
             set body "Dear $user(name),\n\n\
  Due to returning mails from your email account, \n \
  we currently do not send you any email from our system.\n\n \
@@ -179,14 +180,14 @@ namespace eval acs_mail_lite {
             ns_log Notice "Bounce notification send to user $user_id"
 
             # schedule next notification
-            db_dml log_notication_sending {}
+            db_dml log_notification_sending {}
         }
     }
 
     ad_proc -public record_bounce {
         {-user_id ""}
         {-email ""}
-    } { 
+    } {
         Records that an email bounce for this user
     } {
         if {$user_id eq ""} {
@@ -196,7 +197,7 @@ namespace eval acs_mail_lite {
             ns_log Debug "acs_mail_lite::incoming_email impl acs-mail-lite: Bouncing email from user $user_id"
             # record the bounce in the database
             db_dml record_bounce {}
-            
+
             if {![db_resultrows]} {
                 db_dml insert_bounce {}
             }

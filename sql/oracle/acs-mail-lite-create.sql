@@ -2,7 +2,7 @@
 -- A simple mail queue
 --
 -- @author <a href="mailto:eric@openforce.net">eric@openforce.net</a>
--- @version $Id: acs-mail-lite-create.sql,v 1.14.2.1 2017/03/03 08:55:18 gustafn Exp $
+-- @version $Id$
 --
 
 create sequence acs_mail_lite_id_seq;
